@@ -48,6 +48,7 @@ _DEFAULT_REPLACEABLE_LIST = [
     'keep_checkpoint_max',
     'keep_checkpoint_every_n_hours',
     'log_step_count_steps',
+    'node_batch_size',
     'train_distribute',
     'device_fn',
     'protocol',
@@ -282,6 +283,9 @@ def _validate_properties(run_config):
   _validate('save_summary_steps', lambda steps: steps >= 0,
             message='save_summary_steps should be >= 0')
 
+  _validate('node_batch_size', lambda node_batch_size: node_batch_size >= 0,
+            message='save_summary_steps should be >= 0')
+
   _validate('save_checkpoints_steps', lambda steps: steps >= 0,
             message='save_checkpoints_steps should be >= 0')
   _validate('save_checkpoints_secs', lambda secs: secs >= 0,
@@ -348,6 +352,7 @@ class RunConfig(object):
                keep_checkpoint_max=5,
                keep_checkpoint_every_n_hours=10000,
                log_step_count_steps=100,
+               node_batch_size=128,
                train_distribute=None,
                device_fn=None,
                protocol=None,
@@ -542,6 +547,7 @@ class RunConfig(object):
         keep_checkpoint_max=keep_checkpoint_max,
         keep_checkpoint_every_n_hours=keep_checkpoint_every_n_hours,
         log_step_count_steps=log_step_count_steps,
+        node_batch_size=node_batch_size,
         train_distribute=train_distribute,
         device_fn=device_fn,
         protocol=protocol,
@@ -555,9 +561,11 @@ class RunConfig(object):
         (eval_distribute and
          not eval_distribute.__class__.__name__.startswith('TPUStrategy')) or
         experimental_distribute):
+      logging.info('sahil tyagi train_distribute condition satisfied')
       logging.info('Initializing RunConfig with distribution strategies.')
       distribute_coordinator_training.init_run_config(self, tf_config)
     else:
+      logging.info('sahil tyagi, checking distributed setting from TF_CONFIG')
       self._init_distributed_setting_from_environment_var(tf_config)
       self._maybe_overwrite_session_config_for_distributed_training()
 
