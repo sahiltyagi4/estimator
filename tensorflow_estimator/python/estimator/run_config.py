@@ -607,7 +607,7 @@ class RunConfig(object):
 
   def _init_distributed_setting_from_environment_var(self, tf_config):
     """Initialize distributed properties based on `tf_config`."""
-
+    logging.info('sahil tyagi check _init_distributed_setting_from_environment_var function call!!!!!')
     self._service = _validate_service(tf_config.get(_SERVICE_KEY))
     self._cluster_spec = server_lib.ClusterSpec(tf_config.get(_CLUSTER_KEY, {}))
     task_env = tf_config.get(_TASK_ENV_KEY, {})
