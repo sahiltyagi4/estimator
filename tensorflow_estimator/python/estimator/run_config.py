@@ -536,7 +536,7 @@ class RunConfig(object):
                                compat_internal.path_to_str(model_dir))
 
     # sahil tyagi..variable to be returned by get_node_batch_size()
-    self._node_batch_size=node_batch_size
+    self.node_batch_size=node_batch_size
 
     RunConfig._replace(
         self,
@@ -731,7 +731,7 @@ class RunConfig(object):
   # sahil tyagi....to retrieve the node_batch_size. This value is fed to the batch_size parameter of the input function
   @property
   def get_node_batch_size(self):
-    return self._node_batch_size
+    return self.node_batch_size
 
   @property
   def is_chief(self):
