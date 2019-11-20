@@ -283,8 +283,8 @@ def _validate_properties(run_config):
   _validate('save_summary_steps', lambda steps: steps >= 0,
             message='save_summary_steps should be >= 0')
 
-  _validate('node_batch_size', lambda node_batch_size: node_batch_size >= 0,
-            message='save_summary_steps should be >= 0')
+  _validate('node_batch_size', lambda node_batch_size: node_batch_size > 0,
+            message='node_batch_size should be > 0')
 
   _validate('save_checkpoints_steps', lambda steps: steps >= 0,
             message='save_checkpoints_steps should be >= 0')
@@ -535,6 +535,9 @@ class RunConfig(object):
     model_dir = _get_model_dir(tf_config,
                                compat_internal.path_to_str(model_dir))
 
+    # sahil tyagi..variable to be returned by get_node_batch_size()
+    self._node_batch_size=node_batch_size
+
     RunConfig._replace(
         self,
         allowed_properties_list=_DEFAULT_REPLACEABLE_LIST,
@@ -724,6 +727,11 @@ class RunConfig(object):
   @property
   def evaluation_master(self):
     return self._evaluation_master
+
+  # sahil tyagi....to retrieve the node_batch_size. This value is fed to the batch_size parameter of the input function
+  @property
+  def get_node_batch_size(self):
+    return self._node_batch_size
 
   @property
   def is_chief(self):
