@@ -1153,10 +1153,10 @@ class Estimator(object):
 
   def _train_model(self, input_fn, hooks, saving_listeners):
     if self._train_distribution:
-      logging.info('sahil tyagi in train...using distributed?')
+      logging.info('@sahiltyagi in train...using distributed?')
       return self._train_model_distributed(input_fn, hooks, saving_listeners)
     else:
-      logging.info('sahil tyagi in train...using default?')
+      logging.info('@sahiltyagi in train...using default?')
       return self._train_model_default(input_fn, hooks, saving_listeners)
 
   def _train_model_default(self, input_fn, hooks, saving_listeners):
@@ -1361,7 +1361,7 @@ class Estimator(object):
   def _train_with_estimator_spec(self, estimator_spec, worker_hooks, hooks,
                                  global_step_tensor, saving_listeners):
     """Train a model with the given Estimator Spec."""
-    logging.info('sahil tyagi going to train with estimator spec!!!!')
+    logging.info('@sahiltyagi going to train with estimator spec!!!!')
     if self._warm_start_settings:
       logging.info('Warm-starting with WarmStartSettings: %s' %
                    (self._warm_start_settings,))

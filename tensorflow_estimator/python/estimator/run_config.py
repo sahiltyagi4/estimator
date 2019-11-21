@@ -535,8 +535,9 @@ class RunConfig(object):
     model_dir = _get_model_dir(tf_config,
                                compat_internal.path_to_str(model_dir))
 
-    # sahil tyagi..variable to be returned by get_node_batch_size()
+    # @sahiltyagi ..variable to be returned by get_node_batch_size()
     self.node_batch_size=node_batch_size
+    logging.info('@sahiltyagi4 RunConfig object per-node batch-size: %d', self.get_node_batch_size)
 
     RunConfig._replace(
         self,
@@ -564,11 +565,11 @@ class RunConfig(object):
         (eval_distribute and
          not eval_distribute.__class__.__name__.startswith('TPUStrategy')) or
         experimental_distribute):
-      logging.info('sahil tyagi train_distribute condition satisfied')
+      logging.info('sahiltyagi4 train_distribute condition satisfied')
       logging.info('Initializing RunConfig with distribution strategies.')
       distribute_coordinator_training.init_run_config(self, tf_config)
     else:
-      logging.info('sahil tyagi, checking distributed setting from TF_CONFIG')
+      logging.info('sahiltyagi4 checking distributed setting from TF_CONFIG')
       self._init_distributed_setting_from_environment_var(tf_config)
       self._maybe_overwrite_session_config_for_distributed_training()
 
@@ -618,7 +619,7 @@ class RunConfig(object):
 
   def _init_distributed_setting_from_environment_var(self, tf_config):
     """Initialize distributed properties based on `tf_config`."""
-    logging.info('sahil tyagi check _init_distributed_setting_from_environment_var function call!!!!!')
+    logging.info('@sahiltyagi4 check _init_distributed_setting_from_environment_var function call!!!!!')
     self._service = _validate_service(tf_config.get(_SERVICE_KEY))
     self._cluster_spec = server_lib.ClusterSpec(tf_config.get(_CLUSTER_KEY, {}))
     task_env = tf_config.get(_TASK_ENV_KEY, {})
@@ -728,7 +729,7 @@ class RunConfig(object):
   def evaluation_master(self):
     return self._evaluation_master
 
-  # sahil tyagi....to retrieve the node_batch_size. This value is fed to the batch_size parameter of the input function
+  # @sahiltyagi4 ....to retrieve the node_batch_size. This value is fed to the batch_size parameter of the input function
   @property
   def get_node_batch_size(self):
     return self.node_batch_size
