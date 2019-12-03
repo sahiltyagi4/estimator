@@ -763,6 +763,7 @@ class _TrainingExecutor(object):
   def _start_distributed_training(self, saving_listeners=None):
     """Calls `Estimator` train in a distributed setting."""
     config = self._estimator.config
+    logging.info('@sahiltyagi4 calling _start_distributed_training fn.')
 
     # Start in-process TensorFlow server if needed. It's important to start the
     # server before we (optionally) sleep. Otherwise, the servers will wait to

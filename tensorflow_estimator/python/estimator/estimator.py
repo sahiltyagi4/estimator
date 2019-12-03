@@ -23,6 +23,7 @@ import collections
 import copy
 import os
 import tempfile
+import time
 
 import numpy as np
 import six
@@ -1484,7 +1485,9 @@ class Estimator(object):
       loss = None
       any_step_done = False
       while not mon_sess.should_stop():
+        iteration_starttime = time.time()
         _, loss = mon_sess.run([estimator_spec.train_op, estimator_spec.loss])
+        logging.info('@sahiltyagi iteration time on given worker is ' + str(time.time() - iteration_starttime) + ' and step count is: ' + str(log_step_count_steps))
         any_step_done = True
     if not any_step_done:
       logging.warning('Training with estimator made no steps. '
