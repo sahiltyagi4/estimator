@@ -573,6 +573,13 @@ class RunConfig(object):
       self._init_distributed_setting_from_environment_var(tf_config)
       self._maybe_overwrite_session_config_for_distributed_training()
 
+  def set_node_batch_size(self, new_node_batch_size):
+    logging.info('@sahiltyagi4 inside function to set per-node batch size.')
+    logging.info('@sahiltyagi4 new_node_batch_size value: ' + str(new_node_batch_size))
+    self.node_batch_size = new_node_batch_size
+    logging.info('@sahiltyagi4 new value of per-node batch-size ' + str(self.node_batch_size))
+    logging.info('@sahiltyagi4 batch-size value called by get_node_batch_size fn. ' + str(self.get_node_batch_size))
+
   def _maybe_overwrite_session_config_for_distributed_training(self):
     """Overwrites the session_config for distributed training.
 

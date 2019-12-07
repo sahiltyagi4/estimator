@@ -27,6 +27,7 @@ import time
 
 import numpy as np
 import six
+import random
 
 from google.protobuf import message
 from tensorflow.core.framework import summary_pb2
@@ -1470,6 +1471,7 @@ class Estimator(object):
                   every_n_steps=self._config.log_step_count_steps,
                   output_dir=self._config.model_dir))
 
+    batch_size_regime = [129,134,137,169,69]
     with training.MonitoredTrainingSession(
         master=self._config.master,
         is_chief=self._config.is_chief,
@@ -1487,8 +1489,10 @@ class Estimator(object):
       while not mon_sess.should_stop():
         iteration_starttime = time.time()
         _, loss = mon_sess.run([estimator_spec.train_op, estimator_spec.loss])
-        logging.info('@sahiltyagi iteration time on given worker is ' + str(time.time() - iteration_starttime) + ' and step count is: ' + str(log_step_count_steps))
+        logging.info('@sahiltyagi iteration time on given worker is ' + str(time.time() - iteration_starttime))
         any_step_done = True
+        logging.info('@sahiltyagi4 going to randomly select a value gtom the batching regime')
+        self._config.set_node_batch_size(random.choice(batch_size_regime))
     if not any_step_done:
       logging.warning('Training with estimator made no steps. '
                       'Perhaps input is empty or misspecified.')
