@@ -1471,7 +1471,8 @@ class Estimator(object):
                   every_n_steps=self._config.log_step_count_steps,
                   output_dir=self._config.model_dir))
 
-    batch_size_regime = [129,134,137,169,69]
+    #batch_size_regime = [129,134,137,169,69]
+    batch_size_regime = ['abc', 'pqr', 'xyz', 'lmn', 'def']
     with training.MonitoredTrainingSession(
         master=self._config.master,
         is_chief=self._config.is_chief,
