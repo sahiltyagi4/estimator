@@ -27,7 +27,7 @@ import time
 
 import numpy as np
 import six
-import random
+import tensorflow as tf
 
 from google.protobuf import message
 from tensorflow.core.framework import summary_pb2
@@ -1099,6 +1099,7 @@ class Estimator(object):
     Raises:
       ValueError: if `input_fn` takes invalid arguments.
     """
+    logging.info('@sahiltyagi4 in _call_input_fn call.')
     input_fn_args = function_utils.fn_args(input_fn)
     kwargs = {}
     if 'mode' in input_fn_args:
@@ -1155,10 +1156,11 @@ class Estimator(object):
 
   def _train_model(self, input_fn, hooks, saving_listeners):
     if self._train_distribution:
-      logging.info('@sahiltyagi in train...using distributed?')
+      #logging.info('@sahiltyagi in train...using distributed?')
       return self._train_model_distributed(input_fn, hooks, saving_listeners)
     else:
-      logging.info('@sahiltyagi in train...using default?')
+      #@sahiltyagi4 THIS GETS CALLED..
+      #logging.info('@sahiltyagi in train...using default?')
       return self._train_model_default(input_fn, hooks, saving_listeners)
 
   def _train_model_default(self, input_fn, hooks, saving_listeners):
@@ -1363,7 +1365,7 @@ class Estimator(object):
   def _train_with_estimator_spec(self, estimator_spec, worker_hooks, hooks,
                                  global_step_tensor, saving_listeners):
     """Train a model with the given Estimator Spec."""
-    logging.info('@sahiltyagi going to train with estimator spec!!!!')
+    #logging.info('@sahiltyagi going to train with estimator spec!!!!')
     if self._warm_start_settings:
       logging.info('Warm-starting with WarmStartSettings: %s' %
                    (self._warm_start_settings,))
@@ -1471,8 +1473,6 @@ class Estimator(object):
                   every_n_steps=self._config.log_step_count_steps,
                   output_dir=self._config.model_dir))
 
-    #batch_size_regime = [129,134,137,169,69]
-    batch_size_regime = ['abc', 'pqr', 'xyz', 'lmn', 'def']
     with training.MonitoredTrainingSession(
         master=self._config.master,
         is_chief=self._config.is_chief,
@@ -1488,12 +1488,11 @@ class Estimator(object):
       loss = None
       any_step_done = False
       while not mon_sess.should_stop():
-        iteration_starttime = time.time()
+        starttime = time.time()
         _, loss = mon_sess.run([estimator_spec.train_op, estimator_spec.loss])
-        logging.info('@sahiltyagi iteration time on given worker is ' + str(time.time() - iteration_starttime))
+        endtime = time.time()
+        logging.info('@sahiltyagi iteration time on given worker is ' + str(endtime - starttime) + ' with starttime ' + str(starttime) + ' and endtime ' + str(endtime) + ' and global step ' + str(tf.train.get_global_step()))
         any_step_done = True
-        logging.info('@sahiltyagi4 going to randomly select a value gtom the batching regime')
-        self._config.set_node_batch_size(random.choice(batch_size_regime))
     if not any_step_done:
       logging.warning('Training with estimator made no steps. '
                       'Perhaps input is empty or misspecified.')

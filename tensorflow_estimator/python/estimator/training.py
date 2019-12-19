@@ -24,6 +24,8 @@ import os
 import time
 
 import six
+import tensorflow as tf
+import numpy as np
 
 from tensorflow.core.protobuf import config_pb2
 from tensorflow.python.distribute import estimator_training as distribute_coordinator_training
@@ -63,6 +65,53 @@ def _validate_hooks(hooks):
               hook))
   return hooks
 
+# CIFAR10_HEIGHT = 32
+# CIFAR10_WIDTH = 32
+# CIFAR10_DEPTH = 3
+#
+# def cifar10_preprocess(image):
+#     image = tf.image.resize_image_with_crop_or_pad(image, 40, 40)
+#     image = tf.random_crop(image, [CIFAR10_HEIGHT, CIFAR10_WIDTH, CIFAR10_DEPTH])
+#     image = tf.image.random_flip_left_right(image)
+#     return image
+#
+# def cifar10_parser(self, serialized_example):
+#     features = tf.parse_single_example(
+#         serialized_example,
+#         features={
+#             'image': tf.FixedLenFeature([], tf.string),
+#             'label': tf.FixedLenFeature([], tf.int64),
+#         })
+#     image = tf.decode_raw(features['image'], tf.uint8)
+#     image.set_shape([CIFAR10_DEPTH * CIFAR10_HEIGHT * CIFAR10_WIDTH])
+#
+#     # Reshape from [depth * height * width] to [depth, height, width].
+#     image = tf.cast(
+#         tf.transpose(tf.reshape(image, [CIFAR10_DEPTH, CIFAR10_HEIGHT, CIFAR10_WIDTH]), [1, 2, 0]),
+#         tf.float32)
+#     label = tf.cast(features['label'], tf.int32)
+#     image = cifar10_preprocess(image)
+#     return image, label
+#
+# def cifar10_filenames(data_dir, subset='train'):
+#     if subset == 'train':
+#         return [os.path.join(data_dir, subset + '.tfrecords')]
+#
+# def _cifar10_input_fn(self):
+#     logging.info('@sahiltyagi4 calling custom input fn from estimator.train(..) call.')
+#     data_dir = '/resnet-cifar10/models/tutorials/image/cifar10_estimator/cifar-10-data/'
+#     filenames = cifar10_filenames(data_dir)
+#     np.random.shuffle(filenames)
+#     dataset = tf.data.TFRecordDataset(filenames).repeat()
+#     #@sahiltyagi4 adjust this value by fetching the updated value from runconfig get-node-batch-size value
+#     batch_size = 190
+#     dataset = dataset.map(cifar10_parser, num_parallel_calls=batch_size)
+#     min_queue_examples = 45000 * 0.4
+#     dataset = dataset.shuffle(buffer_size=min_queue_examples + 3 * batch_size)
+#     dataset = dataset.batch(batch_size)
+#     iterator = dataset.make_one_shot_iterator()
+#     image_batch, label_batch = iterator.get_next()
+#     return image_batch, label_batch
 
 def _validate_exporters(exporters):
   """Validates `exporters` and returns them as a tuple."""
@@ -763,7 +812,7 @@ class _TrainingExecutor(object):
   def _start_distributed_training(self, saving_listeners=None):
     """Calls `Estimator` train in a distributed setting."""
     config = self._estimator.config
-    logging.info('@sahiltyagi4 calling _start_distributed_training fn.')
+    #logging.info('@sahiltyagi4 calling _start_distributed_training fn.')
 
     # Start in-process TensorFlow server if needed. It's important to start the
     # server before we (optionally) sleep. Otherwise, the servers will wait to
@@ -789,6 +838,12 @@ class _TrainingExecutor(object):
       logging.info('Waiting %d secs before starting training.',
                    start_delay_secs)
       time.sleep(start_delay_secs)
+
+    # self._estimator.train(
+    #     input_fn=_cifar10_input_fn,
+    #     max_steps=self._train_spec.max_steps,
+    #     hooks=list(self._train_spec.hooks) + list(self._train_hooks),
+    #     saving_listeners=saving_listeners)
 
     self._estimator.train(
         input_fn=self._train_spec.input_fn,
