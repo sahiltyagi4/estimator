@@ -1489,9 +1489,9 @@ class Estimator(object):
       any_step_done = False
       while not mon_sess.should_stop():
         starttime = time.time()
-        _, loss = mon_sess.run([estimator_spec.train_op, estimator_spec.loss])
+        _, loss, curr_step = mon_sess.run([estimator_spec.train_op, estimator_spec.loss, tf.train.get_or_create_global_step()])
         endtime = time.time()
-        logging.info('@sahiltyagi iteration time on given worker is ' + str(endtime - starttime) + ' with starttime ' + str(starttime) + ' and endtime ' + str(endtime) + ' and global step ' + str(tf.train.get_global_step()))
+        logging.info('@sahiltyagi iteration time on given worker is ' + str(endtime - starttime) + ' with starttime ' + str(starttime) + ' and endtime ' + str(endtime) + ' and global step ' + str(curr_step))
         any_step_done = True
     if not any_step_done:
       logging.warning('Training with estimator made no steps. '
