@@ -45,7 +45,7 @@ AVERAGE_LOSS_METRIC_KEY = 'average_loss'
 @estimator_export('estimator.EstimatorSpec')
 class EstimatorSpec(
     collections.namedtuple('EstimatorSpec', [
-        'mode', 'predictions', 'loss', 'train_op', 'eval_metric_ops',
+        'mode', 'predictions', 'loss', 'train_op', 'eval_metric_ops', 'compgrad_op',
         'export_outputs', 'training_chief_hooks', 'training_hooks', 'scaffold',
         'evaluation_hooks', 'prediction_hooks'
     ])):
@@ -59,6 +59,7 @@ class EstimatorSpec(
               predictions=None,
               loss=None,
               train_op=None,
+              compgrad_op=None,
               eval_metric_ops=None,
               export_outputs=None,
               training_chief_hooks=None,
@@ -161,6 +162,7 @@ class EstimatorSpec(
       TypeError: If any of the arguments is not the expected type.
     """
     train_op = _validate_estimator_spec_train_op(train_op, mode)
+    compgrad_op = _validate_estimator_spec_compgrad_op(compgrad_op, mode)
     loss = _validate_estimator_spec_loss(loss, mode)
     predictions = _validate_estimator_spec_predictions(predictions, mode)
     export_outputs = _validate_estimator_spec_export_outputs(
@@ -178,6 +180,7 @@ class EstimatorSpec(
         predictions=predictions,
         loss=loss,
         train_op=train_op,
+        compgrad_op=compgrad_op,
         eval_metric_ops=eval_metric_ops,
         export_outputs=export_outputs,
         training_chief_hooks=training_chief_hooks,
@@ -305,6 +308,37 @@ def _validate_estimator_spec_train_op(train_op, mode):
                                                        train_op.name))
   return train_op
 
+def _validate_estimator_spec_compgrad_op(compgrad_op, mode):
+  """Validate train_op inputs for EstimatorSpec or TPUEstimatorSpec.
+  Args:
+    train_op: Op for the training step.
+    mode: A `ModeKeys`. Used to determine whether the train_op is acceptable for
+      use in the current mode; for example, if we are not training, this can be
+      None.
+
+  Returns:
+    train_op: Op for the training step.
+
+  Raises:
+    ValueError: If no train_op is passed during training.
+    TypeError:  If:
+                - train_op is neither a `Tensor` nor an Op.
+                - train_op is not part of the default graph.
+  """
+  if compgrad_op is None:
+    if mode == ModeKeys.TRAIN:
+      raise ValueError('Missing compgrad_op.')
+  else:
+    default_graph = ops.get_default_graph()
+    _check_is_tensor_or_operation(compgrad_op, 'compgrad_op')
+    if isinstance(compgrad_op, variables.Variable):
+      compgrad_op = compgrad_op.op
+    if not (context.executing_eagerly() or
+            compgrad_op.graph is default_graph):
+      raise ValueError(
+          _default_graph_error_message_template.format('compgrad_op',
+                                                       compgrad_op.name))
+  return compgrad_op
 
 def _validate_estimator_spec_loss(loss, mode):
   """Validate loss inputs for EstimatorSpec or TPUEstimatorSpec.
