@@ -1473,6 +1473,7 @@ class Estimator(object):
                   every_n_steps=self._config.log_step_count_steps,
                   output_dir=self._config.model_dir))
 
+    stepsequence = estimator_spec.stepsequence
     with training.MonitoredTrainingSession(
         master=self._config.master,
         is_chief=self._config.is_chief,
@@ -1488,14 +1489,15 @@ class Estimator(object):
       loss = None
       any_step_done = False
       while not mon_sess.should_stop():
-        starttime = time.time()
         s1 = time.time()
-        _ = mon_sess.run([estimator_spec.compgrad_op])
+        _, glob_step = mon_sess.run([estimator_spec.compgrad_op, tf.train.get_or_create_global_step()])
         e1 = time.time()
         logging.info('@sahiltyagi COMPUTE GRAD ITERTIME ON WORKER IS ' + str(e1 - s1) + ' with starttime ' + str(s1) + ' and endtime ' + str(e1))
-        _, loss, curr_step = mon_sess.run([estimator_spec.train_op, estimator_spec.loss, tf.train.get_or_create_global_step()])
-        endtime = time.time()
-        logging.info('@sahiltyagi iteration time on given worker is ' + str(endtime - starttime) + ' with starttime ' + str(starttime) + ' and endtime ' + str(endtime) + ' and global step ' + str(curr_step))
+        if glob_step not in stepsequence:
+            starttime = time.time()
+            _, loss, curr_step = mon_sess.run([estimator_spec.train_op, estimator_spec.loss, tf.train.get_or_create_global_step()])
+            endtime = time.time()
+            logging.info('@sahiltyagi iteration time on given worker is ' + str(endtime - starttime) + ' with starttime ' + str(starttime) + ' and endtime ' + str(endtime) + ' and global step ' + str(curr_step))
         any_step_done = True
     if not any_step_done:
       logging.warning('Training with estimator made no steps. '
