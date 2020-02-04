@@ -1488,8 +1488,9 @@ class Estimator(object):
         log_step_count_steps=log_step_count_steps) as mon_sess:
       loss = None
       any_step_done = False
+      curr_step = 0
       while not mon_sess.should_stop():
-        if glob_step not in stepsequence:
+        if curr_step not in stepsequence:
             s1 = time.time()
             _, glob_step = mon_sess.run([estimator_spec.compgrad_op, tf.train.get_or_create_global_step()])
             e1 = time.time()
