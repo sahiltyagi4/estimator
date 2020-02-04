@@ -164,7 +164,7 @@ class EstimatorSpec(
     """
     train_op = _validate_estimator_spec_train_op(train_op, mode)
     compgrad_op = _validate_estimator_spec_compgrad_op(compgrad_op, mode)
-    stepsequence = _validate_estimator_spec_stepsequence(stepsequence, mode)
+    #stepsequence = _validate_estimator_spec_stepsequence(stepsequence, mode)
     loss = _validate_estimator_spec_loss(loss, mode)
     predictions = _validate_estimator_spec_predictions(predictions, mode)
     export_outputs = _validate_estimator_spec_export_outputs(
@@ -344,37 +344,37 @@ def _validate_estimator_spec_compgrad_op(compgrad_op, mode):
   return compgrad_op
 
 
-def _validate_estimator_spec_stepsequence(stepsequence, mode):
-  """Validate train_op inputs for EstimatorSpec or TPUEstimatorSpec.
-  Args:
-    train_op: Op for the training step.
-    mode: A `ModeKeys`. Used to determine whether the train_op is acceptable for
-      use in the current mode; for example, if we are not training, this can be
-      None.
-
-  Returns:
-    train_op: Op for the training step.
-
-  Raises:
-    ValueError: If no train_op is passed during training.
-    TypeError:  If:
-                - train_op is neither a `Tensor` nor an Op.
-                - train_op is not part of the default graph.
-  """
-  if stepsequence is None:
-    if mode == ModeKeys.TRAIN:
-      raise ValueError('Missing stepsequence.')
-  else:
-    default_graph = ops.get_default_graph()
-    _check_is_tensor_or_operation(stepsequence, 'stepsequence')
-    if isinstance(stepsequence, variables.Variable):
-      stepsequence = stepsequence.op
-    if not (context.executing_eagerly() or
-            stepsequence.graph is default_graph):
-      raise ValueError(
-          _default_graph_error_message_template.format('stepsequence',
-                                                       stepsequence.name))
-  return stepsequence
+# def _validate_estimator_spec_stepsequence(stepsequence, mode):
+#   """Validate train_op inputs for EstimatorSpec or TPUEstimatorSpec.
+#   Args:
+#     train_op: Op for the training step.
+#     mode: A `ModeKeys`. Used to determine whether the train_op is acceptable for
+#       use in the current mode; for example, if we are not training, this can be
+#       None.
+#
+#   Returns:
+#     train_op: Op for the training step.
+#
+#   Raises:
+#     ValueError: If no train_op is passed during training.
+#     TypeError:  If:
+#                 - train_op is neither a `Tensor` nor an Op.
+#                 - train_op is not part of the default graph.
+#   """
+#   if stepsequence is None:
+#     if mode == ModeKeys.TRAIN:
+#       raise ValueError('Missing stepsequence.')
+#   else:
+#     default_graph = ops.get_default_graph()
+#     _check_is_tensor_or_operation(stepsequence, 'stepsequence')
+#     if isinstance(stepsequence, variables.Variable):
+#       stepsequence = stepsequence.op
+#     if not (context.executing_eagerly() or
+#             stepsequence.graph is default_graph):
+#       raise ValueError(
+#           _default_graph_error_message_template.format('stepsequence',
+#                                                        stepsequence.name))
+#   return stepsequence
 
 
 def _validate_estimator_spec_loss(loss, mode):
