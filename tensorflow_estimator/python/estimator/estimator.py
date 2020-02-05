@@ -1488,17 +1488,16 @@ class Estimator(object):
         log_step_count_steps=log_step_count_steps) as mon_sess:
       loss = None
       any_step_done = False
-      curr_step = 0
       while not mon_sess.should_stop():
-        if curr_step not in stepsequence:
-            s1 = time.time()
-            _, glob_step = mon_sess.run([estimator_spec.compgrad_op, tf.train.get_or_create_global_step()])
-            e1 = time.time()
-            logging.info('@sahiltyagi COMPUTE GRAD ITERTIME ON WORKER IS ' + str(e1 - s1) + ' with starttime ' + str(s1) + ' and endtime ' + str(e1) + ' and global step ' + str(glob_step))
-        starttime = time.time()
-        _, loss, curr_step = mon_sess.run([estimator_spec.train_op, estimator_spec.loss, tf.train.get_or_create_global_step()])
-        endtime = time.time()
-        logging.info('@sahiltyagi iteration time on given worker is ' + str(endtime - starttime) + ' with starttime ' + str(starttime) + ' and endtime ' + str(endtime) + ' and global step ' + str(curr_step))
+        s1 = time.time()
+        _, glob_step = mon_sess.run([estimator_spec.compgrad_op, tf.train.get_or_create_global_step()])
+        e1 = time.time()
+        logging.info('@sahiltyagi COMPUTE GRAD ITERTIME ON WORKER IS ' + str(e1 - s1) + ' with starttime ' + str(s1) + ' and endtime ' + str(e1) + ' and global step ' + str(glob_step))
+        if glob_step not in stepsequence:
+            starttime = time.time()
+            _, loss, curr_step = mon_sess.run([estimator_spec.train_op, estimator_spec.loss, tf.train.get_or_create_global_step()])
+            endtime = time.time()
+            logging.info('@sahiltyagi iteration time on given worker is ' + str(endtime - starttime) + ' with starttime ' + str(starttime) + ' and endtime ' + str(endtime) + ' and global step ' + str(curr_step))
         any_step_done = True
     if not any_step_done:
       logging.warning('Training with estimator made no steps. '
