@@ -1488,6 +1488,8 @@ class Estimator(object):
         log_step_count_steps=log_step_count_steps) as mon_sess:
       loss = None
       any_step_done = False
+      init = tf.global_variables_initializer()
+      mon_sess.run(init)
       while not mon_sess.should_stop():
         #starttime = time.time()
         #_, loss, curr_step = mon_sess.run([estimator_spec.train_op, estimator_spec.loss, tf.train.get_or_create_global_step()])
