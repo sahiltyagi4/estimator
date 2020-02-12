@@ -1507,7 +1507,7 @@ class Estimator(object):
         endtime = time.time()
         #grad_starttime, grad_endtime = mon_sess.run([tf.get_default_graph().get_tensor_by_name("resnet/tower_0/grad_starttime:0"), tf.get_default_graph().get_tensor_by_name("resnet/tower_0/grad_endtime:0")])
         logging.info('@sahiltyagi iteration time on given worker is ' + str(endtime - starttime) + ' with starttime ' + str(starttime) + ' and endtime ' + str(endtime) + ' and global step ' + str(curr_step))
-        logging.info('@sahiltyagi COMPUTEGRAD ITERTIME WITH START END TENSOR ' + str(grad_endtime[0] - grad_starttime[0]) + ' with starttime ' + str(grad_starttime[0]) + ' and endtime ' + str(grad_endtime[0]) + ' and global step ' + str(curr_step))
+        logging.info('@sahiltyagi COMPUTEGRAD ITERTIME WITH START END TENSOR ' + str(grad_endtime - grad_starttime) + ' with starttime ' + str(grad_starttime) + ' and endtime ' + str(grad_endtime) + ' and global step ' + str(curr_step))
         any_step_done = True
     if not any_step_done:
       logging.warning('Training with estimator made no steps. '
