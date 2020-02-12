@@ -1502,8 +1502,8 @@ class Estimator(object):
         #    logging.info('@sahiltyagi COMPUTE GRAD ITERTIME ON WORKER IS ' + str(e1 - s1) + ' with starttime ' + str(s1) + ' and endtime ' + str(e1) + ' and global step ' + str(glob_step))
         starttime = time.time()
         _, loss, curr_step, grad_starttime, grad_endtime = mon_sess.run([estimator_spec.train_op, estimator_spec.loss, tf.train.get_or_create_global_step(),
-                                                                         tf.get_default_graph().get_tensor_by_name("resnet/tower_0/grad_starttime:0"),
-                                                                         tf.get_default_graph().get_tensor_by_name("resnet/tower_0/grad_endtime:0")])
+                                                                         tf.get_default_graph().get_tensor_by_name("resnet/tower_0/grad_starttime_1:0"),
+                                                                         tf.get_default_graph().get_tensor_by_name("resnet/tower_0/grad_endtime_1:0")])
         endtime = time.time()
         #grad_starttime, grad_endtime = mon_sess.run([tf.get_default_graph().get_tensor_by_name("resnet/tower_0/grad_starttime:0"), tf.get_default_graph().get_tensor_by_name("resnet/tower_0/grad_endtime:0")])
         logging.info('@sahiltyagi iteration time on given worker is ' + str(endtime - starttime) + ' with starttime ' + str(starttime) + ' and endtime ' + str(endtime) + ' and global step ' + str(curr_step))
