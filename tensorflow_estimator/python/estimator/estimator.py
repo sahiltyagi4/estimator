@@ -1519,10 +1519,10 @@ class Estimator(object):
         # grad_start_tensor = tf.get_default_graph().get_tensor_by_name('resnet/tower_0/grad_starttime:0')
         # grad_start_tensor = tf.assign(grad_start_tensor, time.time())
         start_run = mon_sess.run(grad_start_tensor, feed_dict={grad_start_place : time.time()})
-        with tf.get_default_graph().control_dependencies([start_run]):
+        with tf.get_default_graph().control_dependencies([grad_start_tensor]):
             with tf.get_default_graph().control_dependencies(gradients_ops):
                 end_run = mon_sess.run(grad_end_tensor, feed_dict={grad_end_place : time.time()})
-                with tf.get_default_graph().control_dependencies(end_run):
+                with tf.get_default_graph().control_dependencies(grad_end_tensor):
                     # _, loss, curr_step, grad_start, grad_end = mon_sess.run([estimator_spec.train_op, estimator_spec.loss, tf.train.get_or_create_global_step(),
                     #                                                      tf.get_default_graph().get_tensor_by_name("resnet/tower_0/grad_starttime:0"), tf.get_default_graph().get_tensor_by_name("resnet/tower_0/grad_endtime:0")])
                     _, loss, curr_step, grad_start, grad_end = mon_sess.run([estimator_spec.train_op, estimator_spec.loss, tf.train.get_or_create_global_step(), grad_start_tensor, grad_end_tensor])
@@ -1530,7 +1530,8 @@ class Estimator(object):
         endtime = time.time()
         #grad_starttime, grad_endtime = mon_sess.run([tf.get_default_graph().get_tensor_by_name("resnet/tower_0/grad_starttime:0"), tf.get_default_graph().get_tensor_by_name("resnet/tower_0/grad_endtime:0")])
         logging.info('@sahiltyagi iteration time on given worker is ' + str(endtime - starttime) + ' with starttime ' + str(starttime) + ' and endtime ' + str(endtime) + ' and global step ' + str(curr_step))
-        logging.info('@sahiltyagi COMPUTEGRAD ITERTIME WITH START END TENSOR ' + str(float(grad_end) - float(grad_start)) + ' with starttime ' + str(grad_start) + ' and endtime ' + str(grad_end) + ' and global step ' + str(curr_step))
+        # logging.info('@sahiltyagi COMPUTEGRAD ITERTIME WITH START END TENSOR ' + str(float(grad_end) - float(grad_start)) + ' with starttime ' + str(grad_start) + ' and endtime ' + str(grad_end) + ' and global step ' + str(curr_step))
+        logging.info('@sahiltyagi COMPUTEGRAD ITERTIME WITH START END TENSOR ' + str(end_run - start_run) + ' with starttime ' + str(start_run) + ' and endtime ' + str(end_run) + ' and global step ' + str(curr_step))
         any_step_done = True
     if not any_step_done:
       logging.warning('Training with estimator made no steps. '
