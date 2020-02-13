@@ -1492,7 +1492,7 @@ class Estimator(object):
       for op in tf.get_default_graph().get_operations():
           logging.info('***************************variables and op names are: ' + str(op.name))
           if 'resnet/tower_0/gradients/' in op.name:
-              gradients_ops.append(str(op.name))
+              gradients_ops.append(op)
 
       logging.info('##################@sahiltyagi size of gradient_ops list: ' + str(len(gradients_ops)))
       while not mon_sess.should_stop():
@@ -1516,7 +1516,7 @@ class Estimator(object):
         # mon_sess.run([tf.get_default_graph().get_tensor_by_name('resnet/tower_0/grad_starttime/value:0')])
         # grad_start = mon_sess.run([tf.get_default_graph().get_tensor_by_name('resnet/tower_0/grad_starttime:0')])
 
-        grad_start_tensor = tf.Variable(tf.zeros([]), tf.float32)
+        grad_start_tensor = tf.get_default_graph().get_tensor_by_name("resnet/tower_0/grad_starttime:0")
         grad_start_tensor = tf.assign(grad_start_tensor, time.time())
 
         # grad_start_tensor = tf.get_default_graph().get_tensor_by_name('resnet/tower_0/grad_starttime:0')
@@ -1524,7 +1524,7 @@ class Estimator(object):
         grad_start = mon_sess.run([grad_start_tensor])
         with tf.get_default_graph().control_dependencies([grad_start_tensor]):
             with tf.get_default_graph().control_dependencies(gradients_ops):
-                grad_end_tensor = tf.Variable(tf.zeros([]), tf.float32)
+                grad_end_tensor = tf.get_default_graph().get_tensor_by_name("resnet/tower_0/grad_endtime:0")
                 grad_end_tensor = tf.assign(grad_end_tensor, time.time())
                 # grad_end_tensor = tf.get_default_graph().get_tensor_by_name("resnet/tower_0/grad_endtime:0")
                 # grad_end_tensor = tf.assign(grad_end_tensor, time.time())
