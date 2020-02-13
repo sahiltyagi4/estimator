@@ -1518,10 +1518,10 @@ class Estimator(object):
 
         # grad_start_tensor = tf.get_default_graph().get_tensor_by_name('resnet/tower_0/grad_starttime:0')
         # grad_start_tensor = tf.assign(grad_start_tensor, time.time())
-        start_run = mon_sess.run(grad_start_tensor, feed_dict={grad_start_place : [time.time()]})
+        start_run = mon_sess.run(grad_start_tensor, feed_dict={grad_start_place : time.time()})
         with tf.get_default_graph().control_dependencies([start_run]):
             with tf.get_default_graph().control_dependencies(gradients_ops):
-                end_run = mon_sess.run(grad_end_tensor, feed_dict={grad_end_place : [time.time()]})
+                end_run = mon_sess.run(grad_end_tensor, feed_dict={grad_end_place : time.time()})
                 with tf.get_default_graph().control_dependencies(end_run):
                     # _, loss, curr_step, grad_start, grad_end = mon_sess.run([estimator_spec.train_op, estimator_spec.loss, tf.train.get_or_create_global_step(),
                     #                                                      tf.get_default_graph().get_tensor_by_name("resnet/tower_0/grad_starttime:0"), tf.get_default_graph().get_tensor_by_name("resnet/tower_0/grad_endtime:0")])
