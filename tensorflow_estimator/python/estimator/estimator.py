@@ -1488,10 +1488,15 @@ class Estimator(object):
         log_step_count_steps=log_step_count_steps) as mon_sess:
       loss = None
       any_step_done = False
+      gradients_ops = []
       for op in tf.get_default_graph().get_operations():
           logging.info('***************************variables and op names are: ' + str(op.name))
+          gradients_ops.append(str(op.name))
+
+      logging.info('##################@sahiltyagi size of gradient_ops list: ' + str(len(gradients_ops)))
       while not mon_sess.should_stop():
-        #starttime = time.time()
+        starttime = time.time()
+        grad_starttime = starttime
         #_, loss, curr_step = mon_sess.run([estimator_spec.train_op, estimator_spec.loss, tf.train.get_or_create_global_step()])
         #endtime = time.time()
         #logging.info('@sahiltyagi iteration time on given worker is ' + str(endtime - starttime) + ' with starttime ' + str(starttime) + ' and endtime ' + str(endtime) + ' and global step ' + str(curr_step))
@@ -1500,10 +1505,14 @@ class Estimator(object):
         #    _, glob_step = mon_sess.run([estimator_spec.compgrad_op, tf.train.get_or_create_global_step()])
         #    e1 = time.time()
         #    logging.info('@sahiltyagi COMPUTE GRAD ITERTIME ON WORKER IS ' + str(e1 - s1) + ' with starttime ' + str(s1) + ' and endtime ' + str(e1) + ' and global step ' + str(glob_step))
-        starttime = time.time()
-        _, loss, curr_step, grad_starttime, grad_endtime = mon_sess.run([estimator_spec.train_op, estimator_spec.loss, tf.train.get_or_create_global_step(),
-                                                                         tf.get_default_graph().get_tensor_by_name("resnet/tower_0/grad_starttime_1:0"),
-                                                                         tf.get_default_graph().get_tensor_by_name("resnet/tower_0/grad_endtime_1:0")])
+        # _, loss, curr_step, grad_starttime, grad_endtime = mon_sess.run([estimator_spec.train_op, estimator_spec.loss, tf.train.get_or_create_global_step(),
+        #                                                                  tf.get_default_graph().get_tensor_by_name("resnet/tower_0/grad_starttime_1:0"),
+        #                                                                  tf.get_default_graph().get_tensor_by_name("resnet/tower_0/grad_endtime_1:0")])
+
+        with tf.get_default_graph().control_dependencies(gradients_ops):
+            mon_sess.run([tf.get_default_graph().get_tensor_by_name("resnet/tower_0/Variable_1/Assign:0")])
+            grad_endtime = mon_sess.run([tf.get_default_graph().get_tensor_by_name("resnet/tower_0/grad_endtime/value:0")])
+            _, loss, curr_step = mon_sess.run([estimator_spec.train_op, estimator_spec.loss, tf.train.get_or_create_global_step()])
         endtime = time.time()
         #grad_starttime, grad_endtime = mon_sess.run([tf.get_default_graph().get_tensor_by_name("resnet/tower_0/grad_starttime:0"), tf.get_default_graph().get_tensor_by_name("resnet/tower_0/grad_endtime:0")])
         logging.info('@sahiltyagi iteration time on given worker is ' + str(endtime - starttime) + ' with starttime ' + str(starttime) + ' and endtime ' + str(endtime) + ' and global step ' + str(curr_step))
