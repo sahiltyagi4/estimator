@@ -1491,7 +1491,8 @@ class Estimator(object):
       gradients_ops = []
       for op in tf.get_default_graph().get_operations():
           logging.info('***************************variables and op names are: ' + str(op.name))
-          gradients_ops.append(str(op.name))
+          if 'resnet/tower_0/gradients/' in op.name:
+              gradients_ops.append(str(op.name))
 
       logging.info('##################@sahiltyagi size of gradient_ops list: ' + str(len(gradients_ops)))
       while not mon_sess.should_stop():
