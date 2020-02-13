@@ -1525,7 +1525,7 @@ class Estimator(object):
                 with tf.get_default_graph().control_dependencies(grad_end_tensor):
                     # _, loss, curr_step, grad_start, grad_end = mon_sess.run([estimator_spec.train_op, estimator_spec.loss, tf.train.get_or_create_global_step(),
                     #                                                      tf.get_default_graph().get_tensor_by_name("resnet/tower_0/grad_starttime:0"), tf.get_default_graph().get_tensor_by_name("resnet/tower_0/grad_endtime:0")])
-                    _, loss, curr_step, grad_start, grad_end = mon_sess.run([estimator_spec.train_op, estimator_spec.loss, tf.train.get_or_create_global_step(), grad_start_tensor, grad_end_tensor])
+                    _, loss, curr_step = mon_sess.run([estimator_spec.train_op, estimator_spec.loss, tf.train.get_or_create_global_step()])
 
         endtime = time.time()
         #grad_starttime, grad_endtime = mon_sess.run([tf.get_default_graph().get_tensor_by_name("resnet/tower_0/grad_starttime:0"), tf.get_default_graph().get_tensor_by_name("resnet/tower_0/grad_endtime:0")])
