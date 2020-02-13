@@ -1531,7 +1531,7 @@ class Estimator(object):
 
 
         start_run = time.time()
-        with tf.get_default_graph().control_dependencies([gradients_ops]):
+        with tf.get_default_graph().control_dependencies(gradients_ops):
             end_run = time.time()
             _, loss, curr_step = mon_sess.run([estimator_spec.train_op, estimator_spec.loss, tf.train.get_or_create_global_step()])
 
