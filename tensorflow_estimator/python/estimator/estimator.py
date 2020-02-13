@@ -1476,10 +1476,10 @@ class Estimator(object):
     stepsequence = estimator_spec.stepsequence
     # grad_start_tensor = tf.assign(tf.get_default_graph().get_tensor_by_name("resnet/tower_0/grad_starttime:0"), time.time())
     # grad_end_tensor = tf.assign(tf.get_default_graph().get_tensor_by_name("resnet/tower_0/grad_endtime:0"), time.time())
-    grad_start_place = tf.placeholder(tf.float64, [])
-    grad_end_place = tf.placeholder(tf.float64, [])
+    grad_start_place = tf.placeholder(tf.float32, shape=())
+    grad_end_place = tf.placeholder(tf.float32, shape=())
     grad_start_tensor = tf.multiply(grad_start_place, 1.0)
-    grad_end_tensor = tf.multiply(grad_start_place, 1.0)
+    grad_end_tensor = tf.multiply(grad_end_place, 1.0)
     with training.MonitoredTrainingSession(
         master=self._config.master,
         is_chief=self._config.is_chief,
