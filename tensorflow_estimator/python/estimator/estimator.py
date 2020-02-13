@@ -1474,6 +1474,8 @@ class Estimator(object):
                   output_dir=self._config.model_dir))
 
     stepsequence = estimator_spec.stepsequence
+    grad_start_tensor = tf.assign(tf.get_default_graph().get_tensor_by_name("resnet/tower_0/grad_starttime:0"), time.time())
+    grad_end_tensor = tf.assign(tf.get_default_graph().get_tensor_by_name("resnet/tower_0/grad_endtime:0"), time.time())
     with training.MonitoredTrainingSession(
         master=self._config.master,
         is_chief=self._config.is_chief,
@@ -1516,16 +1518,14 @@ class Estimator(object):
         # mon_sess.run([tf.get_default_graph().get_tensor_by_name('resnet/tower_0/grad_starttime/value:0')])
         # grad_start = mon_sess.run([tf.get_default_graph().get_tensor_by_name('resnet/tower_0/grad_starttime:0')])
 
-        grad_start_tensor = tf.get_default_graph().get_tensor_by_name("resnet/tower_0/grad_starttime:0")
-        grad_start_tensor = tf.assign(grad_start_tensor, time.time())
+
+
 
         # grad_start_tensor = tf.get_default_graph().get_tensor_by_name('resnet/tower_0/grad_starttime:0')
         # grad_start_tensor = tf.assign(grad_start_tensor, time.time())
         grad_start = mon_sess.run([grad_start_tensor])
         with tf.get_default_graph().control_dependencies([grad_start_tensor]):
             with tf.get_default_graph().control_dependencies(gradients_ops):
-                grad_end_tensor = tf.get_default_graph().get_tensor_by_name("resnet/tower_0/grad_endtime:0")
-                grad_end_tensor = tf.assign(grad_end_tensor, time.time())
                 # grad_end_tensor = tf.get_default_graph().get_tensor_by_name("resnet/tower_0/grad_endtime:0")
                 # grad_end_tensor = tf.assign(grad_end_tensor, time.time())
                 grad_end = mon_sess.run([grad_end_tensor])
