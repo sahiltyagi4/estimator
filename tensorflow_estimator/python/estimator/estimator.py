@@ -1544,7 +1544,7 @@ class Estimator(object):
         grad_compute_starttime = time.time()
         # gradvar_values = mon_sess.run([estimator_spec.compgrad_op])
         # grad_vals = mon_sess.run([[grad for grad,_ in gradvar_values]])
-        grad_vals = mon_sess.run(grad for grad,_ in estimator_spec.compgrad_op)
+        grad_vals = mon_sess.run([grad for grad,_ in estimator_spec.compgrad_op])
         grad_compute_endtime = time.time()
 
         appgrad_starttime = time.time()
