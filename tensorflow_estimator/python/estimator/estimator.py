@@ -1556,7 +1556,7 @@ class Estimator(object):
         #     feed_dict[tf.get_default_graph().get_tensor_by_name(grad_ops[i]+':0')] = gradient
 
         feed_dict={}
-        for i,grad,_ in enumerate(gradvar_values):
+        for i, (grad, _) in enumerate(gradvar_values):
             feed_dict[tf.get_default_graph().get_tensor_by_name(grad_ops[i] + ':0')] = grad
 
         _, loss, globalstep = mon_sess.run([estimator_spec.train_op, estimator_spec.loss, tf.train.get_or_create_global_step()], feed_dict = feed_dict)
