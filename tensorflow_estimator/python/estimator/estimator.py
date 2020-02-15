@@ -1506,7 +1506,7 @@ class Estimator(object):
           if 'TEST_GRADS_SAHIL_' in op.name:
               grad_ops.append(op.name)
 
-      logging.info('##################@sahiltyagi size of gradient_ops list: ' + str(len(gradients_ops)))
+      logging.info('##################@sahiltyagi size of gradient_ops list: ' + str(len(grad_ops)))
       while not mon_sess.should_stop():
         #starttime = time.time()
         #_, loss, curr_step = mon_sess.run([estimator_spec.train_op, estimator_spec.loss, tf.train.get_or_create_global_step()])
