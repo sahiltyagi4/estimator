@@ -1546,6 +1546,7 @@ class Estimator(object):
         logging.info(type(estimator_spec.compgrad_op))
         logging.info('......................just finished running compute gradients op.......')
         logging.info(type(gradvar_values))
+        logging.info(len(gradvar_values))
 
         # grad_vals = mon_sess.run([grad for grad,_ in gradvar_values])
         grad_compute_endtime = time.time()
