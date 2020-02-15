@@ -1546,16 +1546,18 @@ class Estimator(object):
         logging.info(type(estimator_spec.compgrad_op))
         logging.info('......................just finished running compute gradients op.......')
         logging.info(type(gradvar_values))
-        logging.info(type(estimator_spec.compgrad_op[0]))
 
-        grad_vals = mon_sess.run([grad for grad,_ in gradvar_values])
-        #grad_vals = mon_sess.run([grad for grad,_ in estimator_spec.compgrad_op])
-        grad_compute_endtime = time.time()
+        # grad_vals = mon_sess.run([grad for grad,_ in gradvar_values])
+        # grad_compute_endtime = time.time()
+        #
+        # appgrad_starttime = time.time()
+        # feed_dict={}
+        # for i, gradient in enumerate(grad_vals):
+        #     feed_dict[tf.get_default_graph().get_tensor_by_name(grad_ops[i]+':0')] = gradient
 
-        appgrad_starttime = time.time()
         feed_dict={}
-        for i, gradient in enumerate(grad_vals):
-            feed_dict[tf.get_default_graph().get_tensor_by_name(grad_ops[i]+':0')] = gradient
+        for i,grad,_ in enumerate(gradvar_values):
+            feed_dict[tf.get_default_graph().get_tensor_by_name(grad_ops[i] + ':0')] = grad
 
         _, loss, globalstep = mon_sess.run([estimator_spec.train_op, estimator_spec.loss, tf.train.get_or_create_global_step()], feed_dict = feed_dict)
         appgrad_endtime = time.time()
