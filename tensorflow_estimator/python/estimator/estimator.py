@@ -1548,9 +1548,9 @@ class Estimator(object):
         logging.info(type(gradvar_values))
 
         # grad_vals = mon_sess.run([grad for grad,_ in gradvar_values])
-        # grad_compute_endtime = time.time()
+        grad_compute_endtime = time.time()
         #
-        # appgrad_starttime = time.time()
+        appgrad_starttime = time.time()
         # feed_dict={}
         # for i, gradient in enumerate(grad_vals):
         #     feed_dict[tf.get_default_graph().get_tensor_by_name(grad_ops[i]+':0')] = gradient
