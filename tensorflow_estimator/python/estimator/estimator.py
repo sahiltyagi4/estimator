@@ -1488,13 +1488,9 @@ class Estimator(object):
 
       loss = None
       any_step_done = False
-      gradients_ops = []
       for op in tf.get_default_graph().get_operations():
           logging.info('***************************variables and op names are: ' + str(op.name))
-          if 'resnet/tower_0/' in op.name:
-              gradients_ops.append(op)
 
-      logging.info('##################@sahiltyagi size of gradient_ops list: ' + str(len(gradients_ops)))
       while not mon_sess.should_stop():
           appgrad_starttime = time.time()
           _, loss, curr_step = mon_sess.run([estimator_spec.train_op, estimator_spec.loss, tf.train.get_or_create_global_step()])
