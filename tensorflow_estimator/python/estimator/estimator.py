@@ -1492,12 +1492,17 @@ class Estimator(object):
           logging.info('***************************variables and op names are: ' + str(op.name))
 
       while not mon_sess.should_stop():
-          appgrad_starttime = time.time()
-          _, loss, curr_step = mon_sess.run([estimator_spec.train_op, estimator_spec.loss, tf.train.get_or_create_global_step()])
-          appgrad_endtime = time.time()
+          step_start = time.time()
+          _, loss, curr_step, cg_start, cg_end = mon_sess.run([estimator_spec.train_op, estimator_spec.loss, tf.train.get_or_create_global_step(),
+                                                               tf.get_default_graph().get_tensor_by_name('resnet/tower_0/START_SAHIL_TIME_GRADIENT:0'),
+                                                               tf.get_default_graph().get_tensor_by_name('resnet/tower_0/END_SAHIL_TIME_GRADIENT:0')])
+          step_end = time.time()
           any_step_done = True
-          logging.info('@sahiltyagi train_op iteration time given worker is ' + str(appgrad_endtime - appgrad_starttime) + ' with starttime ' + str(appgrad_starttime)
-                       + ' and endtime ' + str(appgrad_endtime) + ' and global step ' + str(curr_step))
+          logging.info('@sahiltyagi train_op iteration time given worker is ' + str(step_end - step_start) + ' with starttime ' + str(step_start)
+                       + ' and endtime ' + str(step_end) + ' and global step ' + str(curr_step))
+
+          logging.info('@sahiltyagi COMPUTE GRAD time on worker is ' + str(float(cg_end) - float(cg_start)) + ' with starttime ' + str(cg_start)
+                       + ' and endtime ' + str(cg_end) + ' and global step ' + str(curr_step))
     if not any_step_done:
       logging.warning('Training with estimator made no steps. '
                       'Perhaps input is empty or misspecified.')
