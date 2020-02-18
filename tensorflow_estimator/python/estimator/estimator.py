@@ -1503,10 +1503,8 @@ class Estimator(object):
           any_step_done = True
           logging.info('@sahiltyagi train_op iteration time given worker is ' + str(step_end - step_start) + ' with starttime ' + str(step_start)
                        + ' and endtime ' + str(step_end) + ' and global step ' + str(curr_step))
-          logging.info('@sahiltyagi COMPUTE GRAD time on worker is ' + type(cg_start)
-                       + ' and current step is ' + str(curr_step))
-          logging.info('@sahiltyagi value of START_SAHIL tensor is ' + cg_start
-                       + ' and current step is ' + str(curr_step))
+          logging.info('@sahiltyagi COMPUTE GRAD time on worker is ' + str(type(cg_start)) + ' and current step is ' + str(curr_step))
+          logging.info('@sahiltyagi value of START_SAHIL tensor is ' + str(cg_start) + ' and current step is ' + str(curr_step))
 
           # logging.info('@sahiltyagi COMPUTE GRAD time on worker is ' + str(float(cg_end) - float(cg_start)) + ' with starttime ' + str(cg_start)
           #              + ' and endtime ' + str(cg_end) + ' and global step ' + str(curr_step))
