@@ -1498,12 +1498,14 @@ class Estimator(object):
           #                                                      tf.get_default_graph().get_tensor_by_name('resnet/tower_0/END_SAHIL_TIME_GRADIENT:0')])
 
           _, loss, curr_step, cg_start  = mon_sess.run([estimator_spec.train_op, estimator_spec.loss, tf.train.get_or_create_global_step(),
-                                                        tf.get_default_graph().get_tensor_by_name('resnet/tower_0/START_SAHIL_TIME_GRADIENT')])
+                                                        tf.get_default_graph().get_tensor_by_name('resnet/tower_0/START_SAHIL_TIME_GRADIENT:0')])
           step_end = time.time()
           any_step_done = True
           logging.info('@sahiltyagi train_op iteration time given worker is ' + str(step_end - step_start) + ' with starttime ' + str(step_start)
                        + ' and endtime ' + str(step_end) + ' and global step ' + str(curr_step))
           logging.info('@sahiltyagi COMPUTE GRAD time on worker is ' + type(cg_start)
+                       + ' and current step is ' + str(curr_step))
+          logging.info('@sahiltyagi value of START_SAHIL tensor is ' + cg_start
                        + ' and current step is ' + str(curr_step))
 
           # logging.info('@sahiltyagi COMPUTE GRAD time on worker is ' + str(float(cg_end) - float(cg_start)) + ' with starttime ' + str(cg_start)
