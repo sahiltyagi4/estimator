@@ -1505,8 +1505,8 @@ class Estimator(object):
           op_ts = []
           parser = json.loads(ctf)
           for doc in parser['traceEvents']:
-              if 'ts' in doc and not str(doc['name']).startswith(estimator_spec.namescope):
-              #if 'ts' in doc and estimator_spec.namescope in doc['name']:
+              #if 'ts' in doc and not str(doc['name']).startswith(estimator_spec.namescope):
+              if 'ts' in doc and estimator_spec.namescope in doc['name']:
                   op_ts.append(doc['ts'])
 
           final_endtime = time.time()
