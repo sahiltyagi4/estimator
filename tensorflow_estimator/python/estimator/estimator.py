@@ -1490,8 +1490,8 @@ class Estimator(object):
 
       loss = None
       any_step_done = False
-      for op in tf.get_default_graph().get_operations():
-          logging.info('***************************variables and op names are: ' + str(op.name))
+      # for op in tf.get_default_graph().get_operations():
+      #     logging.info('***************************variables and op names are: ' + str(op.name))
       run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
       run_metadata = tf.RunMetadata()
       while not mon_sess.should_stop():
@@ -1504,10 +1504,15 @@ class Estimator(object):
           ctf = tl.generate_chrome_trace_format()
           op_ts = []
           parser = json.loads(ctf)
+          # for doc in parser['traceEvents']:
+          #     if 'ts' in doc and estimator_spec.namescope in doc['name']:
+          #         op_ts.append(doc['ts'])
+
           for doc in parser['traceEvents']:
-              #if 'ts' in doc and not str(doc['name']).startswith(estimator_spec.namescope):
-              if 'ts' in doc and estimator_spec.namescope in doc['name']:
-                  op_ts.append(doc['ts'])
+              if 'ts' in doc:
+                  for reg_scope in estimator_spec.namescope:
+                      if reg_scope in str(doc['name'].lower()):
+                          op_ts.append(doc['ts'])
 
           final_endtime = time.time()
           logging.info('@sahiltyagi train_op iteration time given worker is ' + str(step_end - step_start) + ' with starttime ' + str(step_start)+ ' and endtime ' + str(step_end)
