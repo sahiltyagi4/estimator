@@ -1492,31 +1492,37 @@ class Estimator(object):
       any_step_done = False
       for op in tf.get_default_graph().get_operations():
           logging.info('***************************variables and op names are: ' + str(op.name))
-      run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
-      run_metadata = tf.RunMetadata()
+      # run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
+      # run_metadata = tf.RunMetadata()
       while not mon_sess.should_stop():
           step_start = time.time()
-          _, loss, curr_step = mon_sess.run([estimator_spec.train_op, estimator_spec.loss, tf.train.get_or_create_global_step()], options=run_options, run_metadata=run_metadata)
+          _, loss, curr_step = mon_sess.run([estimator_spec.train_op, estimator_spec.loss, tf.train.get_or_create_global_step()])
           step_end = time.time()
-          any_step_done = True
-
-          tl = timeline.Timeline(run_metadata.step_stats)
-          ctf = tl.generate_chrome_trace_format()
-          op_ts = []
-          parser = json.loads(ctf)
-          for doc in parser['traceEvents']:
-              if 'ts' in doc and estimator_spec.namescope in doc['name']:
-                  op_ts.append(doc['ts'])
-
-          final_endtime = time.time()
-          logging.info('@sahiltyagi train_op iteration time given worker is ' + str(step_end - step_start) + ' with starttime ' + str(step_start)+ ' and endtime ' + str(step_end)
+          logging.info('@sahiltyagi train_op iteration time given worker is ' + str(step_end - step_start) + ' with starttime ' + str(step_start) + ' and endtime ' + str(step_end)
                        + ' and global step ' + str(curr_step))
-          logging.info('@sahiltyagi upto COMPUTE GRADS call time is ' + str((max(op_ts) - min(op_ts))/1000) + 'ms with starttime ' + str(min(op_ts)/1000000) + ' and endtime '
-                       + str(max(op_ts)/1000000) + ' and global step ' + str(curr_step))
-          logging.info('@sahiltyagi TOTAL_TIME including runmetadata stats and parsing ' + str(final_endtime - step_start) + ' with finaltime ' + str(final_endtime)
-                       + ' and step_start ' + str(step_start) + ' and global step ' + str(curr_step))
-          logging.info('@sahiltyagi4 ONLY RUNMETEDATA stats and parsing is ' + str(final_endtime - step_end) + ' with finaltime ' + str(final_endtime)
-                       + ' and step_end ' + str(step_end) + ' and global step ' + str(curr_step))
+
+          # step_start = time.time()
+          # _, loss, curr_step = mon_sess.run([estimator_spec.train_op, estimator_spec.loss, tf.train.get_or_create_global_step()], options=run_options, run_metadata=run_metadata)
+          # step_end = time.time()
+          # any_step_done = True
+          #
+          # tl = timeline.Timeline(run_metadata.step_stats)
+          # ctf = tl.generate_chrome_trace_format()
+          # op_ts = []
+          # parser = json.loads(ctf)
+          # for doc in parser['traceEvents']:
+          #     if 'ts' in doc and estimator_spec.namescope in doc['name']:
+          #         op_ts.append(doc['ts'])
+          #
+          # final_endtime = time.time()
+          # logging.info('@sahiltyagi train_op iteration time given worker is ' + str(step_end - step_start) + ' with starttime ' + str(step_start)+ ' and endtime ' + str(step_end)
+          #              + ' and global step ' + str(curr_step))
+          # logging.info('@sahiltyagi upto COMPUTE GRADS call time is ' + str((max(op_ts) - min(op_ts))/1000) + 'ms with starttime ' + str(min(op_ts)/1000000) + ' and endtime '
+          #              + str(max(op_ts)/1000000) + ' and global step ' + str(curr_step))
+          # logging.info('@sahiltyagi TOTAL_TIME including runmetadata stats and parsing ' + str(final_endtime - step_start) + ' with finaltime ' + str(final_endtime)
+          #              + ' and step_start ' + str(step_start) + ' and global step ' + str(curr_step))
+          # logging.info('@sahiltyagi4 ONLY RUNMETEDATA stats and parsing is ' + str(final_endtime - step_end) + ' with finaltime ' + str(final_endtime)
+          #              + ' and step_end ' + str(step_end) + ' and global step ' + str(curr_step))
     if not any_step_done:
       logging.warning('Training with estimator made no steps. '
                       'Perhaps input is empty or misspecified.')
