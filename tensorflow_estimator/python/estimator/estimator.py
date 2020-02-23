@@ -1497,8 +1497,8 @@ class Estimator(object):
       while not mon_sess.should_stop():
           step_start = time.time()
           _, loss, curr_step = mon_sess.run([estimator_spec.train_op, estimator_spec.loss, tf.train.get_or_create_global_step()])
-          start_t, end_t = mon_sess.run([tf.get_default_graph().get_operation_by_name('resnet/tower_0/COMPUTE_GRADIENT_SAHIL/gradients/START_COMP_GRAD_SAHIL:0'),
-                                  tf.get_default_graph().get_operation_by_name('resnet/tower_0/COMPUTE_GRADIENT_SAHIL/gradients/END_COMP_GRAD_SAHIL:0')])
+          start_t, end_t = mon_sess.run([tf.get_default_graph().get_tensor_by_name('resnet/tower_0/COMPUTE_GRADIENT_SAHIL/gradients/START_COMP_GRAD_SAHIL:0'),
+                                  tf.get_default_graph().get_tensor_by_name('resnet/tower_0/COMPUTE_GRADIENT_SAHIL/gradients/END_COMP_GRAD_SAHIL:0')])
           step_end = time.time()
           logging.info('@sahiltyagi train_op iteration time given worker is ' + str(step_end - step_start) + ' with starttime ' + str(step_start) + ' and endtime ' + str(step_end)
                        + ' and global step ' + str(curr_step))
