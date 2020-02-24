@@ -45,7 +45,7 @@ AVERAGE_LOSS_METRIC_KEY = 'average_loss'
 @estimator_export('estimator.EstimatorSpec')
 class EstimatorSpec(
     collections.namedtuple('EstimatorSpec', [
-        'mode', 'predictions', 'loss', 'train_op', 'eval_metric_ops', 'compgrad_op',
+        'mode', 'predictions', 'loss', 'train_op', 'eval_metric_ops',
         'export_outputs', 'training_chief_hooks', 'training_hooks', 'scaffold', 'stepsequence',
         'evaluation_hooks', 'namescope', 'prediction_hooks'
     ])):
@@ -59,8 +59,6 @@ class EstimatorSpec(
               predictions=None,
               loss=None,
               train_op=None,
-              compgrad_op=None,
-              stepsequence=None,
               namescope=None,
               eval_metric_ops=None,
               export_outputs=None,
@@ -164,8 +162,6 @@ class EstimatorSpec(
       TypeError: If any of the arguments is not the expected type.
     """
     train_op = _validate_estimator_spec_train_op(train_op, mode)
-    compgrad_op = _validate_estimator_spec_compgrad_op(compgrad_op, mode)
-    #stepsequence = _validate_estimator_spec_stepsequence(stepsequence, mode)
     loss = _validate_estimator_spec_loss(loss, mode)
     predictions = _validate_estimator_spec_predictions(predictions, mode)
     export_outputs = _validate_estimator_spec_export_outputs(
@@ -183,8 +179,6 @@ class EstimatorSpec(
         predictions=predictions,
         loss=loss,
         train_op=train_op,
-        compgrad_op=compgrad_op,
-        stepsequence=stepsequence,
         namescope=namescope,
         eval_metric_ops=eval_metric_ops,
         export_outputs=export_outputs,
