@@ -46,7 +46,7 @@ AVERAGE_LOSS_METRIC_KEY = 'average_loss'
 class EstimatorSpec(
     collections.namedtuple('EstimatorSpec', [
         'mode', 'predictions', 'loss', 'train_op', 'eval_metric_ops',
-        'export_outputs', 'training_chief_hooks', 'training_hooks', 'scaffold', 'stepsequence',
+        'export_outputs', 'training_chief_hooks', 'training_hooks', 'scaffold',
         'evaluation_hooks', 'namescope', 'prediction_hooks'
     ])):
   """Ops and objects returned from a `model_fn` and passed to an `Estimator`.
