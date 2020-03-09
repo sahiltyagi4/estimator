@@ -1585,7 +1585,7 @@ class Estimator(object):
       '''
       :returns: write_computation_time_to_file fn called to write value of COMPUTE GRAD call time to corresponding file for the given worker type and index
       '''
-      file_name = 'tf-' + worker_type + '-' + index + '.txt'
+      file_name = 'tf-' + worker_type + '-' + str(index) + '.txt'
       f = os.path.join(model_dir, file_name)
       file = open(f, 'w')
       file.write(worker_computation_time + ',' + current_step)
