@@ -1478,6 +1478,14 @@ class Estimator(object):
                   every_n_steps=self._config.log_step_count_steps,
                   output_dir=self._config.model_dir))
 
+    tf_config = json.loads(os.environ['TF_CONFIG'])
+    w_type = tf_config['task']['type']
+    w_index = tf_config['task']['index']
+    batchlist = tf_config['batch_size_list']
+    num_workers = (len(batchlist) - 1)
+    worker_batchsizes_filenames = self.get_worker_batchsize_filenames(batchlist)
+    if w_type == 'master':
+        saver = tf.train.Saver()
     with training.MonitoredTrainingSession(
         master=self._config.master,
         is_chief=self._config.is_chief,
@@ -1497,13 +1505,6 @@ class Estimator(object):
       #     logging.info('***************************variables and op names are: ' + str(op.name))
       run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
       run_metadata = tf.RunMetadata()
-      tf_config = json.loads(os.environ['TF_CONFIG'])
-      w_type = tf_config['task']['type']
-      w_index = tf_config['task']['index']
-      batchlist = tf_config['batch_size_list']
-      num_workers = (len(batchlist) - 1)
-      worker_batchsizes_filenames = self.get_worker_batchsize_filenames(batchlist)
-      saver = tf.train.Saver()
 
       while not mon_sess.should_stop():
           step_start = time.time()
@@ -1532,8 +1533,11 @@ class Estimator(object):
           self.write_computation_time_to_file(self._model_dir, str((max(op_ts) - min(op_ts))/1000), curr_step, w_type, w_index)
           gradient_computation_time = self.read_batchsize_files(worker_batchsizes_filenames, self._model_dir, curr_step, num_workers)
           should_training_stop = self.compute_cluster_delta_fn(gradient_computation_time)
+
+          ## should only master save checkpoints? if yes, how does sync occur on nodes?? --later
           if should_training_stop:
-              self.save_checkpoint_before_stop(self._model_dir, curr_step, saver, mon_sess)
+              if w_type == 'master':
+                  self.save_checkpoint_before_stop(self._model_dir, curr_step, saver, mon_sess)
               mon_sess.close()
               logging.info('@sahiltyagi4 closing the monitored session so value of should_stop() should be True now: ' + str(mon_sess.should_stop()))
 
