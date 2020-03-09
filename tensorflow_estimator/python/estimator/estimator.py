@@ -1588,7 +1588,7 @@ class Estimator(object):
       file_name = 'tf-' + worker_type + '-' + str(index) + '.txt'
       f = os.path.join(model_dir, file_name)
       file = open(f, 'w')
-      file.write(worker_computation_time + ',' + current_step)
+      file.write(worker_computation_time + ',' + str(current_step))
       file.close()
 
 
