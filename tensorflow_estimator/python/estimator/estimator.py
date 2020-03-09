@@ -1336,6 +1336,8 @@ class Estimator(object):
                                                hooks, global_step_tensor,
                                                saving_listeners)
 
+
+
   def _train_with_estimator_spec_distributed(self, estimator_spec, worker_hooks,
                                              saving_listener):
     """Train a model with the given Estimator Spec and Distribution Strategy."""
@@ -1363,6 +1365,7 @@ class Estimator(object):
       logging.warning('Training with estimator made no steps. '
                       'Perhaps input is empty or misspecified.')
     return loss
+
 
   def _train_with_estimator_spec(self, estimator_spec, worker_hooks, hooks,
                                  global_step_tensor, saving_listeners):
@@ -1494,17 +1497,15 @@ class Estimator(object):
       #     logging.info('***************************variables and op names are: ' + str(op.name))
       run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
       run_metadata = tf.RunMetadata()
-      while not mon_sess.should_stop():
-          #step_start = time.time()
-          # _, loss, curr_step = mon_sess.run([estimator_spec.train_op, estimator_spec.loss, tf.train.get_or_create_global_step()])
-          # start_t, end_t = mon_sess.run([tf.get_default_graph().get_tensor_by_name('resnet/tower_0/COMPUTE_GRADIENT_SAHIL/START_COMP_GRAD_SAHIL:0'),
-          #                         tf.get_default_graph().get_tensor_by_name('resnet/tower_0/COMPUTE_GRADIENT_SAHIL/END_COMP_GRAD_SAHIL:0')])
-          # step_end = time.time()
-          # logging.info('@sahiltyagi train_op iteration time given worker is ' + str(step_end - step_start) + ' with starttime ' + str(step_start) + ' and endtime ' + str(step_end)
-          #              + ' and global step ' + str(curr_step))
-          # logging.info('@sahiltyagi upto COMPUTE GRADS call time is ' + str(end_t - start_t) + ' with start time ' + str(start_t) + ' and endtime ' + str(end_t)
-          #              + ' and global step ' + str(curr_step))
+      tf_config = json.loads(os.environ['TF_CONFIG'])
+      w_type = tf_config['task']['type']
+      w_index = tf_config['task']['index']
+      batchlist = tf_config['batch_size_list']
+      num_workers = (len(batchlist) - 1)
+      worker_batchsizes_filenames = self.get_worker_batchsize_filenames(batchlist)
+      saver = tf.train.Saver()
 
+      while not mon_sess.should_stop():
           step_start = time.time()
           _, loss, curr_step = mon_sess.run([estimator_spec.train_op, estimator_spec.loss, tf.train.get_or_create_global_step()], options=run_options, run_metadata=run_metadata)
           step_end = time.time()
@@ -1527,10 +1528,215 @@ class Estimator(object):
                        + ' and step_start ' + str(step_start) + ' and global step ' + str(curr_step))
           logging.info('@sahiltyagi4 ONLY RUNMETEDATA stats and parsing is ' + str(final_endtime - step_end) + ' with finaltime ' + str(final_endtime)
                        + ' and step_end ' + str(step_end) + ' and global step ' + str(curr_step))
+
+          self.write_computation_time_to_file(self._model_dir, str((max(op_ts) - min(op_ts))/1000), curr_step, w_type, w_index)
+          gradient_computation_time = self.read_batchsize_files(worker_batchsizes_filenames, self._model_dir, curr_step, num_workers)
+          should_training_stop = self.compute_cluster_delta_fn(gradient_computation_time)
+          if should_training_stop:
+              self.save_checkpoint_before_stop(self._model_dir, curr_step, saver, mon_sess)
+              mon_sess.close()
+              logging.info('@sahiltyagi4 closing the monitored session so value of should_stop() should be True now: ' + str(mon_sess.should_stop()))
+
     if not any_step_done:
       logging.warning('Training with estimator made no steps. '
                       'Perhaps input is empty or misspecified.')
     return loss
+
+
+  def get_worker_batchsize_filenames(self, batchlist):
+      worker_batchsizes_filenames = []
+      worker_batchsizes_filenames.append('tf-master-0.txt')
+      # -2 because we ignore the batch-size values fed to the master and PS.
+      for ix in range(0, (len(batchlist) -2)):
+          worker_batchsizes_filenames.append('tf-worker-' + str(ix) + '.txt')
+
+      return worker_batchsizes_filenames
+
+
+  def read_batchsize_files(self, worker_batchsizes_filenames, model_dir, current_step, num_workers):
+      '''
+      :returns: for reactive batch adjustment. returns a list containing the computation times by the workers fora given global step.
+                In BSP, call read_batchsize_files fn until all workers have completed the train_op for the given global_step.
+                to do this, add (time,step) in write to file fn and check until (sum of all steps is) equal to (global_step * workers). this ensure all workers have reached the same step.
+                THIS TECHNIQUE WORKS FOR BSP SYNC MODE ONLY THOUGH!
+      '''
+      while True:
+          gradient_computation_time = []
+          sum_of_worker_current_steps = 0
+          for ix in range(0, len(worker_batchsizes_filenames)):
+              f = os.path.join(model_dir, worker_batchsizes_filenames[ix])
+              file = open(f, 'r')
+              for line in file:
+                  gradient_computation_time.append(float(line.split(',')[0]))
+                  sum_of_worker_current_steps = sum_of_worker_current_steps + int(line.split(',')[1])
+              file.close()
+
+          if sum_of_worker_current_steps == (current_step*num_workers):
+              break
+
+      return gradient_computation_time
+
+
+  def write_computation_time_to_file(self, model_dir, worker_computation_time, current_step, worker_type, index):
+      '''
+      :returns: write_computation_time_to_file fn called to write value of COMPUTE GRAD call time to corresponding file for the given worker type and index
+      '''
+      file_name = 'tf-' + worker_type + '-' + index + '.txt'
+      f = os.path.join(model_dir, file_name)
+      file = open(f, 'w')
+      file.write(worker_computation_time + ',' + current_step)
+      file.close()
+
+
+  def compute_cluster_delta_fn(self, gradient_computation_time):
+      '''
+      :param: gradient_computation_time list
+      :return: a boolean whether to continue or stop training if any worker takes more time compared to other workers by a certain threshold. currently threshold is set to 0.1.
+      '''
+      should_training_stop = False
+      threshold = 0.1
+      total = 0.0
+      for times in gradient_computation_time:
+          total = total + times
+
+      cluster_avg_time = (total/len(gradient_computation_time))
+      worker_computation_time_frac = []
+
+      for times in gradient_computation_time:
+          worker_computation_time_frac.append(((times - cluster_avg_time)/cluster_avg_time))
+
+      for frac in worker_computation_time_frac:
+          if frac > threshold:
+              logging.info('@sahiltyagi4 a time fraction value is greater than 0.1 with all values ' + str(worker_computation_time_frac))
+              logging.info('@sahiltyagi4 corresponding gradient computation times are ' + str(gradient_computation_time))
+              logging.info('@sahiltyagi4 average computation time across worker is ' + str(cluster_avg_time))
+              should_training_stop = True
+
+      ## call fn to compute the updated batch-sizes with which to restart the model and logs its to clusterbatchsizes.conf and other log files.
+      if should_training_stop :
+          self.calculate_updated_batchsizes(self._model_dir, cluster_avg_time, gradient_computation_time)
+
+      return should_training_stop
+
+
+  def calculate_updated_batchsizes(self, model_dir, cluster_avg_time, gradient_computation_time):
+      '''
+      :param: average time across cluster for computation at each step, gradient_computation_time list has individual time of computation for each worker
+      :return: the updated batch-sizes after two-level normalization.
+      '''
+      logging.info('@sahiltyagi4 going to execute fn call for calculating updated batch sizes on readjustment.')
+      outfile = 'clusterbatchsizes.conf'
+      fraction_perworker = []
+      fraction_perworker.append(1)
+      for workertime in gradient_computation_time:
+          fraction_perworker.append((cluster_avg_time/workertime))
+
+      f = os.path.join(model_dir, outfile)
+      file = open(f, 'r')
+      for line in file:
+          line = line.replace('[', '')
+          line = line.replace(']', '')
+
+      file.close()
+      batchsizes = []
+      for size in line.split(','):
+          batchsizes.append(float(size))
+
+      # this value corresponds to batch-size set in PS, although its not used as PS does not involve in training op. so make sure you always set b_static as batch-size for PS initially.
+      b_static = batchsizes[0]
+      num_workers = (len(batchsizes) -1)
+      if len(batchsizes) != len(gradient_computation_time):
+          raise ValueError('@sahiltyagi4 the length of batch-sizes list and computed fraction of iteration time per-worker is not same. Something is wrong!')
+
+      cumulative_batch_size = 0
+      updated_batchsizes = []
+      for index in range(0, len(batchsizes)):
+          worker_batch_size = round(batchsizes[index] * fraction_perworker[index])
+          updated_batchsizes.append(worker_batch_size)
+          if index != 0:
+              cumulative_batch_size = cumulative_batch_size + worker_batch_size
+
+      delta = (b_static*num_workers) - cumulative_batch_size
+      normalized_updated_batch_sizes = self.normalize_batch_sizes(delta, updated_batchsizes)
+      logging.info('@sahiltyagi4 normalized updated batch-sizes after two-level normalization are ' + str(normalized_updated_batch_sizes))
+
+      # now write these updated batch-sizes to clusterbatchsizes.conf and batchsize_history.txt in model_dir
+      # f = os.path.join(model_dir, 'updatedbatchsizes.txt')
+      # file = open(f, 'a')
+      # file.write(str(normalized_updated_batch_sizes))
+      # file.write('\n')
+      # file.close()
+
+      finalstring = '['
+      for size in normalized_updated_batch_sizes:
+          finalstring = finalstring + str(int(size)) + ','
+
+      finalstring = finalstring[0:len(finalstring) - 1]
+      finalstring = finalstring + ']'
+
+      f = os.path.join(model_dir, 'batchsize_history.txt')
+      file = open(f, 'a')
+      file.write(finalstring + '\n')
+      file.close()
+
+      f = os.path.join(model_dir, outfile)
+      file = open(f, 'w')
+      file.write(finalstring)
+      file.close()
+
+
+  def normalize_batch_sizes(self, delta, updated_batchsizes):
+      '''
+      :argument: normalizes the delta between the cumulative batch-size across the cluster to its static batching equilavalent (which is b_static times the number of workers).
+                delta can be positive or negative given the heterogeneity level and the sync mode being used.
+      :return: a list of the two-level normalized batch-sizes to be used to restart the model with kill-restart technique.
+      '''
+      normalized_updated_batch_sizes = []
+      worker_batch_size_adjustment = []
+      node_scale = self.get_node_scale()
+
+      print('value of delta is ' + str(delta))
+      print('updatedbatchsizes being used ' + str(updated_batchsizes))
+      for index in range(0, len(updated_batchsizes)):
+          worker_batch_size_adjustment.append(node_scale[index] * delta)
+
+      print('adjustments to be made to normalize cumulative batch-size: ' + str(worker_batch_size_adjustment))
+
+      for ix in range(0, len(updated_batchsizes)):
+          normalized_updated_batch_sizes.append(updated_batchsizes[ix] + worker_batch_size_adjustment[ix])
+
+      print('normalized and updated batch-sizes to be used in model are: ' + str(normalized_updated_batch_sizes))
+      return normalized_updated_batch_sizes
+
+
+  def get_node_scale(self):
+      '''
+      :argument: we create a new environment variable called 'RESOURCE_ALLOC' which is comma separated values of each workers CPU core alloc.
+                 order in env var is master, worker-0, worker-1, etc.
+      :returns: a list comprised of the ratio of the worker's core alloc to the cumulative cluster core allocation.
+      '''
+      node_scale = []
+      node_scale.append(0)
+      total_resources = 0
+      resource_alloc = os.environ['RESOURCE_ALLOC']
+      for resource in resource_alloc:
+          total_resources = total_resources + resource
+
+      for resource in resource_alloc:
+          node_scale.append((resource / total_resources))
+
+      return node_scale
+
+
+  def save_checkpoint_before_stop(self, model_dir, curr_step, saver, session):
+      '''
+      :argument: if a stop is requested, explicitly checkpoint the trainable variables for the current global_step.
+      :return: null.
+      '''
+      checkpoint_file = model_dir + '/model.ckpt-' + str(curr_step)
+      checkpoint_file = checkpoint_file.replace('//', '/')
+      saver.save(session, checkpoint_file)
+
 
   def _evaluate_build_graph(self, input_fn, hooks=None, checkpoint_path=None):
     """Builds the graph and related hooks to run evaluation."""
