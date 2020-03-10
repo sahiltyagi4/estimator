@@ -1575,11 +1575,18 @@ class Estimator(object):
                   file = open(f, 'r')
                   for line in file:
                       gradient_computation_time.append(float(line.split(',')[0]))
-                      sum_of_worker_current_steps = sum_of_worker_current_steps + int(line.split(',')[1])
+                      if current_step == 0:
+                          sum_of_worker_current_steps = sum_of_worker_current_steps + 1
+                      else:
+                          sum_of_worker_current_steps = sum_of_worker_current_steps + int(line.split(',')[1])
                   file.close()
 
-          if sum_of_worker_current_steps == (current_step*num_workers):
-              break
+          if current_step == 0:
+              if sum_of_worker_current_steps == 3:
+                  break
+          else:
+              if sum_of_worker_current_steps == (current_step*num_workers):
+                  break
 
       return gradient_computation_time
 
