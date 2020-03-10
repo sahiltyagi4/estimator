@@ -1723,7 +1723,7 @@ class Estimator(object):
       for resource in resource_alloc.split(','):
           total_resources = total_resources + int(resource)
 
-      for resource in resource_alloc(','):
+      for resource in resource_alloc.split(','):
           node_scale.append((int(resource) / total_resources))
 
       return node_scale
