@@ -1532,7 +1532,7 @@ class Estimator(object):
 
           self.write_computation_time_to_file(self._model_dir, str((max(op_ts) - min(op_ts))/1000), curr_step, w_type, w_index)
           gradient_computation_time = self.read_batchsize_files(worker_batchsizes_filenames, self._model_dir, curr_step, num_workers)
-          should_training_stop = self.compute_cluster_delta_fn(gradient_computation_time)
+          should_training_stop = self.compute_cluster_delta_fn(gradient_computation_time, w_type)
 
           ## should only master save checkpoints? if yes, how does sync occur on nodes?? --later
           if should_training_stop:
@@ -1593,7 +1593,7 @@ class Estimator(object):
       file.close()
 
 
-  def compute_cluster_delta_fn(self, gradient_computation_time):
+  def compute_cluster_delta_fn(self, gradient_computation_time, w_type):
       '''
       :param: gradient_computation_time list
       :return: a boolean whether to continue or stop training if any worker takes more time compared to other workers by a certain threshold. currently threshold is set to 0.1.
@@ -1619,12 +1619,12 @@ class Estimator(object):
 
       ## call fn to compute the updated batch-sizes with which to restart the model and logs its to clusterbatchsizes.conf and other log files.
       if should_training_stop :
-          self.calculate_updated_batchsizes(self._model_dir, cluster_avg_time, gradient_computation_time)
+          self.calculate_updated_batchsizes(self._model_dir, cluster_avg_time, gradient_computation_time, w_type)
 
       return should_training_stop
 
 
-  def calculate_updated_batchsizes(self, model_dir, cluster_avg_time, gradient_computation_time):
+  def calculate_updated_batchsizes(self, model_dir, cluster_avg_time, gradient_computation_time, w_type):
       '''
       :param: average time across cluster for computation at each step, gradient_computation_time list has individual time of computation for each worker
       :return: the updated batch-sizes after two-level normalization.
@@ -1650,7 +1650,9 @@ class Estimator(object):
       # this value corresponds to batch-size set in PS, although its not used as PS does not involve in training op. so make sure you always set b_static as batch-size for PS initially.
       b_static = batchsizes[0]
       num_workers = (len(batchsizes) -1)
-      if len(batchsizes) != len(gradient_computation_time):
+      if len(batchsizes) != len(fraction_perworker):
+          logging.info(batchsizes)
+          logging.info(fraction_perworker)
           raise ValueError('@sahiltyagi4 the length of batch-sizes list and computed fraction of iteration time per-worker is not same. Something is wrong!')
 
       cumulative_batch_size = 0
@@ -1665,29 +1667,23 @@ class Estimator(object):
       normalized_updated_batch_sizes = self.normalize_batch_sizes(delta, updated_batchsizes)
       logging.info('@sahiltyagi4 normalized updated batch-sizes after two-level normalization are ' + str(normalized_updated_batch_sizes))
 
-      # now write these updated batch-sizes to clusterbatchsizes.conf and batchsize_history.txt in model_dir
-      # f = os.path.join(model_dir, 'updatedbatchsizes.txt')
-      # file = open(f, 'a')
-      # file.write(str(normalized_updated_batch_sizes))
-      # file.write('\n')
-      # file.close()
+      if w_type == 'master':
+          finalstring = '['
+          for size in normalized_updated_batch_sizes:
+              finalstring = finalstring + str(int(size)) + ','
 
-      finalstring = '['
-      for size in normalized_updated_batch_sizes:
-          finalstring = finalstring + str(int(size)) + ','
+          finalstring = finalstring[0:len(finalstring) - 1]
+          finalstring = finalstring + ']'
 
-      finalstring = finalstring[0:len(finalstring) - 1]
-      finalstring = finalstring + ']'
+          f = os.path.join(model_dir, 'batchsize_history.txt')
+          file = open(f, 'a')
+          file.write(finalstring + '\n')
+          file.close()
 
-      f = os.path.join(model_dir, 'batchsize_history.txt')
-      file = open(f, 'a')
-      file.write(finalstring + '\n')
-      file.close()
-
-      f = os.path.join(model_dir, outfile)
-      file = open(f, 'w')
-      file.write(finalstring)
-      file.close()
+          f = os.path.join(model_dir, outfile)
+          file = open(f, 'w')
+          file.write(finalstring)
+          file.close()
 
 
   def normalize_batch_sizes(self, delta, updated_batchsizes):
