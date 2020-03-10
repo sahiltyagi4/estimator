@@ -1540,8 +1540,8 @@ class Estimator(object):
                   self.save_checkpoint_before_stop(self._model_dir, curr_step, saver, mon_sess)
               logging.info('@sahiltyagi4 closing the monitored session so value of should_stop() should be True now: ' + str(mon_sess.should_stop()))
               break
-
-      mon_sess.close()
+      if not mon_sess._is_closed():
+          mon_sess.close()
 
     if not any_step_done:
       logging.warning('Training with estimator made no steps. '
