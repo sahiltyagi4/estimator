@@ -1532,16 +1532,19 @@ class Estimator(object):
 
           self.write_computation_time_to_file(self._model_dir, str((max(op_ts) - min(op_ts))/1000), curr_step, w_type, w_index)
           gradient_computation_time = self.read_batchsize_files(worker_batchsizes_filenames, self._model_dir, curr_step, num_workers)
+          logging.info('@sahiltyagi4 value of gradient_computation_time is ' + str(gradient_computation_time))
           should_training_stop = self.compute_cluster_delta_fn(gradient_computation_time, w_type)
 
-          ## should only master save checkpoints? if yes, how does sync occur on nodes?? --later
           if should_training_stop:
               if w_type == 'master':
+                  logging.info('@sahiltyagi4 going to call checkpoint fn in master...')
                   self.save_checkpoint_before_stop(self._model_dir, curr_step, saver, mon_sess)
-              logging.info('@sahiltyagi4 closing the monitored session so value of should_stop() should be True now: ' + str(mon_sess.should_stop()))
-              break
-      if not mon_sess._is_closed():
-          mon_sess.close()
+              if not mon_sess._is_closed():
+                  logging.info('@sahiltyagi4 going to close monitored session now...')
+                  ##mon_sess.close()
+                  mon_sess = None
+                  logging.info('@sahiltyagi4 closing the monitored session so value of should_stop() should be True now: ' + str(mon_sess.should_stop()))
+                  ##break
 
     if not any_step_done:
       logging.warning('Training with estimator made no steps. '
@@ -1600,6 +1603,7 @@ class Estimator(object):
       file = open(f, 'w')
       file.write(worker_computation_time + ',' + str(current_step))
       file.close()
+      logging.info('@sahiltyagi4 writing computation time to file for step ' + str(current_step))
 
 
   def compute_cluster_delta_fn(self, gradient_computation_time, w_type):
@@ -1628,8 +1632,9 @@ class Estimator(object):
 
       ## call fn to compute the updated batch-sizes with which to restart the model and logs its to clusterbatchsizes.conf and other log files.
       if should_training_stop :
-          self.calculate_updated_batchsizes(self._model_dir, cluster_avg_time, gradient_computation_time, w_type)
+          normalized_updated_batch_sizes = self.calculate_updated_batchsizes(self._model_dir, cluster_avg_time, gradient_computation_time, w_type)
 
+      logging.info('@sahiltyagi4 value of should training stop is ' + str(should_training_stop))
       return should_training_stop
 
 
@@ -1677,6 +1682,7 @@ class Estimator(object):
       logging.info('@sahiltyagi4 normalized updated batch-sizes after two-level normalization are ' + str(normalized_updated_batch_sizes))
 
       if w_type == 'master':
+          logging.info('@sahiltyagi4 going to write batchsize_history and clusterbatchsizes.conf from master node!')
           finalstring = '['
           for size in normalized_updated_batch_sizes:
               finalstring = finalstring + str(int(size)) + ','
@@ -1693,6 +1699,9 @@ class Estimator(object):
           file = open(f, 'w')
           file.write(finalstring)
           file.close()
+
+      logging.info('@sahiltyagi4 going to end calculate_updated_batchsizes fn call...')
+      return normalized_updated_batch_sizes
 
 
   def normalize_batch_sizes(self, delta, updated_batchsizes):
@@ -1735,6 +1744,7 @@ class Estimator(object):
       for resource in resource_alloc.split(','):
           node_scale.append((int(resource) / total_resources))
 
+      logging.info('@sahiltyagi4 list of node scale is ' + str(node_scale))
       return node_scale
 
 
@@ -1746,6 +1756,7 @@ class Estimator(object):
       checkpoint_file = model_dir + '/model.ckpt-' + str(curr_step)
       checkpoint_file = checkpoint_file.replace('//', '/')
       saver.save(session, checkpoint_file)
+      logging.info('@sahiltyagi4 just saved the checkpoint for current step ' + str(curr_step))
 
 
   def _evaluate_build_graph(self, input_fn, hooks=None, checkpoint_path=None):
