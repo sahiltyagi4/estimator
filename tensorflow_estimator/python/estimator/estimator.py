@@ -1506,7 +1506,8 @@ class Estimator(object):
       run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
       run_metadata = tf.RunMetadata()
 
-      while not mon_sess.should_stop():
+      # while not mon_sess.should_stop():
+      while not mon_sess is not None:
           step_start = time.time()
           _, loss, curr_step = mon_sess.run([estimator_spec.train_op, estimator_spec.loss, tf.train.get_or_create_global_step()], options=run_options, run_metadata=run_metadata)
           step_end = time.time()
@@ -1543,12 +1544,12 @@ class Estimator(object):
                   logging.info('@sahiltyagi4 going to close monitored session now...')
                   ##mon_sess.close()
                   mon_sess = None
-                  logging.info('@sahiltyagi4 closing the monitored session so value of should_stop() should be True now: ' + str(mon_sess.should_stop()))
-                  ##break
+                  logging.info('@sahiltyagi4 made monitored session Nonetype')
 
     if not any_step_done:
       logging.warning('Training with estimator made no steps. '
                       'Perhaps input is empty or misspecified.')
+    logging.info('@sahiltyagi4 going to return final loss now....')
     return loss
 
 
@@ -1632,7 +1633,7 @@ class Estimator(object):
 
       ## call fn to compute the updated batch-sizes with which to restart the model and logs its to clusterbatchsizes.conf and other log files.
       if should_training_stop :
-          normalized_updated_batch_sizes = self.calculate_updated_batchsizes(self._model_dir, cluster_avg_time, gradient_computation_time, w_type)
+          self.calculate_updated_batchsizes(self._model_dir, cluster_avg_time, gradient_computation_time, w_type)
 
       logging.info('@sahiltyagi4 value of should training stop is ' + str(should_training_stop))
       return should_training_stop
@@ -1701,7 +1702,6 @@ class Estimator(object):
           file.close()
 
       logging.info('@sahiltyagi4 going to end calculate_updated_batchsizes fn call...')
-      return normalized_updated_batch_sizes
 
 
   def normalize_batch_sizes(self, delta, updated_batchsizes):
@@ -1714,17 +1714,17 @@ class Estimator(object):
       worker_batch_size_adjustment = []
       node_scale = self.get_node_scale()
 
-      print('value of delta is ' + str(delta))
-      print('updatedbatchsizes being used ' + str(updated_batchsizes))
+      logging.info('value of delta is ' + str(delta))
+      ('updatedbatchsizes being used ' + str(updated_batchsizes))
       for index in range(0, len(updated_batchsizes)):
           worker_batch_size_adjustment.append(node_scale[index] * delta)
 
-      print('adjustments to be made to normalize cumulative batch-size: ' + str(worker_batch_size_adjustment))
+      logging.info('adjustments to be made to normalize cumulative batch-size: ' + str(worker_batch_size_adjustment))
 
       for ix in range(0, len(updated_batchsizes)):
           normalized_updated_batch_sizes.append(updated_batchsizes[ix] + worker_batch_size_adjustment[ix])
 
-      print('normalized and updated batch-sizes to be used in model are: ' + str(normalized_updated_batch_sizes))
+      logging.info('normalized and updated batch-sizes to be used in model are: ' + str(normalized_updated_batch_sizes))
       return normalized_updated_batch_sizes
 
 
