@@ -1507,7 +1507,7 @@ class Estimator(object):
       run_metadata = tf.RunMetadata()
 
       # while not mon_sess.should_stop():
-      while not mon_sess is not None:
+      while mon_sess is not None:
           step_start = time.time()
           _, loss, curr_step = mon_sess.run([estimator_spec.train_op, estimator_spec.loss, tf.train.get_or_create_global_step()], options=run_options, run_metadata=run_metadata)
           step_end = time.time()
