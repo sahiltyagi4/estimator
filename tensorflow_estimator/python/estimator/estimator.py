@@ -1484,8 +1484,9 @@ class Estimator(object):
     batchlist = tf_config['batch_size_list']
     num_workers = (len(batchlist) - 1)
     worker_batchsizes_filenames = self.get_worker_batchsize_filenames(batchlist)
-    if w_type == 'master':
-        saver = tf.train.Saver()
+    # if w_type == 'master':
+    #     saver = tf.train.Saver()
+    saver = tf.train.Saver()
     with training.MonitoredTrainingSession(
         master=self._config.master,
         is_chief=self._config.is_chief,
@@ -1544,9 +1545,12 @@ class Estimator(object):
               checkpoint_file = self._model_dir + '/model.ckpt-' + str(curr_step)
               checkpoint_file = checkpoint_file.replace('//', '/')
               logging.info('@sahiltyagi4 looking to save checkpoint file ' + str(checkpoint_file))
-              if w_type == 'master':
-                  saver.save(mon_sess, checkpoint_file)
-                  logging.info('@sahiltyagi4 just saved the checkpoint for current step ' + str(curr_step))
+              # if w_type == 'master':
+              #     saver.save(mon_sess, checkpoint_file)
+              #     logging.info('@sahiltyagi4 just saved the checkpoint for current step ' + str(curr_step))
+
+              saver.save(mon_sess, checkpoint_file)
+              logging.info('@sahiltyagi4 just saved the checkpoint for current step ' + str(curr_step))
 
               if not mon_sess._is_closed():
                   logging.info('@sahiltyagi4 going to close monitored session now...')
