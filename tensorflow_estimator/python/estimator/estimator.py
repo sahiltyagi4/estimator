@@ -1569,11 +1569,12 @@ class Estimator(object):
           sum_of_worker_current_steps = 0
           for ix in range(0, len(worker_batchsizes_filenames)):
               f = os.path.join(model_dir, worker_batchsizes_filenames[ix])
-              file = open(f, 'r')
-              for line in file:
-                  gradient_computation_time.append(float(line.split(',')[0]))
-                  sum_of_worker_current_steps = sum_of_worker_current_steps + int(line.split(',')[1])
-              file.close()
+              if f.exists():
+                  file = open(f, 'r')
+                  for line in file:
+                      gradient_computation_time.append(float(line.split(',')[0]))
+                      sum_of_worker_current_steps = sum_of_worker_current_steps + int(line.split(',')[1])
+                  file.close()
 
           if sum_of_worker_current_steps == (current_step*num_workers):
               break
