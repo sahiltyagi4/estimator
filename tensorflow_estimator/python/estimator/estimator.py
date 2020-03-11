@@ -1535,16 +1535,18 @@ class Estimator(object):
           gradient_computation_time = self.read_batchsize_files(worker_batchsizes_filenames, self._model_dir, curr_step, num_workers)
           logging.info('@sahiltyagi4 value of gradient_computation_time is ' + str(gradient_computation_time))
           ##currently set the threshold value at 0.2. With 0.1, adjustment was happening almost every other second step.
-          should_training_stop = self.compute_cluster_delta_fn(gradient_computation_time, w_type, estimator_spec.reactive_adjustment_threshold)
+          should_training_stop = self.compute_cluster_delta_fn(gradient_computation_time, w_type, estimator_spec.reactive_adjustment_threshold, curr_step)
 
           if should_training_stop:
               if not mon_sess._is_closed():
                   if w_type == 'master':
                       logging.info('@sahiltyagi4 looking to save checkpoint file for step ' + str(curr_step))
-                      saver.save(self.get_session(mon_sess), os.path.join(self._model_dir, 'model.ckpt-'+str(curr_step)))
+                      # saver.save(self.get_session(mon_sess), os.path.join(self._model_dir, 'model.ckpt-'+str(curr_step)))
+                      saver.save(self.get_session(mon_sess), os.path.join(self._model_dir, 'mymodel-' + str(curr_step)))
                       logging.info('@sahiltyagi4 just saved the checkpoint for current step ' + str(curr_step))
 
-                  self.wait_till_checkpointing_completes(self._model_dir, 'model.ckpt-'+str(curr_step)+'.meta')
+                  # self.wait_till_checkpointing_completes(self._model_dir, 'model.ckpt-'+str(curr_step)+'.meta')
+                  self.wait_till_checkpointing_completes(self._model_dir, 'mymodel-' + str(curr_step) + '.meta')
                   logging.info('@sahiltyagi4 going to close monitored session now...')
                   ##mon_sess.close()
                   mon_sess = None
@@ -1624,10 +1626,10 @@ class Estimator(object):
       file = open(f, 'w')
       file.write(worker_computation_time + ',' + str(current_step))
       file.close()
-      logging.info('@sahiltyagi4 writing computation time to file for step ' + str(current_step))
+      #logging.info('@sahiltyagi4 writing computation time to file for step ' + str(current_step))
 
 
-  def compute_cluster_delta_fn(self, gradient_computation_time, w_type, threshold):
+  def compute_cluster_delta_fn(self, gradient_computation_time, w_type, threshold, current_step):
       '''
       :param: gradient_computation_time list
       :return: a boolean whether to continue or stop training if any worker takes more time compared to other workers by a certain threshold. currently threshold is set to 0.1.
@@ -1654,7 +1656,7 @@ class Estimator(object):
       if should_training_stop :
           self.calculate_updated_batchsizes(self._model_dir, cluster_avg_time, gradient_computation_time, w_type)
 
-      logging.info('@sahiltyagi4 value of should training stop is ' + str(should_training_stop))
+      logging.info('@sahiltyagi4 value of should training stop is ' + str(should_training_stop) + ' for step ' + str(current_step))
       return should_training_stop
 
 
