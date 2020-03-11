@@ -1549,7 +1549,7 @@ class Estimator(object):
                   if w_type == 'master':
                       logging.info('@sahiltyagi4 looking to save checkpoint file for step ' + str(curr_step))
                       # saver.save(mon_sess, checkpoint_file)
-                      saver.save(mon_sess, os.path.join(self._model_dir, 'model.ckpt'), global_step=curr_step)
+                      saver.save(self.get_session(mon_sess), os.path.join(self._model_dir, 'model.ckpt'), global_step=curr_step)
                       logging.info('@sahiltyagi4 just saved the checkpoint for current step ' + str(curr_step))
 
                   self.wait_till_checkpointing_completes(self._model_dir, 'model.ckpt-'+str(curr_step)+'.meta')
@@ -1564,6 +1564,13 @@ class Estimator(object):
                       'Perhaps input is empty or misspecified.')
     logging.info('@sahiltyagi4 going to return final loss now....')
     return loss
+
+  def get_session(sess):
+      session = sess
+      while type(session).__name__ != 'Session':
+          # pylint: disable=W0212
+          session = session._sess
+      return session
 
   #just meta, or index and data files too?
   def wait_till_checkpointing_completes(self, model_dir, checkpoint_meta_file):
