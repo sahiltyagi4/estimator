@@ -1542,14 +1542,14 @@ class Estimator(object):
               #     self.save_checkpoint_before_stop(self._model_dir, curr_step, saver, mon_sess)
 
               # checkpoint_file = self._model_dir + '/model.ckpt-' + str(curr_step)
-              checkpoint_file = self._model_dir + '/modelcheckpt'
-              checkpoint_file = checkpoint_file.replace('//', '/')
+              # checkpoint_file = self._model_dir + '/modelcheckpt'
+              # checkpoint_file = checkpoint_file.replace('//', '/')
 
               if not mon_sess._is_closed():
-                  logging.info('@sahiltyagi4 looking to save checkpoint file ' + str(checkpoint_file))
                   if w_type == 'master':
+                      logging.info('@sahiltyagi4 looking to save checkpoint file for step ' + str(curr_step))
                       # saver.save(mon_sess, checkpoint_file)
-                      saver.save(mon_sess, checkpoint_file, global_step=curr_step)
+                      saver.save(mon_sess, os.path.join(self._model_dir, 'model.ckpt'), global_step=curr_step)
                       logging.info('@sahiltyagi4 just saved the checkpoint for current step ' + str(curr_step))
                   logging.info('@sahiltyagi4 going to close monitored session now...')
                   ##mon_sess.close()
