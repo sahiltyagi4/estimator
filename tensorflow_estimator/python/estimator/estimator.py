@@ -1565,7 +1565,7 @@ class Estimator(object):
     logging.info('@sahiltyagi4 going to return final loss now....')
     return loss
 
-  def get_session(sess):
+  def get_session(self,sess):
       session = sess
       while type(session).__name__ != 'Session':
           # pylint: disable=W0212
