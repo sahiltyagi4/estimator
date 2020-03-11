@@ -1551,6 +1551,8 @@ class Estimator(object):
                       # saver.save(mon_sess, checkpoint_file)
                       saver.save(mon_sess, os.path.join(self._model_dir, 'model.ckpt'), global_step=curr_step)
                       logging.info('@sahiltyagi4 just saved the checkpoint for current step ' + str(curr_step))
+
+                  self.wait_till_checkpointing_completes(self._model_dir, 'model.ckpt-'+str(curr_step)+'.meta')
                   logging.info('@sahiltyagi4 going to close monitored session now...')
                   ##mon_sess.close()
                   mon_sess = None
@@ -1562,6 +1564,14 @@ class Estimator(object):
                       'Perhaps input is empty or misspecified.')
     logging.info('@sahiltyagi4 going to return final loss now....')
     return loss
+
+  #just meta, or index and data files too?
+  def wait_till_checkpointing_completes(self, model_dir, checkpoint_meta_file):
+      while True:
+          f = os.path.join(model_dir, checkpoint_meta_file)
+          if os.path.isfile(f):
+              logging.info('@sahiltyagi4 checkpoint meta file finally created!!! '+ str(checkpoint_meta_file))
+              break
 
 
   def get_worker_batchsize_filenames(self, batchlist):
