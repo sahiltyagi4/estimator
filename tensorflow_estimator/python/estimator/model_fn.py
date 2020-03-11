@@ -45,7 +45,7 @@ AVERAGE_LOSS_METRIC_KEY = 'average_loss'
 @estimator_export('estimator.EstimatorSpec')
 class EstimatorSpec(
     collections.namedtuple('EstimatorSpec', [
-        'mode', 'predictions', 'loss', 'train_op', 'eval_metric_ops',
+        'mode', 'predictions', 'loss', 'train_op', 'eval_metric_ops', 'reactive_adjustment_threshold',
         'export_outputs', 'training_chief_hooks', 'training_hooks', 'scaffold',
         'evaluation_hooks', 'namescope', 'prediction_hooks'
     ])):
@@ -64,6 +64,7 @@ class EstimatorSpec(
               export_outputs=None,
               training_chief_hooks=None,
               training_hooks=None,
+              reactive_adjustment_threshold=None,
               scaffold=None,
               evaluation_hooks=None,
               prediction_hooks=None):
@@ -184,6 +185,7 @@ class EstimatorSpec(
         export_outputs=export_outputs,
         training_chief_hooks=training_chief_hooks,
         training_hooks=training_hooks,
+        reactive_adjustment_threshold=reactive_adjustment_threshold,
         scaffold=scaffold,
         evaluation_hooks=evaluation_hooks,
         prediction_hooks=prediction_hooks)

@@ -1534,22 +1534,14 @@ class Estimator(object):
           self.write_computation_time_to_file(self._model_dir, str((max(op_ts) - min(op_ts))/1000), curr_step, w_type, w_index)
           gradient_computation_time = self.read_batchsize_files(worker_batchsizes_filenames, self._model_dir, curr_step, num_workers)
           logging.info('@sahiltyagi4 value of gradient_computation_time is ' + str(gradient_computation_time))
-          should_training_stop = self.compute_cluster_delta_fn(gradient_computation_time, w_type)
+          ##currently set the threshold value at 0.2. With 0.1, adjustment was happening almost every other second step.
+          should_training_stop = self.compute_cluster_delta_fn(gradient_computation_time, w_type, estimator_spec.reactive_adjustment_threshold)
 
           if should_training_stop:
-              # if w_type == 'master':
-              #     logging.info('@sahiltyagi4 going to call checkpoint fn in master...')
-              #     self.save_checkpoint_before_stop(self._model_dir, curr_step, saver, mon_sess)
-
-              # checkpoint_file = self._model_dir + '/model.ckpt-' + str(curr_step)
-              # checkpoint_file = self._model_dir + '/modelcheckpt'
-              # checkpoint_file = checkpoint_file.replace('//', '/')
-
               if not mon_sess._is_closed():
                   if w_type == 'master':
                       logging.info('@sahiltyagi4 looking to save checkpoint file for step ' + str(curr_step))
-                      # saver.save(mon_sess, checkpoint_file)
-                      saver.save(self.get_session(mon_sess), os.path.join(self._model_dir, 'model.ckpt'), global_step=curr_step)
+                      saver.save(self.get_session(mon_sess), os.path.join(self._model_dir, 'model.ckpt-'+str(curr_step)))
                       logging.info('@sahiltyagi4 just saved the checkpoint for current step ' + str(curr_step))
 
                   self.wait_till_checkpointing_completes(self._model_dir, 'model.ckpt-'+str(curr_step)+'.meta')
@@ -1635,13 +1627,12 @@ class Estimator(object):
       logging.info('@sahiltyagi4 writing computation time to file for step ' + str(current_step))
 
 
-  def compute_cluster_delta_fn(self, gradient_computation_time, w_type):
+  def compute_cluster_delta_fn(self, gradient_computation_time, w_type, threshold):
       '''
       :param: gradient_computation_time list
       :return: a boolean whether to continue or stop training if any worker takes more time compared to other workers by a certain threshold. currently threshold is set to 0.1.
       '''
       should_training_stop = False
-      threshold = 0.1
       total = 0.0
       for times in gradient_computation_time:
           total = total + times
@@ -1758,7 +1749,7 @@ class Estimator(object):
 
   def get_node_scale(self):
       '''
-      :argument: we create a new environment variable called 'RESOURCE_ALLOC' which is comma separated values of each workers CPU core alloc.
+      :argument: we create a new environment variable called 'RESOURCE_ALLOC' which is comma separated values of each workers' CPU core alloc.
                  order in env var is master, worker-0, worker-1, etc.
       :returns: a list comprised of the ratio of the worker's core alloc to the cumulative cluster core allocation.
       '''
@@ -1774,17 +1765,6 @@ class Estimator(object):
 
       logging.info('@sahiltyagi4 list of node scale is ' + str(node_scale))
       return node_scale
-
-
-  def save_checkpoint_before_stop(self, model_dir, curr_step, saver, session):
-      '''
-      :argument: if a stop is requested, explicitly checkpoint the trainable variables for the current global_step.
-      :return: null.
-      '''
-      checkpoint_file = model_dir + '/model.ckpt-' + str(curr_step)
-      checkpoint_file = checkpoint_file.replace('//', '/')
-      saver.save(session, checkpoint_file)
-      logging.info('@sahiltyagi4 just saved the checkpoint for current step ' + str(curr_step))
 
 
   def _evaluate_build_graph(self, input_fn, hooks=None, checkpoint_path=None):
