@@ -1743,7 +1743,8 @@ class Estimator(object):
           # finalstring = finalstring[0:len(finalstring) - 1]
           # finalstring = finalstring + ']'
 
-          finalstring = '-'.join([str(batchsize) for batchsize in normalized_updated_batch_sizes])
+          inttype_normalized_updated_batch_sizes = np.round(normalized_updated_batch_sizes).astype(int)
+          finalstring = '-'.join([str(batchsize) for batchsize in inttype_normalized_updated_batch_sizes])
 
           f = os.path.join(model_dir, 'batchsize_history.txt')
           file = open(f, 'a')
