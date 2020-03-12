@@ -1731,7 +1731,7 @@ class Estimator(object):
       logging.info('@sahiltyagi4 value of b_static and num_workers is ' + str(b_static) + ' and ' + str(num_workers))
 
       delta = (b_static*num_workers) - cumulative_batch_size
-      normalized_updated_batch_sizes = self.normalize_batch_sizes(delta, updated_batchsizes)
+      normalized_updated_batch_sizes = self.normalize_batch_sizes(delta, updated_batchsizes, num_ps)
       logging.info('@sahiltyagi4 normalized updated batch-sizes after two-level normalization are ' + str(normalized_updated_batch_sizes))
 
       if w_type == 'master':
@@ -1758,7 +1758,7 @@ class Estimator(object):
       logging.info('@sahiltyagi4 going to end calculate_updated_batchsizes fn call...')
 
 
-  def normalize_batch_sizes(self, delta, updated_batchsizes):
+  def normalize_batch_sizes(self, delta, updated_batchsizes, num_ps):
       '''
       :argument: normalizes the delta between the cumulative batch-size across the cluster to its static batching equilavalent (which is b_static times the number of workers).
                 delta can be positive or negative given the heterogeneity level and the sync mode being used.
@@ -1770,13 +1770,16 @@ class Estimator(object):
       node_scale = self.get_node_scale()
 
       logging.info('value of delta is ' + str(delta))
-      ('updatedbatchsizes being used ' + str(updated_batchsizes))
+      logging.info('updatedbatchsizes being used ' + str(updated_batchsizes))
       
       # for index in range(0, len(updated_batchsizes)):
       #     worker_batch_size_adjustment.append(node_scale[index] * delta)
 
       worker_batch_size_adjustment = np.multiply(node_scale, delta)
+      for ix in range(0, num_ps):
+          worker_batch_size_adjustment = np.insert(worker_batch_size_adjustment, ix, 0., axis=0)
 
+      logging.info('@sahiltyagi4 worker_batch_size_adjustment value is ' + str(worker_batch_size_adjustment))
       logging.info('adjustments to be made to normalize cumulative batch-size: ' + str(worker_batch_size_adjustment))
 
       # for ix in range(0, len(updated_batchsizes)):
