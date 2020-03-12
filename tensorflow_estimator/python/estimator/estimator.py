@@ -1481,14 +1481,15 @@ class Estimator(object):
     tf_config = json.loads(os.environ['TF_CONFIG'])
     w_type = tf_config['task']['type']
     w_index = tf_config['task']['index']
-    batchlist = tf_config['batch_size_list']
+    
+    #batchlist = tf_config['batch_size_list']
     # num_workers = (len(batchlist) - 1)
 
     num_workers = len(tf_config['cluster']['master'].split(',')) + len(tf_config['cluster']['worker'].split(','))
     num_ps = len(tf_config['cluster']['ps'].split(','))
     b_static = os.environ['UNIFORM_CLUSTER_BATCH_SIZE']
 
-    worker_batchsizes_filenames = self.get_worker_batchsize_filenames(batchlist)
+    worker_batchsizes_filenames = self.get_worker_batchsize_filenames(num_workers)
     if w_type == 'master':
         saver = tf.train.Saver()
     with training.MonitoredTrainingSession(
@@ -1580,11 +1581,10 @@ class Estimator(object):
               break
 
 
-  def get_worker_batchsize_filenames(self, batchlist):
+  def get_worker_batchsize_filenames(self, num_workers):
       worker_batchsizes_filenames = []
       worker_batchsizes_filenames.append('tf-master-0.txt')
-      # -2 because we ignore the batch-size values fed to the master and PS.
-      for ix in range(0, (len(batchlist) -2)):
+      for ix in range(0, num_workers):
           worker_batchsizes_filenames.append('tf-worker-' + str(ix) + '.txt')
 
       return worker_batchsizes_filenames
@@ -1699,7 +1699,7 @@ class Estimator(object):
       #     line = line.replace('[', '')
       #     line = line.replace(']', '')
 
-      batches = file.readline().split(',')
+      batches = file.readline().split('-')
       file.close()
 
       #batchsizes = []
@@ -1744,7 +1744,7 @@ class Estimator(object):
           # finalstring = finalstring[0:len(finalstring) - 1]
           # finalstring = finalstring + ']'
 
-          finalstring = ','.join([str(batchsize) for batchsize in normalized_updated_batch_sizes])
+          finalstring = '-'.join([str(batchsize) for batchsize in normalized_updated_batch_sizes])
 
           f = os.path.join(model_dir, 'batchsize_history.txt')
           file = open(f, 'a')
