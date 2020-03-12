@@ -1486,7 +1486,7 @@ class Estimator(object):
     # num_workers = (len(batchlist) - 1)
 
     num_workers = len(tf_config['cluster']['master']) + len(tf_config['cluster']['worker'])
-    num_ps = len(tf_config['cluster']['ps'].split(','))
+    num_ps = len(tf_config['cluster']['ps'])
     b_static = os.environ['UNIFORM_CLUSTER_BATCH_SIZE']
 
     worker_batchsizes_filenames = self.get_worker_batchsize_filenames(num_workers)
