@@ -1653,7 +1653,7 @@ class Estimator(object):
       # for times in gradient_computation_time:
       #     worker_computation_time_frac.append(((times - cluster_avg_time)/cluster_avg_time))
 
-      if threshold < worker_computation_time_frac.any():
+      if (threshold < worker_computation_time_frac).any():
           logging.info('@sahiltyagi4 value of threshold that we set is ' + str(threshold))
           logging.info('@sahiltyagi4 a time fraction value is greater than threshold with all values ' + str(worker_computation_time_frac))
           logging.info('@sahiltyagi4 corresponding gradient computation times are ' + str(gradient_computation_time))
