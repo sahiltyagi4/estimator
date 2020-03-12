@@ -1728,7 +1728,7 @@ class Estimator(object):
       updated_batchsizes = np.round(batchsizes + fraction_perworker)
       cumulative_batch_size = np.sum(updated_batchsizes[num_ps:])
       logging.info('@sahiltyagi4 value of cumulative_batch_size is ' + str(cumulative_batch_size))
-      logging.info('@sahiltyagi4 value of b_static and num_workers is ' + b_static + ' and ' + num_workers)
+      logging.info('@sahiltyagi4 value of b_static and num_workers is ' + str(b_static) + ' and ' + str(num_workers))
 
       delta = (b_static*num_workers) - cumulative_batch_size
       normalized_updated_batch_sizes = self.normalize_batch_sizes(delta, updated_batchsizes)
