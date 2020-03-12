@@ -1485,9 +1485,9 @@ class Estimator(object):
     #batchlist = tf_config['batch_size_list']
     # num_workers = (len(batchlist) - 1)
 
-    num_workers = len(tf_config['cluster']['master']) + len(tf_config['cluster']['worker'])
-    num_ps = len(tf_config['cluster']['ps'])
-    b_static = os.environ['UNIFORM_CLUSTER_BATCH_SIZE']
+    num_workers = int(len(tf_config['cluster']['master']) + len(tf_config['cluster']['worker']))
+    num_ps = int(len(tf_config['cluster']['ps']))
+    b_static = int(os.environ['UNIFORM_CLUSTER_BATCH_SIZE'])
 
     worker_batchsizes_filenames = self.get_worker_batchsize_filenames(num_workers)
     if w_type == 'master':
@@ -1727,9 +1727,8 @@ class Estimator(object):
 
       updated_batchsizes = np.round(batchsizes + fraction_perworker)
       cumulative_batch_size = np.sum(updated_batchsizes[num_ps:])
-
-
-
+      logging.info('@sahiltyagi4 value of cumulative_batch_size is ' + str(cumulative_batch_size))
+      logging.info('@sahiltyagi4 value of b_static and num_workers is ' + b_static + ' and ' + num_workers)
 
       delta = (b_static*num_workers) - cumulative_batch_size
       normalized_updated_batch_sizes = self.normalize_batch_sizes(delta, updated_batchsizes)
