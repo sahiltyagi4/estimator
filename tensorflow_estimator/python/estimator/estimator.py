@@ -1481,15 +1481,13 @@ class Estimator(object):
     tf_config = json.loads(os.environ['TF_CONFIG'])
     w_type = tf_config['task']['type']
     w_index = tf_config['task']['index']
-    
-    #batchlist = tf_config['batch_size_list']
-    # num_workers = (len(batchlist) - 1)
+    batchlist = tf_config['batch_size_list']
 
     num_workers = int(len(tf_config['cluster']['master']) + len(tf_config['cluster']['worker']))
     num_ps = int(len(tf_config['cluster']['ps']))
     b_static = int(os.environ['UNIFORM_CLUSTER_BATCH_SIZE'])
 
-    worker_batchsizes_filenames = self.get_worker_batchsize_filenames(num_workers)
+    worker_batchsizes_filenames = self.get_worker_batchsize_filenames(batchlist, num_ps)
     if w_type == 'master':
         saver = tf.train.Saver()
     with training.MonitoredTrainingSession(
@@ -1541,7 +1539,7 @@ class Estimator(object):
           gradient_computation_time = self.read_batchsize_files(worker_batchsizes_filenames, self._model_dir, curr_step, num_workers)
           logging.info('@sahiltyagi4 value of gradient_computation_time is ' + str(gradient_computation_time))
           ##currently set the threshold value at 0.2. With 0.1, adjustment was happening almost every other second step.
-          should_training_stop = self.compute_cluster_delta_fn(gradient_computation_time, w_type, estimator_spec.reactive_adjustment_threshold, curr_step, b_static, num_workers, num_ps)
+          should_training_stop = self.compute_cluster_delta_fn(gradient_computation_time, w_type, estimator_spec.reactive_adjustment_threshold, curr_step, b_static, num_workers)
 
           if should_training_stop:
               if not mon_sess._is_closed():
@@ -1581,10 +1579,10 @@ class Estimator(object):
               break
 
 
-  def get_worker_batchsize_filenames(self, num_workers):
+  def get_worker_batchsize_filenames(self, batchlist, num_ps):
       worker_batchsizes_filenames = []
       worker_batchsizes_filenames.append('tf-master-0.txt')
-      for ix in range(0, num_workers):
+      for ix in range(0, num_ps):
           worker_batchsizes_filenames.append('tf-worker-' + str(ix) + '.txt')
 
       return worker_batchsizes_filenames
@@ -1600,8 +1598,8 @@ class Estimator(object):
       while True:
           gradient_computation_time = []
           sum_of_worker_current_steps = 0
-          for filename in worker_batchsizes_filenames:
-              f = os.path.join(model_dir, filename)
+          for ix in range(0, len(worker_batchsizes_filenames)):
+              f = os.path.join(model_dir, worker_batchsizes_filenames[ix])
               if os.path.isfile(f):
                   file = open(f, 'r')
                   for line in file:
@@ -1619,7 +1617,7 @@ class Estimator(object):
               if sum_of_worker_current_steps == (current_step*num_workers):
                   break
 
-      return np.asarray(gradient_computation_time)
+      return gradient_computation_time
 
 
   def write_computation_time_to_file(self, model_dir, worker_computation_time, current_step, worker_type, index):
@@ -1634,117 +1632,85 @@ class Estimator(object):
       #logging.info('@sahiltyagi4 writing computation time to file for step ' + str(current_step))
 
 
-  def compute_cluster_delta_fn(self, gradient_computation_time, w_type, threshold, current_step, b_static, num_workers, num_ps):
+  def compute_cluster_delta_fn(self, gradient_computation_time, w_type, threshold, current_step, b_static, num_workers):
       '''
       :param: gradient_computation_time list
       :return: a boolean whether to continue or stop training if any worker takes more time compared to other workers by a certain threshold. currently threshold is set to 0.1.
       '''
       should_training_stop = False
-      # total = 0.0
-      # for times in gradient_computation_time:
-      #     total = total + times
+      total = 0.0
+      for times in gradient_computation_time:
+          total = total + times
 
-      total = np.sum(gradient_computation_time)
-      cluster_avg_time = np.mean(gradient_computation_time)
-      worker_computation_time_frac = (gradient_computation_time - cluster_avg_time) / cluster_avg_time
+      cluster_avg_time = (total/len(gradient_computation_time))
+      worker_computation_time_frac = []
+      for times in gradient_computation_time:
+          worker_computation_time_frac.append(((times - cluster_avg_time)/cluster_avg_time))
 
-      #cluster_avg_time = (total/len(gradient_computation_time))
-      #worker_computation_time_frac = []
-      # for times in gradient_computation_time:
-      #     worker_computation_time_frac.append(((times - cluster_avg_time)/cluster_avg_time))
-
-      if (threshold < worker_computation_time_frac).any():
-          logging.info('@sahiltyagi4 value of threshold that we set is ' + str(threshold))
-          logging.info('@sahiltyagi4 a time fraction value is greater than threshold with all values ' + str(worker_computation_time_frac))
-          logging.info('@sahiltyagi4 corresponding gradient computation times are ' + str(gradient_computation_time))
-          logging.info('@sahiltyagi4 average computation time across worker is ' + str(cluster_avg_time))
-          should_training_stop = True
-
-      # for frac in worker_computation_time_frac:
-      #     if frac > threshold:
-      #         logging.info('@sahiltyagi4 value of threshold that we set is ' + str(threshold))
-      #         logging.info('@sahiltyagi4 a time fraction value is greater than threshold with all values ' + str(worker_computation_time_frac))
-      #         logging.info('@sahiltyagi4 corresponding gradient computation times are ' + str(gradient_computation_time))
-      #         logging.info('@sahiltyagi4 average computation time across worker is ' + str(cluster_avg_time))
-      #         should_training_stop = True
+      for frac in worker_computation_time_frac:
+          if frac > threshold:
+              logging.info('@sahiltyagi4 value of threshold that we set is ' + str(threshold))
+              logging.info('@sahiltyagi4 a time fraction value is greater than threshold with all values ' + str(worker_computation_time_frac))
+              logging.info('@sahiltyagi4 corresponding gradient computation times are ' + str(gradient_computation_time))
+              logging.info('@sahiltyagi4 average computation time across worker is ' + str(cluster_avg_time))
+              should_training_stop = True
 
       ## call fn to compute the updated batch-sizes with which to restart the model and logs its to clusterbatchsizes.conf and other log files.
       if should_training_stop :
-          self.calculate_updated_batchsizes(self._model_dir, cluster_avg_time, gradient_computation_time, w_type, b_static, num_workers, num_ps)
+          self.calculate_updated_batchsizes(self._model_dir, cluster_avg_time, gradient_computation_time, w_type, b_static, num_workers)
 
       logging.info('@sahiltyagi4 value of should training stop is ' + str(should_training_stop) + ' for step ' + str(current_step))
       return should_training_stop
 
 
-  def calculate_updated_batchsizes(self, model_dir, cluster_avg_time, gradient_computation_time, w_type, b_static, num_workers, num_ps):
+  def calculate_updated_batchsizes(self, model_dir, cluster_avg_time, gradient_computation_time, w_type, b_static, num_workers):
       '''
       :param: average time across cluster for computation at each step, gradient_computation_time list has individual time of computation for each worker
       :return: the updated batch-sizes after two-level normalization.
       '''
       logging.info('@sahiltyagi4 going to execute fn call for calculating updated batch sizes on readjustment.')
       outfile = 'clusterbatchsizes.conf'
-      # fraction_perworker = []
-      # fraction_perworker.append(1)
-      # for workertime in gradient_computation_time:
-      #     fraction_perworker.append((cluster_avg_time/workertime))
-
-      fraction_perworker = cluster_avg_time / gradient_computation_time
-      # ignore the fractions of adjustment for PS as they do not perform training op
-      for ix in range(0, num_ps):
-          fraction_perworker = np.insert(fraction_perworker, ix, 1., axis=0)
+      fraction_perworker = []
+      fraction_perworker.append(1)
+      for workertime in gradient_computation_time:
+          fraction_perworker.append((cluster_avg_time/workertime))
 
       f = os.path.join(model_dir, outfile)
       file = open(f, 'r')
-      # for line in file:
-      #     line = line.replace('[', '')
-      #     line = line.replace(']', '')
+      for line in file:
+          line = line.replace('[', '')
+          line = line.replace(']', '')
 
-      batches = file.readline().split('-')
       file.close()
+      batchsizes = []
+      for size in line.split(','):
+          batchsizes.append(float(size))
 
-      #batchsizes = []
-      # for size in line.split(','):
-      #     batchsizes.append(float(size))
-
-      batchsizes = [float(b) for b in batches]
-
-      # this value corresponds to batch-size set in PS, although its not used as PS does not involve in training op. so make sure you always set b_static as batch-size for PS initially.
-      #b_static = batchsizes[0]
-      #num_workers = (len(batchsizes) -1)
-
-      if len(batchsizes) != fraction_perworker.size:
+      if len(batchsizes) != len(fraction_perworker):
           logging.info(batchsizes)
           logging.info(fraction_perworker)
           raise ValueError('@sahiltyagi4 the length of batch-sizes list and computed fraction of iteration time per-worker is not same. Something is wrong!')
 
-      # cumulative_batch_size = 0
-      # updated_batchsizes = []
-      # for index in range(0, len(batchsizes)):
-      #     worker_batch_size = round(batchsizes[index] * fraction_perworker[index])
-      #     updated_batchsizes.append(worker_batch_size)
-      #     if index != 0:
-      #         cumulative_batch_size = cumulative_batch_size + worker_batch_size
-
-      updated_batchsizes = np.round(batchsizes + fraction_perworker)
-      cumulative_batch_size = np.sum(updated_batchsizes[num_ps:])
-      logging.info('@sahiltyagi4 value of cumulative_batch_size is ' + str(cumulative_batch_size))
-      logging.info('@sahiltyagi4 value of b_static and num_workers is ' + str(b_static) + ' and ' + str(num_workers))
+      cumulative_batch_size = 0
+      updated_batchsizes = []
+      for index in range(0, len(batchsizes)):
+          worker_batch_size = round(batchsizes[index] * fraction_perworker[index])
+          updated_batchsizes.append(worker_batch_size)
+          if index != 0:
+              cumulative_batch_size = cumulative_batch_size + worker_batch_size
 
       delta = (b_static*num_workers) - cumulative_batch_size
-      normalized_updated_batch_sizes = self.normalize_batch_sizes(delta, updated_batchsizes, num_ps)
+      normalized_updated_batch_sizes = self.normalize_batch_sizes(delta, updated_batchsizes)
       logging.info('@sahiltyagi4 normalized updated batch-sizes after two-level normalization are ' + str(normalized_updated_batch_sizes))
 
       if w_type == 'master':
           logging.info('@sahiltyagi4 going to write batchsize_history and clusterbatchsizes.conf from master node!')
-          # finalstring = '['
-          # for size in normalized_updated_batch_sizes:
-          #     finalstring = finalstring + str(int(size)) + ','
+          finalstring = '['
+          for size in normalized_updated_batch_sizes:
+              finalstring = finalstring + str(int(size)) + ','
 
-          # finalstring = finalstring[0:len(finalstring) - 1]
-          # finalstring = finalstring + ']'
-
-          inttype_normalized_updated_batch_sizes = np.round(normalized_updated_batch_sizes).astype(int)
-          finalstring = '-'.join([str(batchsize) for batchsize in inttype_normalized_updated_batch_sizes])
+          finalstring = finalstring[0:len(finalstring) - 1]
+          finalstring = finalstring + ']'
 
           f = os.path.join(model_dir, 'batchsize_history.txt')
           file = open(f, 'a')
@@ -1759,34 +1725,25 @@ class Estimator(object):
       logging.info('@sahiltyagi4 going to end calculate_updated_batchsizes fn call...')
 
 
-  def normalize_batch_sizes(self, delta, updated_batchsizes, num_ps):
+  def normalize_batch_sizes(self, delta, updated_batchsizes):
       '''
       :argument: normalizes the delta between the cumulative batch-size across the cluster to its static batching equilavalent (which is b_static times the number of workers).
                 delta can be positive or negative given the heterogeneity level and the sync mode being used.
       :return: a list of the two-level normalized batch-sizes to be used to restart the model with kill-restart technique.
       '''
-      #normalized_updated_batch_sizes = []
-      #worker_batch_size_adjustment = []
-      
+      normalized_updated_batch_sizes = []
+      worker_batch_size_adjustment = []
       node_scale = self.get_node_scale()
 
       logging.info('value of delta is ' + str(delta))
-      logging.info('updatedbatchsizes being used ' + str(updated_batchsizes))
-      
-      # for index in range(0, len(updated_batchsizes)):
-      #     worker_batch_size_adjustment.append(node_scale[index] * delta)
+      ('updatedbatchsizes being used ' + str(updated_batchsizes))
+      for index in range(0, len(updated_batchsizes)):
+          worker_batch_size_adjustment.append(node_scale[index] * delta)
 
-      worker_batch_size_adjustment = np.multiply(node_scale, delta)
-      for ix in range(0, num_ps):
-          worker_batch_size_adjustment = np.insert(worker_batch_size_adjustment, ix, 0., axis=0)
-
-      logging.info('@sahiltyagi4 worker_batch_size_adjustment value is ' + str(worker_batch_size_adjustment))
       logging.info('adjustments to be made to normalize cumulative batch-size: ' + str(worker_batch_size_adjustment))
 
-      # for ix in range(0, len(updated_batchsizes)):
-      #     normalized_updated_batch_sizes.append(updated_batchsizes[ix] + worker_batch_size_adjustment[ix])
-
-      normalized_updated_batch_sizes = updated_batchsizes + worker_batch_size_adjustment
+      for ix in range(0, len(updated_batchsizes)):
+          normalized_updated_batch_sizes.append(updated_batchsizes[ix] + worker_batch_size_adjustment[ix])
 
       logging.info('normalized and updated batch-sizes to be used in model are: ' + str(normalized_updated_batch_sizes))
       return normalized_updated_batch_sizes
@@ -1798,23 +1755,17 @@ class Estimator(object):
                  order in env var is master, worker-0, worker-1, etc.
       :returns: a list comprised of the ratio of the worker's core alloc to the cumulative cluster core allocation.
       '''
-      # node_scale = []
-      # node_scale.append(0)
-      # total_resources = 0
-      # resource_alloc = os.environ['RESOURCE_ALLOC']
-      # for resource in resource_alloc.split(','):
-      #     total_resources = total_resources + int(resource)
-      #
-      # for resource in resource_alloc.split(','):
-      #     node_scale.append((int(resource) / total_resources))
-      #
-      # logging.info('@sahiltyagi4 list of node scale is ' + str(node_scale))
-      # return node_scale
+      node_scale = []
+      node_scale.append(0)
+      total_resources = 0
+      resource_alloc = os.environ['RESOURCE_ALLOC']
+      for resource in resource_alloc.split(','):
+          total_resources = total_resources + int(resource)
 
-      resource_alloc = os.environ['RESOURCE_ALLOC'].split(',')
-      alloc = [float(s) for s in resource_alloc]
-      total_resources = np.sum(alloc)
-      node_scale = alloc / total_resources
+      for resource in resource_alloc.split(','):
+          node_scale.append((int(resource) / total_resources))
+
+      logging.info('@sahiltyagi4 list of node scale is ' + str(node_scale))
       return node_scale
 
 
