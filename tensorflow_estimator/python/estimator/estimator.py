@@ -1484,10 +1484,10 @@ class Estimator(object):
     batchlist = tf_config['batch_size_list']
 
     num_workers = int(len(tf_config['cluster']['master']) + len(tf_config['cluster']['worker']))
-    num_ps = int(len(tf_config['cluster']['ps']))
+    ##num_ps = int(len(tf_config['cluster']['ps']))
     b_static = int(os.environ['UNIFORM_CLUSTER_BATCH_SIZE'])
 
-    worker_batchsizes_filenames = self.get_worker_batchsize_filenames(batchlist, num_ps)
+    worker_batchsizes_filenames = self.get_worker_batchsize_filenames(num_workers)
     if w_type == 'master':
         saver = tf.train.Saver()
     with training.MonitoredTrainingSession(
@@ -1579,10 +1579,11 @@ class Estimator(object):
               break
 
 
-  def get_worker_batchsize_filenames(self, batchlist, num_ps):
+  def get_worker_batchsize_filenames(self, num_workers):
       worker_batchsizes_filenames = []
+      logging.info('@sahiltyagi4 number of workers are ' + str(num_workers+1))
       worker_batchsizes_filenames.append('tf-master-0.txt')
-      for ix in range(0, num_ps):
+      for ix in range(0, num_workers):
           worker_batchsizes_filenames.append('tf-worker-' + str(ix) + '.txt')
 
       return worker_batchsizes_filenames
