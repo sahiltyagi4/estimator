@@ -1486,6 +1486,7 @@ class Estimator(object):
     num_workers = int(len(tf_config['cluster']['master']) + len(tf_config['cluster']['worker']))
     ##num_ps = int(len(tf_config['cluster']['ps']))
     b_static = int(os.environ['UNIFORM_CLUSTER_BATCH_SIZE'])
+    window_computation_time = []
 
     worker_batchsizes_filenames = self.get_worker_batchsize_filenames(num_workers)
     if w_type == 'master':
@@ -1510,8 +1511,8 @@ class Estimator(object):
       run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
       run_metadata = tf.RunMetadata()
 
-      # while not mon_sess.should_stop():
-      while mon_sess is not None:
+      while not mon_sess.should_stop():
+      #while mon_sess is not None:
           step_start = time.time()
           _, loss, curr_step = mon_sess.run([estimator_spec.train_op, estimator_spec.loss, tf.train.get_or_create_global_step()], options=run_options, run_metadata=run_metadata)
           step_end = time.time()
@@ -1535,27 +1536,38 @@ class Estimator(object):
           logging.info('@sahiltyagi4 ONLY RUNMETEDATA stats and parsing is ' + str(final_endtime - step_end) + ' with finaltime ' + str(final_endtime)
                        + ' and step_end ' + str(step_end) + ' and global step ' + str(curr_step))
 
-          self.write_computation_time_to_file(self._model_dir, str((max(op_ts) - min(op_ts))/1000), curr_step, w_type, w_index)
-          gradient_computation_time = self.read_batchsize_files(worker_batchsizes_filenames, self._model_dir, curr_step, num_workers)
-          logging.info('@sahiltyagi4 value of gradient_computation_time is ' + str(gradient_computation_time))
-          ##currently set the threshold value at 0.2. With 0.1, adjustment was happening almost every other second step.
-          should_training_stop = self.compute_cluster_delta_fn(gradient_computation_time, w_type, estimator_spec.reactive_adjustment_threshold, curr_step, b_static, num_workers)
+          ## do reactive adjustment only when window_size is not None. If None, do dynamic adjustment.
+          if estimator_spec.window_size is not None:
+              window_computation_time.append(float((max(op_ts) - min(op_ts)) / 1000))
+              # start processing only when sufficient steps equal to window_size specified in estimator spec has been reached
+              if len(window_computation_time) == estimator_spec.window_size:
+                  window_avg_time = self.average_computation_time_in_window(window_computation_time)
+                  self.write_computation_time_to_file(self._model_dir, str(window_avg_time), curr_step, w_type, w_index)
+                  gradient_computation_time = self.read_batchsize_files(worker_batchsizes_filenames, self._model_dir,
+                                                                        curr_step, num_workers)
+                  logging.info('@sahiltyagi4 value of gradient_computation_time is ' + str(gradient_computation_time))
+                  ##currently set the threshold value at 0.2. With 0.1, adjustment was happening much more frequently.
+                  should_training_stop = self.compute_cluster_delta_fn(gradient_computation_time, w_type,
+                                                                       estimator_spec.reactive_adjustment_threshold,
+                                                                       curr_step, b_static, num_workers)
 
-          if should_training_stop:
-              if not mon_sess._is_closed():
-                  if w_type == 'master':
-                      logging.info('@sahiltyagi4 looking to save checkpoint file for step ' + str(curr_step))
-                      # saver.save(self.get_session(mon_sess), os.path.join(self._model_dir, 'model.ckpt-'+str(curr_step)))
-                      saver.save(self.get_session(mon_sess), os.path.join(self._model_dir, 'mymodel-' + str(curr_step)))
-                      logging.info('@sahiltyagi4 just saved the checkpoint for current step ' + str(curr_step))
+                  if should_training_stop:
+                      if not mon_sess._is_closed():
+                          if w_type == 'master':
+                              logging.info('@sahiltyagi4 looking to save checkpoint file for step ' + str(curr_step))
+                              # saver.save(self.get_session(mon_sess), os.path.join(self._model_dir, 'model.ckpt-'+str(curr_step)))
+                              saver.save(self.get_session(mon_sess),
+                                         os.path.join(self._model_dir, 'mymodel-' + str(curr_step)))
+                              logging.info('@sahiltyagi4 just saved the checkpoint for current step ' + str(curr_step))
 
-                  # self.wait_till_checkpointing_completes(self._model_dir, 'model.ckpt-'+str(curr_step)+'.meta')
-                  self.wait_till_checkpointing_completes(self._model_dir, 'mymodel-' + str(curr_step) + '.meta')
-                  logging.info('@sahiltyagi4 going to close monitored session now...')
-                  ##mon_sess.close()
-                  mon_sess = None
-                  logging.info('@sahiltyagi4 made monitored session Nonetype')
-                  break
+                          # self.wait_till_checkpointing_completes(self._model_dir, 'model.ckpt-'+str(curr_step)+'.meta')
+                          self.wait_till_checkpointing_completes(self._model_dir, 'mymodel-' + str(curr_step) + '.meta')
+                          window_computation_time = []
+                          logging.info('@sahiltyagi4 going to close monitored session now...')
+                          ##mon_sess.close()
+                          mon_sess = None
+                          logging.info('@sahiltyagi4 made monitored session Nonetype')
+                          break
 
     if not any_step_done:
       logging.warning('Training with estimator made no steps. '
@@ -1577,6 +1589,9 @@ class Estimator(object):
           if os.path.isfile(f):
               logging.info('@sahiltyagi4 checkpoint meta file finally created!!! '+ str(checkpoint_meta_file))
               break
+
+  def average_computation_time_in_window(self, window_computation_time):
+      return float(np.mean(window_computation_time))
 
 
   def get_worker_batchsize_filenames(self, num_workers):

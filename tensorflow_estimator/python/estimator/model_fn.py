@@ -46,7 +46,7 @@ AVERAGE_LOSS_METRIC_KEY = 'average_loss'
 class EstimatorSpec(
     collections.namedtuple('EstimatorSpec', [
         'mode', 'predictions', 'loss', 'train_op', 'eval_metric_ops', 'reactive_adjustment_threshold',
-        'export_outputs', 'training_chief_hooks', 'training_hooks', 'scaffold',
+        'export_outputs', 'training_chief_hooks', 'training_hooks', 'scaffold', 'window_size'
         'evaluation_hooks', 'namescope', 'prediction_hooks'
     ])):
   """Ops and objects returned from a `model_fn` and passed to an `Estimator`.
@@ -66,6 +66,7 @@ class EstimatorSpec(
               training_hooks=None,
               reactive_adjustment_threshold=None,
               scaffold=None,
+              window_size=None,
               evaluation_hooks=None,
               prediction_hooks=None):
     """Creates a validated `EstimatorSpec` instance.
@@ -187,6 +188,7 @@ class EstimatorSpec(
         training_hooks=training_hooks,
         reactive_adjustment_threshold=reactive_adjustment_threshold,
         scaffold=scaffold,
+        window_size=window_size,
         evaluation_hooks=evaluation_hooks,
         prediction_hooks=prediction_hooks)
 
