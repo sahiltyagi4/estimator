@@ -1520,21 +1520,26 @@ class Estimator(object):
 
           tl = timeline.Timeline(run_metadata.step_stats)
           ctf = tl.generate_chrome_trace_format()
+          if w_type == 'worker' and str(w_index) == '1':
+              logging.info('@sahiltyagi4 for GPU node chrome trace format is: ' + str(ctf))
+
           op_ts = []
           parser = json.loads(ctf)
           for doc in parser['traceEvents']:
               if 'ts' in doc and estimator_spec.namescope in doc['name']:
+                  logging.info('@sahiltyagi4 found ts in chrome trace format!!!!!!!!!!!!!!!!!')
                   op_ts.append(doc['ts'])
 
-          final_endtime = time.time()
-          logging.info('@sahiltyagi train_op iteration time given worker is ' + str(step_end - step_start) + ' with starttime ' + str(step_start)+ ' and endtime ' + str(step_end)
-                       + ' and global step ' + str(curr_step))
-          logging.info('@sahiltyagi upto COMPUTE GRADS call time is ' + str((max(op_ts) - min(op_ts))/1000) + 'ms with starttime ' + str(min(op_ts)/1000000) + ' and endtime '
-                       + str(max(op_ts)/1000000) + ' and global step ' + str(curr_step))
-          logging.info('@sahiltyagi TOTAL_TIME including runmetadata stats and parsing ' + str(final_endtime - step_start) + ' with finaltime ' + str(final_endtime)
-                       + ' and step_start ' + str(step_start) + ' and global step ' + str(curr_step))
-          logging.info('@sahiltyagi4 ONLY RUNMETEDATA stats and parsing is ' + str(final_endtime - step_end) + ' with finaltime ' + str(final_endtime)
-                       + ' and step_end ' + str(step_end) + ' and global step ' + str(curr_step))
+          if len(op_ts) > 0:
+            final_endtime = time.time()
+            logging.info('@sahiltyagi train_op iteration time given worker is ' + str(step_end - step_start) + ' with starttime ' + str(step_start) + ' and endtime ' + str(step_end)
+                        + ' and global step ' + str(curr_step))
+            logging.info('@sahiltyagi upto COMPUTE GRADS call time is ' + str((max(op_ts) - min(op_ts)) / 1000) + 'ms with starttime ' + str(min(op_ts) / 1000000) + ' and endtime '
+                        + str(max(op_ts) / 1000000) + ' and global step ' + str(curr_step))
+            logging.info('@sahiltyagi TOTAL_TIME including runmetadata stats and parsing ' + str(final_endtime - step_start) + ' with finaltime ' + str(final_endtime)
+                        + ' and step_start ' + str(step_start) + ' and global step ' + str(curr_step))
+            logging.info('@sahiltyagi4 ONLY RUNMETEDATA stats and parsing is ' + str(final_endtime - step_end) + ' with finaltime ' + str(final_endtime)
+                        + ' and step_end ' + str(step_end) + ' and global step ' + str(curr_step))
 
           ## do reactive adjustment only when window_size is not None. If None, do dynamic adjustment.
           if estimator_spec.window_size is not None:
