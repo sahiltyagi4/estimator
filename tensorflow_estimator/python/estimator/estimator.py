@@ -1530,8 +1530,13 @@ class Estimator(object):
           op_ts = []
           parser = json.loads(ctf)
           for doc in parser['traceEvents']:
-              if 'ts' in doc and estimator_spec.namescope in doc['name']:
-                  op_ts.append(doc['ts'])
+              ## worker-1 is assumed to be the GPU in our configiuration
+              if w_type == 'worker' and str(w_index) == '1':
+                  if 'args' in doc and 'ts' in doc and estimator_spec.namescope in doc['args']['name']:
+                      op_ts.append(doc['ts'])
+              else:
+                  if 'ts' in doc and estimator_spec.namescope in doc['name']:
+                      op_ts.append(doc['ts'])
 
           logging.info('@sahiltyagi train_op iteration time given worker is ' + str(step_end - step_start) + ' with starttime ' + str(step_start) + ' and endtime ' + str(step_end)
                         + ' and global step ' + str(curr_step))
