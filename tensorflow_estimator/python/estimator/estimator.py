@@ -1489,6 +1489,10 @@ class Estimator(object):
     window_computation_time = []
 
     worker_batchsizes_filenames = self.get_worker_batchsize_filenames(num_workers)
+
+    onetimeflag = True
+    anotheronetimeflag = True
+
     if w_type == 'master':
         saver = tf.train.Saver()
     with training.MonitoredTrainingSession(
@@ -1534,6 +1538,11 @@ class Estimator(object):
 
           if len(op_ts) > 0:
             final_endtime = time.time()
+            if anotheronetimeflag:
+                f = open('/extra/1/correctGPUctf.json', 'w')
+                f.write(str(ctf))
+                f.close()
+                anotheronetimeflag = False
             logging.info('@sahiltyagi upto COMPUTE GRADS call time is ' + str((max(op_ts) - min(op_ts)) / 1000) + 'ms with starttime ' + str(min(op_ts) / 1000000) + ' and endtime '
                         + str(max(op_ts) / 1000000) + ' and global step ' + str(curr_step))
             logging.info('@sahiltyagi TOTAL_TIME including runmetadata stats and parsing ' + str(final_endtime - step_start) + ' with finaltime ' + str(final_endtime)
@@ -1541,6 +1550,11 @@ class Estimator(object):
             logging.info('@sahiltyagi4 ONLY RUNMETEDATA stats and parsing is ' + str(final_endtime - step_end) + ' with finaltime ' + str(final_endtime)
                         + ' and step_end ' + str(step_end) + ' and global step ' + str(curr_step))
           else:
+            if onetimeflag:
+                f = open('/extra/1/incorrectGPUctf.json', 'w')
+                f.write(str(ctf))
+                f.close()
+                onetimeflag = False
             logging.info('@sahiltyagi4 train_op computed but op_ts might be empty with length ' + str(len(op_ts)))
             logging.info('@sahiltyagi4 train_op computed but compute_grads op not for step ' + str(curr_step))
 
