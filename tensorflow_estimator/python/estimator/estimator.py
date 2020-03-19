@@ -1539,7 +1539,7 @@ class Estimator(object):
           if len(op_ts) > 0:
             final_endtime = time.time()
             if anotheronetimeflag:
-                f = open('/extra/1/correctGPUctf.json', 'w')
+                f = open(self._model_dir + '/correctGPUctf.json', 'w')
                 f.write(str(ctf))
                 f.close()
                 anotheronetimeflag = False
@@ -1551,7 +1551,7 @@ class Estimator(object):
                         + ' and step_end ' + str(step_end) + ' and global step ' + str(curr_step))
           else:
             if onetimeflag:
-                f = open('/extra/1/incorrectGPUctf.json', 'w')
+                f = open(self.model_dir + '/incorrectGPUctf.json', 'w')
                 f.write(str(ctf))
                 f.close()
                 onetimeflag = False
