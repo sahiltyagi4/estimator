@@ -1483,7 +1483,10 @@ class Estimator(object):
     w_index = tf_config['task']['index']
     batchlist = tf_config['batch_size_list']
 
-    num_workers = int(len(tf_config['cluster']['master']) + len(tf_config['cluster']['worker']))
+    if 'worker' in tf_config['cluster']:
+        num_workers = int(len(tf_config['cluster']['master']) + len(tf_config['cluster']['worker']))
+    else:
+        num_workers = 1
     ##num_ps = int(len(tf_config['cluster']['ps']))
     b_static = int(os.environ['UNIFORM_CLUSTER_BATCH_SIZE'])
     window_computation_time = []
