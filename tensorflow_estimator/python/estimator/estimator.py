@@ -1551,12 +1551,16 @@ class Estimator(object):
                           op_ts.append(doc['ts'])
               elif len(batchlist) == 3:
                   # to run config where we have one CPU worker and one GPU worker. 'master' is GPU and 'worker-0' is CPU
-                  if w_type == 'master' and str(w_index) == '0':
-                      if 'args' in doc and 'ts' in doc and estimator_spec.namescope in doc['args']['name']:
-                          op_ts.append(doc['ts'])
-                  else:
-                      if 'ts' in doc and estimator_spec.namescope in doc['name']:
-                          op_ts.append(doc['ts'])
+                  # if w_type == 'master' and str(w_index) == '0':
+                  #     if 'args' in doc and 'ts' in doc and estimator_spec.namescope in doc['args']['name']:
+                  #         op_ts.append(doc['ts'])
+                  # else:
+                  #     if 'ts' in doc and estimator_spec.namescope in doc['name']:
+                  #         op_ts.append(doc['ts'])
+
+                  #testing the tracing times by GPU and CPU
+                  if 'args' in doc and 'ts' in doc and estimator_spec.namescope in doc['args']['name']:
+                      op_ts.append(doc['ts'])
               elif len(batchlist) == 21:
                   # to handle cloud execution case where we have 20 workers (including master) and 1 PS
                   if 'ts' in doc and estimator_spec.namescope in doc['name']:
