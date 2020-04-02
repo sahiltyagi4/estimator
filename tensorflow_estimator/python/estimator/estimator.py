@@ -1515,125 +1515,126 @@ class Estimator(object):
       any_step_done = False
       # for op in tf.get_default_graph().get_operations():
       #     logging.info('***************************variables and op names are: ' + str(op.name))
-      run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
-      run_metadata = tf.RunMetadata()
+      # run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
+      # run_metadata = tf.RunMetadata()
 
       while not mon_sess.should_stop():
       #while mon_sess is not None:
           step_start = time.time()
-          _, loss, curr_step = mon_sess.run([estimator_spec.train_op, estimator_spec.loss, tf.train.get_or_create_global_step()], options=run_options, run_metadata=run_metadata)
+          # _, loss, curr_step = mon_sess.run([estimator_spec.train_op, estimator_spec.loss, tf.train.get_or_create_global_step()], options=run_options, run_metadata=run_metadata)
+          _, loss, curr_step = mon_sess.run([estimator_spec.train_op, estimator_spec.loss, tf.train.get_or_create_global_step()])
           step_end = time.time()
           any_step_done = True
 
-          tl = timeline.Timeline(run_metadata.step_stats)
-          ctf = tl.generate_chrome_trace_format()
+          # tl = timeline.Timeline(run_metadata.step_stats)
+          # ctf = tl.generate_chrome_trace_format()
           # if w_type == 'worker' and str(w_index) == '1':
           #     logging.info('@sahiltyagi4 for GPU node chrome trace format is: ' + str(ctf))
 
-          op_ts = []
-          parser = json.loads(ctf)
-          for doc in parser['traceEvents']:
-              if len(batchlist) == 4:
-                  # worker-1 is assumed to be the GPU in our configiuration
-                  if w_type == 'worker' and str(w_index) == '1':
-                      if 'args' in doc and 'ts' in doc and estimator_spec.namescope in doc['args']['name']:
-                          op_ts.append(doc['ts'])
-                  else:
-                      if 'ts' in doc and estimator_spec.namescope in doc['name']:
-                          op_ts.append(doc['ts'])
-              elif len(batchlist) == 2:
-                  # for run with only 1 PS and 1 GPU serving as master/worker.
-                  if w_type == 'master' and str(w_index) == '0':
-                      if 'args' in doc and 'ts' in doc and estimator_spec.namescope in doc['args']['name']:
-                          op_ts.append(doc['ts'])
-                  else:
-                      if 'ts' in doc and estimator_spec.namescope in doc['name']:
-                          op_ts.append(doc['ts'])
-              elif len(batchlist) == 3:
-                  # to run config where we have one CPU worker and one GPU worker. 'master' is GPU and 'worker-0' is CPU
-                  # if w_type == 'master' and str(w_index) == '0':
-                  #     if 'args' in doc and 'ts' in doc and estimator_spec.namescope in doc['args']['name']:
-                  #         op_ts.append(doc['ts'])
-                  # else:
-                  #     if 'ts' in doc and estimator_spec.namescope in doc['name']:
-                  #         op_ts.append(doc['ts'])
-
-                  #testing the tracing times by GPU and CPU
-                  if 'args' in doc and 'ts' in doc and estimator_spec.namescope in doc['args']['name']:
-                      op_ts.append(doc['ts'])
-              elif len(batchlist) == 21:
-                  # to handle cloud execution case where we have 20 workers (including master) and 1 PS
-                  if 'ts' in doc and estimator_spec.namescope in doc['name']:
-                      op_ts.append(doc['ts'])
-              else:
-                  # on more than four nodes (not 21 though), the workers 'worker-0' and 'worker-1' are assumed to be GPU for current experiments.
-                  if w_type == 'worker' and str(w_index) == '0':
-                      if 'args' in doc and 'ts' in doc and estimator_spec.namescope in doc['args']['name']:
-                          op_ts.append(doc['ts'])
-                  elif w_type == 'worker' and str(w_index) == '1':
-                      if 'args' in doc and 'ts' in doc and estimator_spec.namescope in doc['args']['name']:
-                          op_ts.append(doc['ts'])
-                  else:
-                      if 'ts' in doc and estimator_spec.namescope in doc['name']:
-                          op_ts.append(doc['ts'])
-
+          # op_ts = []
+          # parser = json.loads(ctf)
+          # for doc in parser['traceEvents']:
+          #     if len(batchlist) == 4:
+          #         # worker-1 is assumed to be the GPU in our configiuration
+          #         if w_type == 'worker' and str(w_index) == '1':
+          #             if 'args' in doc and 'ts' in doc and estimator_spec.namescope in doc['args']['name']:
+          #                 op_ts.append(doc['ts'])
+          #         else:
+          #             if 'ts' in doc and estimator_spec.namescope in doc['name']:
+          #                 op_ts.append(doc['ts'])
+          #     elif len(batchlist) == 2:
+          #         # for run with only 1 PS and 1 GPU serving as master/worker.
+          #         if w_type == 'master' and str(w_index) == '0':
+          #             if 'args' in doc and 'ts' in doc and estimator_spec.namescope in doc['args']['name']:
+          #                 op_ts.append(doc['ts'])
+          #         else:
+          #             if 'ts' in doc and estimator_spec.namescope in doc['name']:
+          #                 op_ts.append(doc['ts'])
+          #     elif len(batchlist) == 3:
+          #         # to run config where we have one CPU worker and one GPU worker. 'master' is GPU and 'worker-0' is CPU
+          #         # if w_type == 'master' and str(w_index) == '0':
+          #         #     if 'args' in doc and 'ts' in doc and estimator_spec.namescope in doc['args']['name']:
+          #         #         op_ts.append(doc['ts'])
+          #         # else:
+          #         #     if 'ts' in doc and estimator_spec.namescope in doc['name']:
+          #         #         op_ts.append(doc['ts'])
+          #
+          #         #testing the tracing times by GPU and CPU
+          #         if 'args' in doc and 'ts' in doc and estimator_spec.namescope in doc['args']['name']:
+          #             op_ts.append(doc['ts'])
+          #     elif len(batchlist) == 21:
+          #         # to handle cloud execution case where we have 20 workers (including master) and 1 PS
+          #         if 'ts' in doc and estimator_spec.namescope in doc['name']:
+          #             op_ts.append(doc['ts'])
+          #     else:
+          #         # on more than four nodes (not 21 though), the workers 'worker-0' and 'worker-1' are assumed to be GPU for current experiments.
+          #         if w_type == 'worker' and str(w_index) == '0':
+          #             if 'args' in doc and 'ts' in doc and estimator_spec.namescope in doc['args']['name']:
+          #                 op_ts.append(doc['ts'])
+          #         elif w_type == 'worker' and str(w_index) == '1':
+          #             if 'args' in doc and 'ts' in doc and estimator_spec.namescope in doc['args']['name']:
+          #                 op_ts.append(doc['ts'])
+          #         else:
+          #             if 'ts' in doc and estimator_spec.namescope in doc['name']:
+          #                 op_ts.append(doc['ts'])
+          #
           logging.info('@sahiltyagi train_op iteration time given worker is ' + str(step_end - step_start) + ' with starttime ' + str(step_start) + ' and endtime ' + str(step_end)
                         + ' and global step ' + str(curr_step))
 
-          if len(op_ts) > 0:
-            final_endtime = time.time()
-            if anotheronetimeflag:
-                f = open(self._model_dir + '/correctGPUctf.json', 'w')
-                f.write(str(ctf))
-                f.close()
-                anotheronetimeflag = False
-            logging.info('@sahiltyagi upto COMPUTE GRADS call time is ' + str((max(op_ts) - min(op_ts)) / 1000) + 'ms with starttime ' + str(min(op_ts) / 1000000) + ' and endtime '
-                        + str(max(op_ts) / 1000000) + ' and global step ' + str(curr_step))
-            logging.info('@sahiltyagi TOTAL_TIME including runmetadata stats and parsing ' + str(final_endtime - step_start) + ' with finaltime ' + str(final_endtime)
-                        + ' and step_start ' + str(step_start) + ' and global step ' + str(curr_step))
-            logging.info('@sahiltyagi4 ONLY RUNMETEDATA stats and parsing is ' + str(final_endtime - step_end) + ' with finaltime ' + str(final_endtime)
-                        + ' and step_end ' + str(step_end) + ' and global step ' + str(curr_step))
-          else:
-            if onetimeflag:
-                f = open(self.model_dir + '/incorrectGPUctf.json', 'w')
-                f.write(str(ctf))
-                f.close()
-                onetimeflag = False
-            logging.info('@sahiltyagi4 train_op computed but op_ts might be empty with length ' + str(len(op_ts)))
-            logging.info('@sahiltyagi4 train_op computed but compute_grads op not for step ' + str(curr_step))
+          # if len(op_ts) > 0:
+          #   final_endtime = time.time()
+          #   if anotheronetimeflag:
+          #       f = open(self._model_dir + '/correctGPUctf.json', 'w')
+          #       f.write(str(ctf))
+          #       f.close()
+          #       anotheronetimeflag = False
+          #   logging.info('@sahiltyagi upto COMPUTE GRADS call time is ' + str((max(op_ts) - min(op_ts)) / 1000) + 'ms with starttime ' + str(min(op_ts) / 1000000) + ' and endtime '
+          #               + str(max(op_ts) / 1000000) + ' and global step ' + str(curr_step))
+          #   logging.info('@sahiltyagi TOTAL_TIME including runmetadata stats and parsing ' + str(final_endtime - step_start) + ' with finaltime ' + str(final_endtime)
+          #               + ' and step_start ' + str(step_start) + ' and global step ' + str(curr_step))
+          #   logging.info('@sahiltyagi4 ONLY RUNMETEDATA stats and parsing is ' + str(final_endtime - step_end) + ' with finaltime ' + str(final_endtime)
+          #               + ' and step_end ' + str(step_end) + ' and global step ' + str(curr_step))
+          # else:
+          #   if onetimeflag:
+          #       f = open(self.model_dir + '/incorrectGPUctf.json', 'w')
+          #       f.write(str(ctf))
+          #       f.close()
+          #       onetimeflag = False
+          #   logging.info('@sahiltyagi4 train_op computed but op_ts might be empty with length ' + str(len(op_ts)))
+          #   logging.info('@sahiltyagi4 train_op computed but compute_grads op not for step ' + str(curr_step))
 
           ## do reactive adjustment only when window_size is not None. If None, do dynamic adjustment.
-          if estimator_spec.window_size is not None:
-              window_computation_time.append(float((max(op_ts) - min(op_ts)) / 1000))
-              # start processing only when sufficient steps equal to window_size specified in estimator spec has been reached
-              if len(window_computation_time) == estimator_spec.window_size:
-                  window_avg_time = self.average_computation_time_in_window(window_computation_time)
-                  self.write_computation_time_to_file(self._model_dir, str(window_avg_time), curr_step, w_type, w_index)
-                  gradient_computation_time = self.read_batchsize_files(worker_batchsizes_filenames, self._model_dir,
-                                                                        curr_step, num_workers)
-                  logging.info('@sahiltyagi4 value of gradient_computation_time is ' + str(gradient_computation_time))
-                  ##currently set the threshold value at 0.2. With 0.1, adjustment was happening much more frequently.
-                  should_training_stop = self.compute_cluster_delta_fn(gradient_computation_time, w_type,
-                                                                       estimator_spec.reactive_adjustment_threshold,
-                                                                       curr_step, b_static, num_workers)
-
-                  if should_training_stop:
-                      if not mon_sess._is_closed():
-                          if w_type == 'master':
-                              logging.info('@sahiltyagi4 looking to save checkpoint file for step ' + str(curr_step))
-                              # saver.save(self.get_session(mon_sess), os.path.join(self._model_dir, 'model.ckpt-'+str(curr_step)))
-                              saver.save(self.get_session(mon_sess),
-                                         os.path.join(self._model_dir, 'mymodel-' + str(curr_step)))
-                              logging.info('@sahiltyagi4 just saved the checkpoint for current step ' + str(curr_step))
-
-                          # self.wait_till_checkpointing_completes(self._model_dir, 'model.ckpt-'+str(curr_step)+'.meta')
-                          self.wait_till_checkpointing_completes(self._model_dir, 'mymodel-' + str(curr_step) + '.meta')
-                          window_computation_time = []
-                          logging.info('@sahiltyagi4 going to close monitored session now...')
-                          ##mon_sess.close()
-                          mon_sess = None
-                          logging.info('@sahiltyagi4 made monitored session Nonetype')
-                          break
+          # if estimator_spec.window_size is not None:
+          #     window_computation_time.append(float((max(op_ts) - min(op_ts)) / 1000))
+          #     # start processing only when sufficient steps equal to window_size specified in estimator spec has been reached
+          #     if len(window_computation_time) == estimator_spec.window_size:
+          #         window_avg_time = self.average_computation_time_in_window(window_computation_time)
+          #         self.write_computation_time_to_file(self._model_dir, str(window_avg_time), curr_step, w_type, w_index)
+          #         gradient_computation_time = self.read_batchsize_files(worker_batchsizes_filenames, self._model_dir,
+          #                                                               curr_step, num_workers)
+          #         logging.info('@sahiltyagi4 value of gradient_computation_time is ' + str(gradient_computation_time))
+          #         ##currently set the threshold value at 0.2. With 0.1, adjustment was happening much more frequently.
+          #         should_training_stop = self.compute_cluster_delta_fn(gradient_computation_time, w_type,
+          #                                                              estimator_spec.reactive_adjustment_threshold,
+          #                                                              curr_step, b_static, num_workers)
+          #
+          #         if should_training_stop:
+          #             if not mon_sess._is_closed():
+          #                 if w_type == 'master':
+          #                     logging.info('@sahiltyagi4 looking to save checkpoint file for step ' + str(curr_step))
+          #                     # saver.save(self.get_session(mon_sess), os.path.join(self._model_dir, 'model.ckpt-'+str(curr_step)))
+          #                     saver.save(self.get_session(mon_sess),
+          #                                os.path.join(self._model_dir, 'mymodel-' + str(curr_step)))
+          #                     logging.info('@sahiltyagi4 just saved the checkpoint for current step ' + str(curr_step))
+          #
+          #                 # self.wait_till_checkpointing_completes(self._model_dir, 'model.ckpt-'+str(curr_step)+'.meta')
+          #                 self.wait_till_checkpointing_completes(self._model_dir, 'mymodel-' + str(curr_step) + '.meta')
+          #                 window_computation_time = []
+          #                 logging.info('@sahiltyagi4 going to close monitored session now...')
+          #                 ##mon_sess.close()
+          #                 mon_sess = None
+          #                 logging.info('@sahiltyagi4 made monitored session Nonetype')
+          #                 break
 
     if not any_step_done:
       logging.warning('Training with estimator made no steps. '
