@@ -1515,8 +1515,8 @@ class Estimator(object):
       any_step_done = False
       # for op in tf.get_default_graph().get_operations():
       #     logging.info('***************************variables and op names are: ' + str(op.name))
-      # run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
-      # run_metadata = tf.RunMetadata()
+      run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
+      run_metadata = tf.RunMetadata()
 
       while not mon_sess.should_stop():
       #while mon_sess is not None:
@@ -1526,8 +1526,17 @@ class Estimator(object):
           step_end = time.time()
           any_step_done = True
 
-          # tl = timeline.Timeline(run_metadata.step_stats)
-          # ctf = tl.generate_chrome_trace_format()
+          tl = timeline.Timeline(run_metadata.step_stats)
+          ctf = tl.generate_chrome_trace_format()
+
+          #ADDED FOR USING MULTIPLE GPUS IN THE CLOUD
+          op_ts = []
+          parser = json.loads(ctf)
+          for doc in parser['traceEvents']:
+              if 'args' in doc and 'ts' in doc and estimator_spec.namescope in doc['args']['name']:
+                  op_ts.append(doc['ts'])
+
+
           # if w_type == 'worker' and str(w_index) == '1':
           #     logging.info('@sahiltyagi4 for GPU node chrome trace format is: ' + str(ctf))
 
@@ -1581,27 +1590,27 @@ class Estimator(object):
           logging.info('@sahiltyagi train_op iteration time given worker is ' + str(step_end - step_start) + ' with starttime ' + str(step_start) + ' and endtime ' + str(step_end)
                         + ' and global step ' + str(curr_step))
 
-          # if len(op_ts) > 0:
-          #   final_endtime = time.time()
-          #   if anotheronetimeflag:
-          #       f = open(self._model_dir + '/correctGPUctf.json', 'w')
-          #       f.write(str(ctf))
-          #       f.close()
-          #       anotheronetimeflag = False
-          #   logging.info('@sahiltyagi upto COMPUTE GRADS call time is ' + str((max(op_ts) - min(op_ts)) / 1000) + 'ms with starttime ' + str(min(op_ts) / 1000000) + ' and endtime '
-          #               + str(max(op_ts) / 1000000) + ' and global step ' + str(curr_step))
-          #   logging.info('@sahiltyagi TOTAL_TIME including runmetadata stats and parsing ' + str(final_endtime - step_start) + ' with finaltime ' + str(final_endtime)
-          #               + ' and step_start ' + str(step_start) + ' and global step ' + str(curr_step))
-          #   logging.info('@sahiltyagi4 ONLY RUNMETEDATA stats and parsing is ' + str(final_endtime - step_end) + ' with finaltime ' + str(final_endtime)
-          #               + ' and step_end ' + str(step_end) + ' and global step ' + str(curr_step))
-          # else:
-          #   if onetimeflag:
-          #       f = open(self.model_dir + '/incorrectGPUctf.json', 'w')
-          #       f.write(str(ctf))
-          #       f.close()
-          #       onetimeflag = False
-          #   logging.info('@sahiltyagi4 train_op computed but op_ts might be empty with length ' + str(len(op_ts)))
-          #   logging.info('@sahiltyagi4 train_op computed but compute_grads op not for step ' + str(curr_step))
+          if len(op_ts) > 0:
+            final_endtime = time.time()
+            if anotheronetimeflag:
+                f = open(self._model_dir + '/correctGPUctf.json', 'w')
+                f.write(str(ctf))
+                f.close()
+                anotheronetimeflag = False
+            logging.info('@sahiltyagi upto COMPUTE GRADS call time is ' + str((max(op_ts) - min(op_ts)) / 1000) + 'ms with starttime ' + str(min(op_ts) / 1000000) + ' and endtime '
+                        + str(max(op_ts) / 1000000) + ' and global step ' + str(curr_step))
+            logging.info('@sahiltyagi TOTAL_TIME including runmetadata stats and parsing ' + str(final_endtime - step_start) + ' with finaltime ' + str(final_endtime)
+                        + ' and step_start ' + str(step_start) + ' and global step ' + str(curr_step))
+            logging.info('@sahiltyagi4 ONLY RUNMETEDATA stats and parsing is ' + str(final_endtime - step_end) + ' with finaltime ' + str(final_endtime)
+                        + ' and step_end ' + str(step_end) + ' and global step ' + str(curr_step))
+          else:
+            if onetimeflag:
+                f = open(self.model_dir + '/incorrectGPUctf.json', 'w')
+                f.write(str(ctf))
+                f.close()
+                onetimeflag = False
+            logging.info('@sahiltyagi4 train_op computed but op_ts might be empty with length ' + str(len(op_ts)))
+            logging.info('@sahiltyagi4 train_op computed but compute_grads op not for step ' + str(curr_step))
 
           ## do reactive adjustment only when window_size is not None. If None, do dynamic adjustment.
           # if estimator_spec.window_size is not None:
