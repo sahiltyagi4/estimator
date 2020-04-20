@@ -1589,8 +1589,8 @@ class Estimator(object):
               logging.info('@sahiltyagi4 123456789012345678i91234567')
               #f.write('$$$$$$$weights values: ' + str(var.name) + ' and value is ' + str(val))
               for v in val:
-                print('@sahiltyagi4 value weight: ')
-                print(v)
+                logging.info('@sahiltyagi4 value weight: ')
+                logging.info(v)
             #f.close()
 
           # if w_type == 'master' and curr_step == 4000:
