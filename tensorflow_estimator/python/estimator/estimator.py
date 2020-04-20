@@ -1586,7 +1586,7 @@ class Estimator(object):
           filenames['dense_1/kernel:0'] = 'dense1.txt'
           filenames['dense/bias:0'] = 'bias0.txt'
           filenames['dense_1/bias:0'] = 'bias1.txt'
-          if w_type == 'master' and curr_step == 4000:
+          if w_type == 'master' and curr_step % 1000 == 0:
             logging.info('in the master mode condition.....')
             tvars = tf.trainable_variables()
             tvars_vals = mon_sess.run(tvars)
@@ -1597,7 +1597,7 @@ class Estimator(object):
               for v in val:
                 logging.info('@sahiltyagi4 value weight: ')
                 #logging.info(v)
-                f.write(v + '\n')
+                f.write(v)
               f.close()
 
           # if len(op_ts) > 0:
