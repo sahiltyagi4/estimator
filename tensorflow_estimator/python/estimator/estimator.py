@@ -1591,6 +1591,23 @@ class Estimator(object):
             
             f.close()
 
+          if w_type == 'master' and curr_step == 4000:
+            f = open(self._model_dir + '/weights_dense0.txt')
+            f.write(mon_sess.run(tf.get_variable('dense/kernel:0')))
+            f.close()
+
+            f = open(self._model_dir + '/weights_bias0.txt')
+            f.write(mon_sess.run(tf.get_variable('dense/bias:0')))
+            f.close()
+
+            f = open(self._model_dir + '/weights_dense1.txt')
+            f.write(mon_sess.run(tf.get_variable('dense_1/kernel:0')))
+            f.close()
+
+            f = open(self._model_dir + '/weights_bias1.txt')
+            f.write(mon_sess.run(tf.get_variable('dense_1/bias:0')))
+            f.close()
+
           # if len(op_ts) > 0:
           #   final_endtime = time.time()
           #   if anotheronetimeflag:
