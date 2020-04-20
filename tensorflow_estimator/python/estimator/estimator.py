@@ -1597,7 +1597,7 @@ class Estimator(object):
               for v in val:
                 logging.info('@sahiltyagi4 value weight: ')
                 #logging.info(v)
-                f.write(v)
+                f.write(str(v))
               f.close()
 
           # if len(op_ts) > 0:
