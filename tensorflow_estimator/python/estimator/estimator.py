@@ -1591,7 +1591,7 @@ class Estimator(object):
             tvars_vals = mon_sess.run(tvars)
             for var, val in zip(tvars, tvars_vals):
               logging.info('@sahiltyagi4 123456789012345678i91234567')
-              f = open(self._model_dir + filenames[var])
+              f = open(self._model_dir + filenames[var.name])
               #f.write('$$$$$$$weights values: ' + str(var.name) + ' and value is ' + str(val))
               for v in val:
                 logging.info('@sahiltyagi4 value weight: ')
