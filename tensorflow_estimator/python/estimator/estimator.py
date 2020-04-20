@@ -1582,7 +1582,7 @@ class Estimator(object):
                         + ' and global step ' + str(curr_step))
           
           if w_type == 'master' and curr_step == 4000:
-            f = open(self._model_dir + '/weightsfile.txt', 'a', 10000000000)
+            f = open(self._model_dir + '/weightsfile.txt', 'a')
             tvars = tf.trainable_variables()
             tvars_vals = mon_sess.run(tvars)
             for var, val in zip(tvars, tvars_vals):
