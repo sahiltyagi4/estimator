@@ -1580,6 +1580,15 @@ class Estimator(object):
           #
           logging.info('@sahiltyagi train_op iteration time given worker is ' + str(step_end - step_start) + ' with starttime ' + str(step_start) + ' and endtime ' + str(step_end)
                         + ' and global step ' + str(curr_step))
+          
+          if w_type == 'master' and curr_step == 4000:
+            f = open(self._model_dir + 'weightsfile.txt', 'a')
+            tvars = tf.trainable_variables()
+            tvars_vals = mon_sess.run(tvars)
+            for var, val in zip(tvars, tvars_vals):
+              f.write('$$$$$$$weights values: ' + str(var.name) + ' and value is ' + str(val))
+            
+            f.close()
 
           # if len(op_ts) > 0:
           #   final_endtime = time.time()
