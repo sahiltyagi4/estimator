@@ -1574,6 +1574,7 @@ class Estimator(object):
                   if w_type == 'master':
                     should_training_stop = self.compute_cluster_delta_fn(gradient_computation_time, w_type, estimator_spec.reactive_adjustment_threshold, curr_step, b_static, num_workers)
 
+                  window_computation_time = []
                   if should_training_stop:
                       if not mon_sess._is_closed():
                           if w_type == 'master':
@@ -1581,7 +1582,6 @@ class Estimator(object):
                               # saver.save(self.get_session(mon_sess), os.path.join(self._model_dir, 'mymodel-' + str(curr_step)))
 
                           #self.wait_till_checkpointing_completes(self._model_dir, 'mymodel-' + str(curr_step) + '.meta')
-                          window_computation_time = []
                           ##mon_sess.close()
                           mon_sess = None
                           logging.info('@sahiltyagi4 made monitored session Nonetype')
