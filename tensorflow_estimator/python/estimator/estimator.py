@@ -1533,6 +1533,9 @@ class Estimator(object):
           for doc in parser['traceEvents']:
              if 'args' in doc and 'ts' in doc and estimator_spec.namescope in doc['args']['name']:
                op_ts.append(doc['ts'])
+             
+             if 'ts' in doc and estimator_spec.namescope in doc['name']:
+               op_ts.append(doc['ts']) 
 
           if len(op_ts) > 0:
             final_endtime = time.time()
