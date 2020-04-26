@@ -1678,7 +1678,7 @@ class Estimator(object):
 
       for ix in range(0, len(worker_computation_time_frac)):
         frac = worker_computation_time_frac[ix]
-        # ix 0 is master, worker0 is 1, etc..
+        # ix 0 is master, 1 is worker0, 2 worker1 etc.
         logging.info('@sahiltyagi4 fraction value is ' + str(frac) + ' on worker index ' + str(ix))
         if frac > threshold:
           logging.info('@sahiltyagi4 value of threshold that we set is ' + str(threshold))
@@ -1763,22 +1763,23 @@ class Estimator(object):
                 delta can be positive or negative given the heterogeneity level and the sync mode being used.
       :return: a list of the two-level normalized batch-sizes to be used to restart the model with kill-restart technique.
       '''
-    normalized_updated_batch_sizes = []
-    worker_batch_size_adjustment = []
-    node_scale = self.get_node_scale()
+      normalized_updated_batch_sizes = []
+      worker_batch_size_adjustment = []
+      node_scale = self.get_node_scale()
 
-    logging.info('value of delta is ' + str(delta))
-    logging.info('updatedbatchsizes being used ' + str(updated_batchsizes))
-    for index in range(0, len(updated_batchsizes)):
-      worker_batch_size_adjustment.append(node_scale[index] * delta)
+      logging.info('value of delta is ' + str(delta))
+      ('updatedbatchsizes being used ' + str(updated_batchsizes))
+      for index in range(0, len(updated_batchsizes)):
+          worker_batch_size_adjustment.append(node_scale[index] * delta)
 
-    logging.info('adjustments to be made to normalize cumulative batch-size: ' + str(worker_batch_size_adjustment))
+      logging.info('adjustments to be made to normalize cumulative batch-size: ' + str(worker_batch_size_adjustment))
 
-    for ix in range(0, len(updated_batchsizes)):
-      normalized_updated_batch_sizes.append(updated_batchsizes[ix] + worker_batch_size_adjustment[ix])
+      for ix in range(0, len(updated_batchsizes)):
+          normalized_updated_batch_sizes.append(updated_batchsizes[ix] + worker_batch_size_adjustment[ix])
 
-    logging.info('normalized and updated batch-sizes to be used in model are: ' + str(normalized_updated_batch_sizes))
-    return normalized_updated_batch_sizes
+      logging.info('normalized and updated batch-sizes to be used in model are: ' + str(normalized_updated_batch_sizes))
+      return normalized_updated_batch_sizes
+
 
   def get_node_scale(self):
       '''
@@ -1786,16 +1787,17 @@ class Estimator(object):
                  order in env var is master, worker-0, worker-1, etc.
       :returns: a list comprised of the ratio of the worker's core alloc to the cumulative cluster core allocation.
       '''
-    node_scale = []
-    node_scale.append(0)
-    total_resources = 0
-    resource_alloc = os.environ['RESOURCE_ALLOC']
-    total_resources = np.sum(resource_alloc.split(','))
-    for resource in resource_alloc.split(','):
-      node_scale.append((int(resource) / total_resources))
+      node_scale = []
+      node_scale.append(0)
+      total_resources = 0
+      resource_alloc = os.environ['RESOURCE_ALLOC']
+      total_resources = np.sum(resource_alloc.split(','))
+      for resource in resource_alloc.split(','):
+          node_scale.append((int(resource) / total_resources))
 
-    logging.info('@sahiltyagi4 list of node scale is ' + str(node_scale))
-    return node_scale
+      logging.info('@sahiltyagi4 list of node scale is ' + str(node_scale))
+      return node_scale
+
 
   def _evaluate_build_graph(self, input_fn, hooks=None, checkpoint_path=None):
     """Builds the graph and related hooks to run evaluation."""
