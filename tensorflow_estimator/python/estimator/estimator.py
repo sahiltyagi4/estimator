@@ -1481,18 +1481,16 @@ class Estimator(object):
     tf_config = json.loads(os.environ['TF_CONFIG'])
     w_type = tf_config['task']['type']
     w_index = tf_config['task']['index']
-    batchlist = tf_config['batch_size_list']
 
     if 'worker' in tf_config['cluster']:
         num_workers = int(len(tf_config['cluster']['master']) + len(tf_config['cluster']['worker']))
     else:
+      # for case where using only master and no workers
         num_workers = 1
     ##num_ps = int(len(tf_config['cluster']['ps']))
     b_static = int(os.environ['UNIFORM_CLUSTER_BATCH_SIZE'])
     window_computation_time = []
-
     worker_batchsizes_filenames = self.get_worker_batchsize_filenames(num_workers)
-
     onetimeflag = True
     anotheronetimeflag = True
 
@@ -1517,68 +1515,24 @@ class Estimator(object):
       #     logging.info('***************************variables and op names are: ' + str(op.name))
       run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
       run_metadata = tf.RunMetadata()
+      tl = timeline.Timeline(run_metadata.step_stats)
 
-      while not mon_sess.should_stop():
-      #while mon_sess is not None:
+      #while not mon_sess.should_stop():
+      while mon_sess is not None:
           step_start = time.time()
+          should_training_stop = False
           _, loss, curr_step = mon_sess.run([estimator_spec.train_op, estimator_spec.loss, tf.train.get_or_create_global_step()], options=run_options, run_metadata=run_metadata)
           step_end = time.time()
           any_step_done = True
+          logging.info('@sahiltyagi train_op iteration time given worker is ' + str(step_end - step_start) + ' with starttime ' + str(step_start) + ' and endtime ' + str(step_end)
+                        + ' and global step ' + str(curr_step))
 
-          tl = timeline.Timeline(run_metadata.step_stats)
           ctf = tl.generate_chrome_trace_format()
-          # if w_type == 'worker' and str(w_index) == '1':
-          #     logging.info('@sahiltyagi4 for GPU node chrome trace format is: ' + str(ctf))
-
           op_ts = []
           parser = json.loads(ctf)
           for doc in parser['traceEvents']:
-              if len(batchlist) == 4:
-                  # worker-1 is assumed to be the GPU in our configiuration
-                  if w_type == 'worker' and str(w_index) == '1':
-                      if 'args' in doc and 'ts' in doc and estimator_spec.namescope in doc['args']['name']:
-                          op_ts.append(doc['ts'])
-                  else:
-                      if 'ts' in doc and estimator_spec.namescope in doc['name']:
-                          op_ts.append(doc['ts'])
-              elif len(batchlist) == 2:
-                  # for run with only 1 PS and 1 GPU serving as master/worker.
-                  if w_type == 'master' and str(w_index) == '0':
-                      if 'args' in doc and 'ts' in doc and estimator_spec.namescope in doc['args']['name']:
-                          op_ts.append(doc['ts'])
-                  else:
-                      if 'ts' in doc and estimator_spec.namescope in doc['name']:
-                          op_ts.append(doc['ts'])
-              elif len(batchlist) == 3:
-                  # to run config where we have one CPU worker and one GPU worker. 'master' is GPU and 'worker-0' is CPU
-                  # if w_type == 'master' and str(w_index) == '0':
-                  #     if 'args' in doc and 'ts' in doc and estimator_spec.namescope in doc['args']['name']:
-                  #         op_ts.append(doc['ts'])
-                  # else:
-                  #     if 'ts' in doc and estimator_spec.namescope in doc['name']:
-                  #         op_ts.append(doc['ts'])
-
-                  #testing the tracing times by GPU and CPU
-                  if 'args' in doc and 'ts' in doc and estimator_spec.namescope in doc['args']['name']:
-                      op_ts.append(doc['ts'])
-              elif len(batchlist) == 21:
-                  # to handle cloud execution case where we have 20 workers (including master) and 1 PS
-                  if 'ts' in doc and estimator_spec.namescope in doc['name']:
-                      op_ts.append(doc['ts'])
-              else:
-                  # on more than four nodes (not 21 though), the workers 'worker-0' and 'worker-1' are assumed to be GPU for current experiments.
-                  if w_type == 'worker' and str(w_index) == '0':
-                      if 'args' in doc and 'ts' in doc and estimator_spec.namescope in doc['args']['name']:
-                          op_ts.append(doc['ts'])
-                  elif w_type == 'worker' and str(w_index) == '1':
-                      if 'args' in doc and 'ts' in doc and estimator_spec.namescope in doc['args']['name']:
-                          op_ts.append(doc['ts'])
-                  else:
-                      if 'ts' in doc and estimator_spec.namescope in doc['name']:
-                          op_ts.append(doc['ts'])
-
-          logging.info('@sahiltyagi train_op iteration time given worker is ' + str(step_end - step_start) + ' with starttime ' + str(step_start) + ' and endtime ' + str(step_end)
-                        + ' and global step ' + str(curr_step))
+             if 'args' in doc and 'ts' in doc and estimator_spec.namescope in doc['args']['name']:
+               op_ts.append(doc['ts'])
 
           if len(op_ts) > 0:
             final_endtime = time.time()
@@ -1587,6 +1541,7 @@ class Estimator(object):
                 f.write(str(ctf))
                 f.close()
                 anotheronetimeflag = False
+
             logging.info('@sahiltyagi upto COMPUTE GRADS call time is ' + str((max(op_ts) - min(op_ts)) / 1000) + 'ms with starttime ' + str(min(op_ts) / 1000000) + ' and endtime '
                         + str(max(op_ts) / 1000000) + ' and global step ' + str(curr_step))
             logging.info('@sahiltyagi TOTAL_TIME including runmetadata stats and parsing ' + str(final_endtime - step_start) + ' with finaltime ' + str(final_endtime)
@@ -1602,7 +1557,7 @@ class Estimator(object):
             logging.info('@sahiltyagi4 train_op computed but op_ts might be empty with length ' + str(len(op_ts)))
             logging.info('@sahiltyagi4 train_op computed but compute_grads op not for step ' + str(curr_step))
 
-          ## do reactive adjustment only when window_size is not None. If None, do dynamic adjustment.
+          # do reactive adjustment only when window_size is not None. If None, do dynamic adjustment.
           if estimator_spec.window_size is not None:
               window_computation_time.append(float((max(op_ts) - min(op_ts)) / 1000))
               # start processing only when sufficient steps equal to window_size specified in estimator spec has been reached
@@ -1612,24 +1567,18 @@ class Estimator(object):
                   gradient_computation_time = self.read_batchsize_files(worker_batchsizes_filenames, self._model_dir,
                                                                         curr_step, num_workers)
                   logging.info('@sahiltyagi4 value of gradient_computation_time is ' + str(gradient_computation_time))
-                  ##currently set the threshold value at 0.2. With 0.1, adjustment was happening much more frequently.
-                  should_training_stop = self.compute_cluster_delta_fn(gradient_computation_time, w_type,
-                                                                       estimator_spec.reactive_adjustment_threshold,
-                                                                       curr_step, b_static, num_workers)
+                  # threshold value 0.1 is too low
+                  if w_type == 'master':
+                    should_training_stop = self.compute_cluster_delta_fn(gradient_computation_time, w_type, estimator_spec.reactive_adjustment_threshold, curr_step, b_static, num_workers)
 
                   if should_training_stop:
                       if not mon_sess._is_closed():
                           if w_type == 'master':
                               logging.info('@sahiltyagi4 looking to save checkpoint file for step ' + str(curr_step))
-                              # saver.save(self.get_session(mon_sess), os.path.join(self._model_dir, 'model.ckpt-'+str(curr_step)))
-                              saver.save(self.get_session(mon_sess),
-                                         os.path.join(self._model_dir, 'mymodel-' + str(curr_step)))
-                              logging.info('@sahiltyagi4 just saved the checkpoint for current step ' + str(curr_step))
+                              # saver.save(self.get_session(mon_sess), os.path.join(self._model_dir, 'mymodel-' + str(curr_step)))
 
-                          # self.wait_till_checkpointing_completes(self._model_dir, 'model.ckpt-'+str(curr_step)+'.meta')
-                          self.wait_till_checkpointing_completes(self._model_dir, 'mymodel-' + str(curr_step) + '.meta')
+                          #self.wait_till_checkpointing_completes(self._model_dir, 'mymodel-' + str(curr_step) + '.meta')
                           window_computation_time = []
-                          logging.info('@sahiltyagi4 going to close monitored session now...')
                           ##mon_sess.close()
                           mon_sess = None
                           logging.info('@sahiltyagi4 made monitored session Nonetype')
@@ -1659,7 +1608,6 @@ class Estimator(object):
   def average_computation_time_in_window(self, window_computation_time):
       return float(np.mean(window_computation_time))
 
-
   def get_worker_batchsize_filenames(self, num_workers):
       worker_batchsizes_filenames = []
       logging.info('@sahiltyagi4 number of workers are ' + str(num_workers+1))
@@ -1669,13 +1617,12 @@ class Estimator(object):
 
       return worker_batchsizes_filenames
 
-
   def read_batchsize_files(self, worker_batchsizes_filenames, model_dir, current_step, num_workers):
       '''
-      :returns: for reactive batch adjustment. returns a list containing the computation times by the workers fora given global step.
+      :returns: for reactive batch adjustment. returns a list containing the computation times by the workers for a given global step.
                 In BSP, call read_batchsize_files fn until all workers have completed the train_op for the given global_step.
                 to do this, add (time,step) in write to file fn and check until (sum of all steps is) equal to (global_step * workers). this ensure all workers have reached the same step.
-                THIS TECHNIQUE WORKS FOR BSP SYNC MODE ONLY THOUGH!
+                THIS TECHNIQUE WORKS FOR BSP SYNC MODE ONLY!
       '''
       while True:
           gradient_computation_time = []
@@ -1693,7 +1640,7 @@ class Estimator(object):
                   file.close()
 
           if current_step == 0:
-              if sum_of_worker_current_steps == 3:
+              if sum_of_worker_current_steps == num_workers:
                   break
           else:
               if sum_of_worker_current_steps == (current_step*num_workers):
@@ -1704,7 +1651,7 @@ class Estimator(object):
 
   def write_computation_time_to_file(self, model_dir, worker_computation_time, current_step, worker_type, index):
       '''
-      :returns: write_computation_time_to_file fn called to write value of COMPUTE GRAD call time to corresponding file for the given worker type and index
+      :returns: write_computation_time_to_file fn called to write value of COMPUTE_GRAD call time to corresponding file for the given worker type and index
       '''
       file_name = 'tf-' + worker_type + '-' + str(index) + '.txt'
       f = os.path.join(model_dir, file_name)
@@ -1729,13 +1676,16 @@ class Estimator(object):
       for times in gradient_computation_time:
           worker_computation_time_frac.append(((times - cluster_avg_time)/cluster_avg_time))
 
-      for frac in worker_computation_time_frac:
-          if frac > threshold:
-              logging.info('@sahiltyagi4 value of threshold that we set is ' + str(threshold))
-              logging.info('@sahiltyagi4 a time fraction value is greater than threshold with all values ' + str(worker_computation_time_frac))
-              logging.info('@sahiltyagi4 corresponding gradient computation times are ' + str(gradient_computation_time))
-              logging.info('@sahiltyagi4 average computation time across worker is ' + str(cluster_avg_time))
-              should_training_stop = True
+      for ix in range(0, len(worker_computation_time_frac)):
+        frac = worker_computation_time_frac[ix]
+        # ix 0 is master, worker0 is 1, etc..
+        logging.info('@sahiltyagi4 fraction value is ' + str(frac) + ' on worker index ' + str(ix))
+        if frac > threshold:
+          logging.info('@sahiltyagi4 value of threshold that we set is ' + str(threshold))
+          logging.info('@sahiltyagi4 a time fraction value is greater than threshold with all values ' + str(worker_computation_time_frac))
+          logging.info('@sahiltyagi4 corresponding gradient computation times are ' + str(gradient_computation_time))
+          logging.info('@sahiltyagi4 average computation time across worker is ' + str(cluster_avg_time))
+          should_training_stop = True
 
       ## call fn to compute the updated batch-sizes with which to restart the model and logs its to clusterbatchsizes.conf and other log files.
       if should_training_stop :
@@ -1813,23 +1763,22 @@ class Estimator(object):
                 delta can be positive or negative given the heterogeneity level and the sync mode being used.
       :return: a list of the two-level normalized batch-sizes to be used to restart the model with kill-restart technique.
       '''
-      normalized_updated_batch_sizes = []
-      worker_batch_size_adjustment = []
-      node_scale = self.get_node_scale()
+    normalized_updated_batch_sizes = []
+    worker_batch_size_adjustment = []
+    node_scale = self.get_node_scale()
 
-      logging.info('value of delta is ' + str(delta))
-      ('updatedbatchsizes being used ' + str(updated_batchsizes))
-      for index in range(0, len(updated_batchsizes)):
-          worker_batch_size_adjustment.append(node_scale[index] * delta)
+    logging.info('value of delta is ' + str(delta))
+    logging.info('updatedbatchsizes being used ' + str(updated_batchsizes))
+    for index in range(0, len(updated_batchsizes)):
+      worker_batch_size_adjustment.append(node_scale[index] * delta)
 
-      logging.info('adjustments to be made to normalize cumulative batch-size: ' + str(worker_batch_size_adjustment))
+    logging.info('adjustments to be made to normalize cumulative batch-size: ' + str(worker_batch_size_adjustment))
 
-      for ix in range(0, len(updated_batchsizes)):
-          normalized_updated_batch_sizes.append(updated_batchsizes[ix] + worker_batch_size_adjustment[ix])
+    for ix in range(0, len(updated_batchsizes)):
+      normalized_updated_batch_sizes.append(updated_batchsizes[ix] + worker_batch_size_adjustment[ix])
 
-      logging.info('normalized and updated batch-sizes to be used in model are: ' + str(normalized_updated_batch_sizes))
-      return normalized_updated_batch_sizes
-
+    logging.info('normalized and updated batch-sizes to be used in model are: ' + str(normalized_updated_batch_sizes))
+    return normalized_updated_batch_sizes
 
   def get_node_scale(self):
       '''
@@ -1837,19 +1786,16 @@ class Estimator(object):
                  order in env var is master, worker-0, worker-1, etc.
       :returns: a list comprised of the ratio of the worker's core alloc to the cumulative cluster core allocation.
       '''
-      node_scale = []
-      node_scale.append(0)
-      total_resources = 0
-      resource_alloc = os.environ['RESOURCE_ALLOC']
-      for resource in resource_alloc.split(','):
-          total_resources = total_resources + int(resource)
+    node_scale = []
+    node_scale.append(0)
+    total_resources = 0
+    resource_alloc = os.environ['RESOURCE_ALLOC']
+    total_resources = np.sum(resource_alloc.split(','))
+    for resource in resource_alloc.split(','):
+      node_scale.append((int(resource) / total_resources))
 
-      for resource in resource_alloc.split(','):
-          node_scale.append((int(resource) / total_resources))
-
-      logging.info('@sahiltyagi4 list of node scale is ' + str(node_scale))
-      return node_scale
-
+    logging.info('@sahiltyagi4 list of node scale is ' + str(node_scale))
+    return node_scale
 
   def _evaluate_build_graph(self, input_fn, hooks=None, checkpoint_path=None):
     """Builds the graph and related hooks to run evaluation."""
