@@ -1515,7 +1515,6 @@ class Estimator(object):
       #     logging.info('***************************variables and op names are: ' + str(op.name))
       run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
       run_metadata = tf.RunMetadata()
-      tl = timeline.Timeline(run_metadata.step_stats)
 
       #while not mon_sess.should_stop():
       while mon_sess is not None:
@@ -1527,6 +1526,7 @@ class Estimator(object):
           logging.info('@sahiltyagi train_op iteration time given worker is ' + str(step_end - step_start) + ' with starttime ' + str(step_start) + ' and endtime ' + str(step_end)
                         + ' and global step ' + str(curr_step))
 
+          tl = timeline.Timeline(run_metadata.step_stats)
           ctf = tl.generate_chrome_trace_format()
           op_ts = []
           parser = json.loads(ctf)
