@@ -25,6 +25,7 @@ import os
 import tempfile
 import time
 import json
+import subprocess
 
 import numpy as np
 import six
@@ -1491,6 +1492,7 @@ class Estimator(object):
     b_static = int(os.environ['UNIFORM_CLUSTER_BATCH_SIZE'])
     window_computation_time = []
     worker_batchsizes_filenames = self.get_worker_batchsize_filenames(num_workers)
+    cpualloc_files = self.getworker_cpualloc_files(num_workers)
     onetimeflag = True
     anotheronetimeflag = True
 
@@ -1563,12 +1565,23 @@ class Estimator(object):
           # do reactive adjustment only when window_size is not None. If None, do dynamic adjustment.
           if estimator_spec.window_size is not None:
               window_computation_time.append(float((max(op_ts) - min(op_ts)) / 1000))
+              
+              # only when a window is full, fetch docker container info and write to its corresponding worker cpu conf file
+              self.getCPUallocinfo(self._model_dir, 'tf-' + w_type + '-' + w_index)
+              self.write_cpualloc_nodescale(self._model_dir, cpualloc_files)
+
               # start processing only when sufficient steps equal to window_size specified in estimator spec has been reached
               if len(window_computation_time) == estimator_spec.window_size:
                   window_avg_time = self.average_computation_time_in_window(window_computation_time)
                   self.write_computation_time_to_file(self._model_dir, str(window_avg_time), curr_step, w_type, w_index)
                   gradient_computation_time = self.read_batchsize_files(worker_batchsizes_filenames, self._model_dir,
                                                                         curr_step, num_workers)
+                  
+                  # wait till all CPU alloc files are written.
+                  # read all cpu files here to compute RESOURCE_ALLOC and write that to resource_alloc.conf
+                  self.readCPUallocfiles(self._model_dir, cpualloc_files, curr_step, num_workers)
+
+
                   logging.info('@sahiltyagi4 value of gradient_computation_time is ' + str(gradient_computation_time))
                   # threshold value 0.1 is too low
                   if w_type == 'master':
@@ -1617,8 +1630,24 @@ class Estimator(object):
       worker_batchsizes_filenames.append('tf-master-0.txt')
       for ix in range(0, num_workers):
           worker_batchsizes_filenames.append('tf-worker-' + str(ix) + '.txt')
-
       return worker_batchsizes_filenames
+
+  def getworker_cpualloc_files(self, num_workers):
+      cpualloc_files = []
+      cpualloc_files.append('cpu-tf-master-0.conf')
+      for ix in range(0, num_workers):
+        cpualloc_files.append('cpu-tf-worker-' + str(ix) + '.conf')
+      return cpualloc_files
+
+  def getCPUallocinfo(self, model_dir, worker_name):
+      cmd = subprocess.Popen(['docker', 'container', 'inspect', worker_name, '--format="{{.HostConfig.NanoCpus}}"'], stdout=subprocess.PIPE)
+      output, err = cmd.communicate()
+      status = cmd.wait()
+      cpu = int(output.split('\n')[0].replace('000000000','').replace('"',''))
+      file = os.path.join(model_dir, 'cpu-' + worker_name + '.conf')
+      f = open(file, 'w')
+      f.write(str(cpu))
+      f.close()
 
   def read_batchsize_files(self, worker_batchsizes_filenames, model_dir, current_step, num_workers):
       '''
@@ -1651,6 +1680,32 @@ class Estimator(object):
 
       return gradient_computation_time
 
+  def readCPUallocfiles(self, model_dir, cpualloc_files, current_step, num_workers):
+    '''
+      :returns: waits till all workers have written their updated CPU allocations to their corresponding conf files. returns list of core count
+    '''
+    while True:
+      cpu_alloc = []
+      sum_of_worker_current_steps = 0
+      for file in cpualloc_files:
+        f = os.path.join(model_dir, file)
+        if os.path.isfile(f):
+          out = open(f, 'r')
+          for line in out:
+            cpu_alloc.append(int(line))
+            if current_step == 0:
+              sum_of_worker_current_steps = sum_of_worker_current_steps + 1
+            else:
+              sum_of_worker_current_steps = sum_of_worker_current_steps + int(line.split(',')[1])
+          out.close()
+      if current_step == 0:
+        if sum_of_worker_current_steps == num_workers:
+          break
+      else:
+        if sum_of_worker_current_steps == (current_step*num_workers):
+          break
+    
+    return cpu_alloc
 
   def write_computation_time_to_file(self, model_dir, worker_computation_time, current_step, worker_type, index):
       '''
@@ -1663,6 +1718,24 @@ class Estimator(object):
       file.close()
       #logging.info('@sahiltyagi4 writing computation time to file for step ' + str(current_step))
 
+  def write_cpualloc_nodescale(self, model_dir, cpualloc_files):
+    cpu_alloc = []
+    for file in cpualloc_files:
+      f = os.path.join(model_dir, file)
+      file = open(f, 'r')
+      for line in file:
+        cpu_alloc.append(int(line))
+      file.close()
+
+    cpustring = ''
+    for cores in cpu_alloc:
+      cpustring = cpustring + str(cores) + ','
+
+    cpustring = cpustring[0:len(cpustring) -1]
+    f = os.path.join(model_dir, 'resource_alloc.conf')
+    file = open(f, 'w')
+    file.write(cpustring)
+    file.close()
 
   def compute_cluster_delta_fn(self, gradient_computation_time, w_type, threshold, current_step, b_static, num_workers):
       '''
@@ -1802,7 +1875,6 @@ class Estimator(object):
 
       logging.info('@sahiltyagi4 list of node scale is ' + str(node_scale))
       return node_scale
-
 
   def _evaluate_build_graph(self, input_fn, hooks=None, checkpoint_path=None):
     """Builds the graph and related hooks to run evaluation."""
