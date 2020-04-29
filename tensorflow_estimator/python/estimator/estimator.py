@@ -1565,9 +1565,6 @@ class Estimator(object):
           # do reactive adjustment only when window_size is not None. If None, do dynamic adjustment.
           if estimator_spec.window_size is not None:
               window_computation_time.append(float((max(op_ts) - min(op_ts)) / 1000))
-              
-              # only when a window is full, fetch docker container info and write to its corresponding worker cpu conf file
-              self.getCPUallocinfo(self._model_dir, 'tf-' + str(w_type) + '-' + str(w_index))
 
               # start processing only when sufficient steps equal to window_size specified in estimator spec has been reached
               if len(window_computation_time) == estimator_spec.window_size:
@@ -1575,7 +1572,9 @@ class Estimator(object):
                   self.write_computation_time_to_file(self._model_dir, str(window_avg_time), curr_step, w_type, w_index)
                   gradient_computation_time = self.read_batchsize_files(worker_batchsizes_filenames, self._model_dir,
                                                                         curr_step, num_workers)
-                  
+                                                                        
+                  # only when a window is full, fetch docker container info and write to its corresponding worker cpu conf file
+                  self.getCPUallocinfo(self._model_dir, 'tf-' + str(w_type) + '-' + str(w_index))
                   # wait till all CPU alloc files are written.
                   # read all cpu files here to compute RESOURCE_ALLOC and write that to resource_alloc.conf
                   cpu_alloc = self.readCPUallocfiles(self._model_dir, cpualloc_files, curr_step, num_workers)
