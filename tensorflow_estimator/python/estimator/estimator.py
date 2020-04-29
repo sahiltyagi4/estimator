@@ -1567,8 +1567,7 @@ class Estimator(object):
               window_computation_time.append(float((max(op_ts) - min(op_ts)) / 1000))
               
               # only when a window is full, fetch docker container info and write to its corresponding worker cpu conf file
-              self.getCPUallocinfo(self._model_dir, 'tf-' + w_type + '-' + w_index)
-              self.write_cpualloc_nodescale(self._model_dir, cpualloc_files)
+              self.getCPUallocinfo(self._model_dir, 'tf-' + str(w_type) + '-' + str(w_index))
 
               # start processing only when sufficient steps equal to window_size specified in estimator spec has been reached
               if len(window_computation_time) == estimator_spec.window_size:
@@ -1579,8 +1578,8 @@ class Estimator(object):
                   
                   # wait till all CPU alloc files are written.
                   # read all cpu files here to compute RESOURCE_ALLOC and write that to resource_alloc.conf
-                  self.readCPUallocfiles(self._model_dir, cpualloc_files, curr_step, num_workers)
-
+                  cpu_alloc = self.readCPUallocfiles(self._model_dir, cpualloc_files, curr_step, num_workers)
+                  self.write_cpualloc_nodescale(self._model_dir, cpu_alloc)
 
                   logging.info('@sahiltyagi4 value of gradient_computation_time is ' + str(gradient_computation_time))
                   # threshold value 0.1 is too low
@@ -1718,15 +1717,7 @@ class Estimator(object):
       file.close()
       #logging.info('@sahiltyagi4 writing computation time to file for step ' + str(current_step))
 
-  def write_cpualloc_nodescale(self, model_dir, cpualloc_files):
-    cpu_alloc = []
-    for file in cpualloc_files:
-      f = os.path.join(model_dir, file)
-      file = open(f, 'r')
-      for line in file:
-        cpu_alloc.append(int(line))
-      file.close()
-
+  def write_cpualloc_nodescale(self, model_dir, cpu_alloc):    
     cpustring = ''
     for cores in cpu_alloc:
       cpustring = cpustring + str(cores) + ','
