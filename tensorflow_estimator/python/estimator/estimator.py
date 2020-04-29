@@ -1572,7 +1572,7 @@ class Estimator(object):
                   self.write_computation_time_to_file(self._model_dir, str(window_avg_time), curr_step, w_type, w_index)
                   gradient_computation_time = self.read_batchsize_files(worker_batchsizes_filenames, self._model_dir,
                                                                         curr_step, num_workers)
-                                                                        
+
                   # only when a window is full, fetch docker container info and write to its corresponding worker cpu conf file
                   self.getCPUallocinfo(self._model_dir, 'tf-' + str(w_type) + '-' + str(w_index))
                   # wait till all CPU alloc files are written.
@@ -1638,7 +1638,7 @@ class Estimator(object):
       return cpualloc_files
 
   def getCPUallocinfo(self, model_dir, worker_name):
-      cmd = subprocess.Popen(['docker', 'container', 'inspect', worker_name, '--format="{{.HostConfig.NanoCpus}}"'], stdout=subprocess.PIPE)
+      cmd = subprocess.Popen(['docker','container','inspect',worker_name,'--format="{{.HostConfig.NanoCpus}}"'], shell=True, stdout=subprocess.PIPE)
       output, err = cmd.communicate()
       status = cmd.wait()
       cpu = int(output.split('\n')[0].replace('000000000','').replace('"',''))
