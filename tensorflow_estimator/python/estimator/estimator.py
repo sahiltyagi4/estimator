@@ -1641,6 +1641,7 @@ class Estimator(object):
       cmd = subprocess.Popen(['docker','container','inspect',worker_name,'--format="{{.HostConfig.NanoCpus}}"'], shell=True, stdout=subprocess.PIPE)
       output, err = cmd.communicate()
       status = cmd.wait()
+      logging.info('output is ' + str(output))
       cpu = int(output.split('\n')[0].replace('000000000','').replace('"',''))
       file = os.path.join(model_dir, 'cpu-' + worker_name + '.conf')
       f = open(file, 'w')
