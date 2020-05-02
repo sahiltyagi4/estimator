@@ -26,6 +26,7 @@ import tempfile
 import time
 import json
 import subprocess
+import uuid
 
 import numpy as np
 import six
@@ -1492,7 +1493,7 @@ class Estimator(object):
     b_static = int(os.environ['UNIFORM_CLUSTER_BATCH_SIZE'])
     window_computation_time = []
     worker_batchsizes_filenames = self.get_worker_batchsize_filenames(num_workers)
-    cpualloc_files = self.getworker_cpualloc_files(num_workers)
+    #cpualloc_files = self.getworker_cpualloc_files(num_workers)
     onetimeflag = True
     anotheronetimeflag = True
 
@@ -1562,41 +1563,64 @@ class Estimator(object):
             logging.info('@sahiltyagi4 train_op computed but op_ts might be empty with length ' + str(len(op_ts)))
             logging.info('@sahiltyagi4 train_op computed but compute_grads op not for step ' + str(curr_step))
 
-          # do reactive adjustment only when window_size is not None. If None, do dynamic adjustment.
-          if estimator_spec.window_size is not None:
+          if estimator_spec.sync_mode == 'BSP':
+            #when using deadbanding, set window_size to 1.
+            if estimator_spec.window_size is not None:
               window_computation_time.append(float((max(op_ts) - min(op_ts)) / 1000))
-
               # start processing only when sufficient steps equal to window_size specified in estimator spec has been reached
               if len(window_computation_time) == estimator_spec.window_size:
+                window_avg_time = self.average_computation_time_in_window(window_computation_time)
+                self.write_computation_time_to_file(self._model_dir, str(window_avg_time), curr_step, w_type, w_index)
+                gradient_computation_time = self.read_batchsize_files(worker_batchsizes_filenames, self._model_dir, curr_step, num_workers)
+
+                # only when a window is full, fetch docker container info and write to its corresponding worker cpu conf file
+                #self.getCPUallocinfo(self._model_dir, 'tf-' + str(w_type) + '-' + str(w_index))
+                # wait till all CPU alloc files are written.
+                # read all cpu files here to compute RESOURCE_ALLOC and write that to resource_alloc.conf
+                #cpu_alloc = self.readCPUallocfiles(self._model_dir, cpualloc_files, curr_step, num_workers)
+                #self.write_cpualloc_nodescale(self._model_dir, cpu_alloc)
+
+                logging.info('@sahiltyagi4 value of gradient_computation_time is ' + str(gradient_computation_time))
+                if w_type == 'master':
+                  should_training_stop = self.compute_cluster_delta_fn(gradient_computation_time, w_type, estimator_spec.reactive_adjustment_threshold, 
+                  curr_step, b_static, num_workers, estimator_spec.adjustment_mode)
+
+                window_computation_time = []
+                if should_training_stop:
+                  if not mon_sess._is_closed():
+                    logging.info('@sahiltyagi4 made monitored session Nonetype')
+                    mon_sess = None
+                    break
+                    # if w_type == 'master':
+                    #   logging.info('@sahiltyagi4 looking to save checkpoint file for step ' + str(curr_step))
+                    #   # saver.save(self.get_session(mon_sess), os.path.join(self._model_dir, 'mymodel-' + str(curr_step)))
+                    #   #self.wait_till_checkpointing_completes(self._model_dir, 'mymodel-' + str(curr_step) + '.meta')
+                    #   ##mon_sess.close()
+                    #   mon_sess = None
+                    #   logging.info('@sahiltyagi4 made monitored session Nonetype')
+                    #   break
+                
+            elif estimator_spec.sync_mode == 'ASP':
+              if estimator_spec.window_size is not None:
+                window_computation_time.append(float((max(op_ts) - min(op_ts)) / 1000))
+                #to use a sliding window by shifitng on a single iteration
+                if len(window_computation_time) == estimator_spec.window_size:
                   window_avg_time = self.average_computation_time_in_window(window_computation_time)
                   self.write_computation_time_to_file(self._model_dir, str(window_avg_time), curr_step, w_type, w_index)
-                  gradient_computation_time = self.read_batchsize_files(worker_batchsizes_filenames, self._model_dir,
-                                                                        curr_step, num_workers)
+                  do_windows_exist = self.check_worker_batchsize_files(self._model_dir, worker_batchsizes_filenames)
+                  if do_windows_exist:
+                    gradient_computation_time = self.asp_read_batchfiles(worker_batchsizes_filenames, self._model_dir)
+                    logging.info('@sahiltyagi4 computed gradient_computation_time list in ASP mode...')
+                    if w_type == 'master':
+                      should_training_stop = self.compute_cluster_delta_fn(gradient_computation_time, w_type, estimator_spec.reactive_adjustment_threshold, 
+                      curr_step, b_static, num_workers, estimator_spec.adjustment_mode)
 
-                  # only when a window is full, fetch docker container info and write to its corresponding worker cpu conf file
-                  self.getCPUallocinfo(self._model_dir, 'tf-' + str(w_type) + '-' + str(w_index))
-                  # wait till all CPU alloc files are written.
-                  # read all cpu files here to compute RESOURCE_ALLOC and write that to resource_alloc.conf
-                  cpu_alloc = self.readCPUallocfiles(self._model_dir, cpualloc_files, curr_step, num_workers)
-                  self.write_cpualloc_nodescale(self._model_dir, cpu_alloc)
-
-                  logging.info('@sahiltyagi4 value of gradient_computation_time is ' + str(gradient_computation_time))
-                  # threshold value 0.1 is too low
-                  if w_type == 'master':
-                    should_training_stop = self.compute_cluster_delta_fn(gradient_computation_time, w_type, estimator_spec.reactive_adjustment_threshold, curr_step, b_static, num_workers)
-
-                  window_computation_time = []
-                  if should_training_stop:
+                    if should_training_stop:
                       if not mon_sess._is_closed():
-                          if w_type == 'master':
-                              logging.info('@sahiltyagi4 looking to save checkpoint file for step ' + str(curr_step))
-                              # saver.save(self.get_session(mon_sess), os.path.join(self._model_dir, 'mymodel-' + str(curr_step)))
+                        logging.info('@sahiltyagi4 going to end ASP training since there is a call for readjustment!')
+                        mon_sess = None
+                        break
 
-                          #self.wait_till_checkpointing_completes(self._model_dir, 'mymodel-' + str(curr_step) + '.meta')
-                          ##mon_sess.close()
-                          mon_sess = None
-                          logging.info('@sahiltyagi4 made monitored session Nonetype')
-                          break
 
     if not any_step_done:
       logging.warning('Training with estimator made no steps. '
@@ -1609,7 +1633,19 @@ class Estimator(object):
       while type(session).__name__ != 'Session':
           # pylint: disable=W0212
           session = session._sess
-      return session
+      return
+
+  def check_worker_batchsize_files(self, model_dir, worker_batchsizes_filenames):
+    #checks if the files exist in ASP
+    workers_window_computed = False
+    for workerfile in worker_batchsizes_filenames:
+      f = os.path.join(model_dir, workerfile)
+      if not os.path.isfile(f):
+        return False
+      else:
+        workers_window_computed = True
+
+    return workers_window_computed
 
   #just meta, or index and data files too?
   def wait_till_checkpointing_completes(self, model_dir, checkpoint_meta_file):
@@ -1647,6 +1683,15 @@ class Estimator(object):
       f = open(file, 'w')
       f.write(str(cpu))
       f.close()
+
+  def asp_read_batchfiles(self, worker_batchsizes_filenames, model_dir):
+    gradient_computation_time = []
+    for workerfile in worker_batchsizes_filenames:
+      f = os.path.join(model_dir, workerfile)
+      file = open(f, 'r')
+      gradient_computation_time.append(float(file.readline().split(',')[0]))
+    
+    return gradient_computation_time
 
   def read_batchsize_files(self, worker_batchsizes_filenames, model_dir, current_step, num_workers):
       '''
@@ -1728,7 +1773,7 @@ class Estimator(object):
     file.write(cpustring)
     file.close()
 
-  def compute_cluster_delta_fn(self, gradient_computation_time, w_type, threshold, current_step, b_static, num_workers):
+  def compute_cluster_delta_fn(self, gradient_computation_time, w_type, threshold, current_step, b_static, num_workers, adjustment_mode):
       '''
       :param: gradient_computation_time list
       :return: a boolean whether to continue or stop training if any worker takes more time compared to other workers by a certain threshold. currently threshold is set to 0.1.
@@ -1736,30 +1781,101 @@ class Estimator(object):
       should_training_stop = False
       total = 0.0
       for times in gradient_computation_time:
-          total = total + times
+        total = total + times
 
       cluster_avg_time = (total/len(gradient_computation_time))
       worker_computation_time_frac = []
       for times in gradient_computation_time:
-          worker_computation_time_frac.append(((times - cluster_avg_time)/cluster_avg_time))
-
-      for ix in range(0, len(worker_computation_time_frac)):
-        frac = worker_computation_time_frac[ix]
-        # ix 0 is master, 1 is worker0, 2 worker1 etc.
-        logging.info('@sahiltyagi4 fraction value is ' + str(frac) + ' on worker index ' + str(ix))
-        if frac > threshold:
-          logging.info('@sahiltyagi4 value of threshold that we set is ' + str(threshold))
+        worker_computation_time_frac.append(((times - cluster_avg_time)/cluster_avg_time))
+      
+      if adjustment_mode == 'exponential_smoothing':
+        for ix in range(0, len(worker_computation_time_frac)):
+          frac = worker_computation_time_frac[ix]
+          # ix 0 is master, 1 is worker0, 2 worker1 etc.
+          logging.info('@sahiltyagi4 fraction value is ' + str(frac) + ' on worker index ' + str(ix))
+          if frac > threshold:
+            should_training_stop = True
+            
           logging.info('@sahiltyagi4 a time fraction value is greater than threshold with all values ' + str(worker_computation_time_frac))
           logging.info('@sahiltyagi4 corresponding gradient computation times are ' + str(gradient_computation_time))
           logging.info('@sahiltyagi4 average computation time across worker is ' + str(cluster_avg_time))
-          should_training_stop = True
 
-      ## call fn to compute the updated batch-sizes with which to restart the model and logs its to clusterbatchsizes.conf and other log files.
-      if should_training_stop :
+        ## call fn to compute the updated batch-sizes with which to restart the model and logs its to clusterbatchsizes.conf and other log files.
+        if should_training_stop :
           self.calculate_updated_batchsizes(self._model_dir, cluster_avg_time, gradient_computation_time, w_type, b_static, num_workers)
 
-      logging.info('@sahiltyagi4 value of should training stop is ' + str(should_training_stop) + ' for step ' + str(current_step))
-      return should_training_stop
+        logging.info('@sahiltyagi4 value of should training stop is ' + str(should_training_stop) + ' for step ' + str(current_step))
+        return should_training_stop
+      
+      elif adjustment_mode == 'deadbanding':
+        old_batch_sizes = self.fetch_oldbatchisizes(self._model_dir)
+        new_batch_sizes = self.determine_batchsizes(cluster_avg_time, gradient_computation_time, old_batch_sizes, b_static, num_workers)
+        if len(old_batch_sizes) != len(new_batch_sizes):
+          raise ValueError('batch-size list length changed in iterations!')
+
+        for ix in range(0, len(old_batch_sizes)):
+          delta = new_batch_sizes[ix] - old_batch_sizes[ix]
+          if delta < 0:
+            delta = -delta
+          
+          if delta > threshold:
+            should_training_stop = True
+            self.exp_smoothing_write_newbatchsize(self._model_dir, new_batch_sizes, w_type)
+            return should_training_stop
+
+  def exp_smoothing_write_newbatchsize(self, model_dir, new_batch_sizes, w_type):
+    outfile = 'clusterbatchsizes.conf'
+    if w_type == 'master':
+      logging.info('@sahiltyagi4 going to write batchsize_history and clusterbatchsizes.conf from master node!')
+      finalstring = '['
+      for size in new_batch_sizes:
+        finalstring = finalstring + str(int(size)) + ','
+      
+      finalstring = finalstring[0:len(finalstring) - 1]
+      finalstring = finalstring + ']'
+
+      f = os.path.join(model_dir, 'batchsize_history.txt')
+      file = open(f, 'a')
+      file.write(finalstring + '\n')
+      file.close()
+
+      f = os.path.join(model_dir, outfile)
+      file = open(f, 'w')
+      file.write(finalstring)
+      file.close()
+
+  def fetch_oldbatchisizes(self, model_dir):
+    old_batchsizes = []
+    outfile = 'clusterbatchsizes.conf'
+    f = os.path.join(model_dir, outfile)
+    file = open(f, 'r')
+    for val in file.readline().split(','):
+      old_batchsizes.append(float(val.replace('[', '').replace(']', '')))
+    
+    return old_batchsizes
+
+  def determine_batchsizes(self, cluster_avg_time, gradient_computation_time, old_batchsizes, b_static, num_workers):
+    fraction_perworker = []
+    for workertime in gradient_computation_time:
+      fraction_perworker.append((cluster_avg_time/workertime))
+    
+    if len(old_batchsizes) != len(fraction_perworker):
+      logging.info(old_batchsizes)
+      logging.info(fraction_perworker)
+      raise ValueError('@sahiltyagi4 the length of batch-sizes list and computed fraction of iteration time per-worker is not same. Something is wrong!')
+
+    cumulative_batch_size = 0
+    updated_batchsizes = []
+    for index in range(0, len(old_batchsizes)):
+      worker_batch_size = round(old_batchsizes[index] * fraction_perworker[index])
+      updated_batchsizes.append(worker_batch_size)
+      if index != 0:
+              cumulative_batch_size = cumulative_batch_size + worker_batch_size
+
+      delta = (b_static*num_workers) - cumulative_batch_size
+      normalized_updated_batch_sizes = self.normalize_batch_sizes(delta, updated_batchsizes)
+      logging.info('@sahiltyagi4 normalized batch-sizes with exponential smoothing ' + str(normalized_updated_batch_sizes))
+      return normalized_updated_batch_sizes
 
 
   def calculate_updated_batchsizes(self, model_dir, cluster_avg_time, gradient_computation_time, w_type, b_static, num_workers):

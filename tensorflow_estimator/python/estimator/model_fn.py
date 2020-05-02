@@ -47,7 +47,7 @@ class EstimatorSpec(
     collections.namedtuple('EstimatorSpec', [
         'mode', 'predictions', 'loss', 'train_op', 'eval_metric_ops', 'reactive_adjustment_threshold',
         'export_outputs', 'training_chief_hooks', 'training_hooks', 'scaffold', 'window_size',
-        'evaluation_hooks', 'namescope', 'prediction_hooks'
+        'evaluation_hooks', 'namescope', 'adjustment_mode', 'sync_mode', 'prediction_hooks'
     ])):
   """Ops and objects returned from a `model_fn` and passed to an `Estimator`.
 
@@ -65,6 +65,8 @@ class EstimatorSpec(
               training_chief_hooks=None,
               training_hooks=None,
               reactive_adjustment_threshold=None,
+              adjustment_mode=None,
+              sync_mode=None,
               scaffold=None,
               window_size=None,
               evaluation_hooks=None,
@@ -187,6 +189,8 @@ class EstimatorSpec(
         training_chief_hooks=training_chief_hooks,
         training_hooks=training_hooks,
         reactive_adjustment_threshold=reactive_adjustment_threshold,
+        adjustment_mode=adjustment_mode,
+        sync_mode=sync_mode,
         scaffold=scaffold,
         window_size=window_size,
         evaluation_hooks=evaluation_hooks,
