@@ -1618,22 +1618,22 @@ class Estimator(object):
                 if do_windows_exist:
                   gradient_computation_time = self.asp_read_batchfiles(worker_batchsizes_filenames, self._model_dir)
                   logging.info('@sahiltyagi4 gradient computation time in ASP is ' + str(gradient_computation_time))
+                  self.write_session_none(self._model_dir, w_type, w_index)
                   if w_type == 'master':
                     should_training_stop = self.compute_cluster_delta_fn(gradient_computation_time, w_type, estimator_spec.reactive_adjustment_threshold, 
                     curr_step, b_static, num_workers, estimator_spec.adjustment_mode)
-                    self.log_should_training_stop(self._model_dir, should_training_stop)
-                  
-                  self.write_session_none(self._model_dir, w_type, w_index)
-                  should_training_stop = self.read_should_training_stop(self._model_dir)
-                  logging.info('@sahiltyagi4 ASP should training stop ' + str(should_training_stop))
-                  are_sessions_closed = self.are_all_sessions_terminated(self._model_dir, nonetype_filenames, num_workers)
-                  #when all sessions are made Nonetype, only then kill and restart model
-                  if should_training_stop and are_sessions_closed:
-                    if not mon_sess._is_closed():
-                      logging.info('@sahiltyagi4 made monitored session Nonetype')
-                      logging.info('@sahiltyagi4 going to end ASP training since there is a call for readjustment!')
-                      mon_sess = None
-                      break
+                    #self.log_should_training_stop(self._model_dir, should_training_stop)
+                    #should_training_stop = self.read_should_training_stop(self._model_dir)
+                    logging.info('@sahiltyagi4 ASP should training stop ' + str(should_training_stop))
+                    #are_sessions_closed = self.are_all_sessions_terminated(self._model_dir, nonetype_filenames, num_workers)
+                    #when all sessions are made Nonetype, only then kill and restart model
+                    #if should_training_stop and are_sessions_closed:
+                    if should_training_stop:
+                      if not mon_sess._is_closed():
+                        logging.info('@sahiltyagi4 made monitored session Nonetype')
+                        logging.info('@sahiltyagi4 going to end ASP training since there is a call for readjustment!')
+                        mon_sess = None
+                        break
 
     if not any_step_done:
       logging.warning('Training with estimator made no steps. '
