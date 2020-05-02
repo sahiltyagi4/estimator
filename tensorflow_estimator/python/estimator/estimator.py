@@ -1875,13 +1875,13 @@ class Estimator(object):
       if index != 0:
         cumulative_batch_size = cumulative_batch_size + worker_batch_size
 
-      delta = (b_static*num_workers) - cumulative_batch_size
-      logging.info('@sahiltyagi debug mode delta ' + str(delta))
-      logging.info('@sahiltyagi debug mode updated bs ' + str(updated_batchsizes))
-      logging.info('@sahiltyagi debug mode cumulative bs ' + str(cumulative_batch_size))
-      normalized_updated_batch_sizes = self.normalize_batch_sizes(delta, updated_batchsizes)
-      logging.info('@sahiltyagi4 normalized batch-sizes with exponential smoothing/deadbanding are  ' + str(normalized_updated_batch_sizes))
-      return normalized_updated_batch_sizes
+    delta = (b_static*num_workers) - cumulative_batch_size
+    logging.info('@sahiltyagi debug mode delta ' + str(delta))
+    logging.info('@sahiltyagi debug mode updated bs ' + str(updated_batchsizes))
+    logging.info('@sahiltyagi debug mode cumulative bs ' + str(cumulative_batch_size))
+    normalized_updated_batch_sizes = self.normalize_batch_sizes(delta, updated_batchsizes)
+    logging.info('@sahiltyagi4 normalized batch-sizes with exponential smoothing/deadbanding are  ' + str(normalized_updated_batch_sizes))
+    return normalized_updated_batch_sizes
 
 
   def calculate_updated_batchsizes(self, model_dir, cluster_avg_time, gradient_computation_time, w_type, b_static, num_workers):
