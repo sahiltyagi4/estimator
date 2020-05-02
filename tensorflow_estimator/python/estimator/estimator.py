@@ -1617,10 +1617,14 @@ class Estimator(object):
                 if do_windows_exist:
                   gradient_computation_time = self.asp_read_batchfiles(worker_batchsizes_filenames, self._model_dir)
                   logging.info('@sahiltyagi4 gradient computation time in ASP is ' + str(gradient_computation_time))
-                  if w_type == 'master':
-                    should_training_stop = self.compute_cluster_delta_fn(gradient_computation_time, w_type, estimator_spec.reactive_adjustment_threshold, 
-                    curr_step, b_static, num_workers, estimator_spec.adjustment_mode)
-                    self.log_should_training_stop(self._model_dir, should_training_stop)
+                  # if w_type == 'master':
+                  #   should_training_stop = self.compute_cluster_delta_fn(gradient_computation_time, w_type, estimator_spec.reactive_adjustment_threshold, 
+                  #   curr_step, b_static, num_workers, estimator_spec.adjustment_mode)
+                  #   self.log_should_training_stop(self._model_dir, should_training_stop)
+
+                  should_training_stop = self.compute_cluster_delta_fn(gradient_computation_time, w_type, estimator_spec.reactive_adjustment_threshold, 
+                  curr_step, b_static, num_workers, estimator_spec.adjustment_mode)
+                  self.log_should_training_stop(self._model_dir, should_training_stop)
                   
                   should_training_stop = self.read_should_training_stop(self._model_dir)
                   logging.info('@sahiltyagi4 ASP should training stop ' + str(should_training_stop))
