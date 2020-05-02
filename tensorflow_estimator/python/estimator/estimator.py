@@ -1606,18 +1606,22 @@ class Estimator(object):
               window_computation_time.append(float((max(op_ts) - min(op_ts)) / 1000))
               #to use a sliding window by shifitng on a single iteration
               if len(window_computation_time) == estimator_spec.window_size:
+                logging.info('@sahiltyagi4 window size completed once...')
                 window_avg_time = self.average_computation_time_in_window(window_computation_time)
+                window_computation_time = []
                 self.write_computation_time_to_file(self._model_dir, str(window_avg_time), curr_step, w_type, w_index)
                 do_windows_exist = self.check_worker_batchsize_files(self._model_dir, worker_batchsizes_filenames)
                 logging.info('@sahiltyagi4 do windows exist value is ' + str(do_windows_exist))
                 if do_windows_exist:
                   gradient_computation_time = self.asp_read_batchfiles(worker_batchsizes_filenames, self._model_dir)
+                  logging.info('@sahiltyagi4 gradient computation time in ASP is ' + str(gradient_computation_time))
                   if w_type == 'master':
                     should_training_stop = self.compute_cluster_delta_fn(gradient_computation_time, w_type, estimator_spec.reactive_adjustment_threshold, 
                     curr_step, b_static, num_workers, estimator_spec.adjustment_mode)
+                    self.log_should_training_stop(self._model_dir, should_training_stop)
                   
+                  should_training_stop = self.read_should_training_stop(self._model_dir)
                   logging.info('@sahiltyagi4 ASP should training stop ' + str(should_training_stop))
-                  window_computation_time = []
                   if should_training_stop:
                     if not mon_sess._is_closed():
                       logging.info('@sahiltyagi4 going to end ASP training since there is a call for readjustment!')
@@ -1636,6 +1640,18 @@ class Estimator(object):
           # pylint: disable=W0212
           session = session._sess
       return
+
+  def log_should_training_stop(self, model_dir, should_training_stop):
+    f = os.path.join(model_dir, 'should_training_stop.conf')
+    file = open(f, 'w')
+    file.write(str(should_training_stop))
+    file.close()
+
+  def read_should_training_stop(self, model_dir):
+    f = os.path.join(model_dir, 'should_training_stop.conf')
+    file = open(f, 'r')
+    should_training_stop = bool(file.readline())
+    return should_training_stop
 
   def check_worker_batchsize_files(self, model_dir, worker_batchsizes_filenames):
     #checks if the files exist in ASP
@@ -1692,6 +1708,7 @@ class Estimator(object):
       f = os.path.join(model_dir, workerfile)
       file = open(f, 'r')
       gradient_computation_time.append(float(file.readline().split(',')[0]))
+      file.close()
     
     logging.info('@sahiltyagi4 in ASP all files have been read.....')
     return gradient_computation_time
@@ -1856,7 +1873,8 @@ class Estimator(object):
     file = open(f, 'r')
     for val in file.readline().split(','):
       old_batchsizes.append(float(val.replace('[', '').replace(']', '')))
-    
+  
+    file.close()
     return old_batchsizes
 
   def determine_batchsizes(self, cluster_avg_time, gradient_computation_time, old_batchsizes, b_static, num_workers):
