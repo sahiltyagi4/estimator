@@ -1493,6 +1493,7 @@ class Estimator(object):
     b_static = int(os.environ['UNIFORM_CLUSTER_BATCH_SIZE'])
     window_computation_time = []
     worker_batchsizes_filenames = self.get_worker_batchsize_filenames(num_workers)
+    nonetype_filenames = self.getnonetypefilenames(num_workers)
     logging.info('@sahiltyagi4 no. of workers is ' + str(num_workers))
     logging.info('@sahiltyagi4 worker batchsize filenames ' + str(worker_batchsizes_filenames))
     #cpualloc_files = self.getworker_cpualloc_files(num_workers)
@@ -1621,14 +1622,13 @@ class Estimator(object):
                     should_training_stop = self.compute_cluster_delta_fn(gradient_computation_time, w_type, estimator_spec.reactive_adjustment_threshold, 
                     curr_step, b_static, num_workers, estimator_spec.adjustment_mode)
                     self.log_should_training_stop(self._model_dir, should_training_stop)
-
-                  # should_training_stop = self.compute_cluster_delta_fn(gradient_computation_time, w_type, estimator_spec.reactive_adjustment_threshold, 
-                  # curr_step, b_static, num_workers, estimator_spec.adjustment_mode)
-                  # self.log_should_training_stop(self._model_dir, should_training_stop)
                   
+                  self.write_session_none(self._model_dir, w_type, w_index)
                   should_training_stop = self.read_should_training_stop(self._model_dir)
                   logging.info('@sahiltyagi4 ASP should training stop ' + str(should_training_stop))
-                  if should_training_stop:
+                  are_sessions_closed = self.are_all_sessions_terminated(self._model_dir, nonetype_filenames, num_workers)
+                  #when all sessions are made Nonetype, only then kill and restart model
+                  if should_training_stop and are_sessions_closed:
                     if not mon_sess._is_closed():
                       logging.info('@sahiltyagi4 made monitored session Nonetype')
                       logging.info('@sahiltyagi4 going to end ASP training since there is a call for readjustment!')
@@ -1694,6 +1694,15 @@ class Estimator(object):
           worker_batchsizes_filenames.append('tf-worker-' + str(ix) + '.txt')
       return worker_batchsizes_filenames
 
+  def getnonetypefilenames(self, num_workers):
+    none_type_files = []
+    logging.info('@sahiltyagi4 number of workers are ' + str(num_workers))
+    none_type_files.append('tf-master-0-none.txt')
+    for ix in range(0, (num_workers-1)):
+      none_type_files.append('tf-worker-' + str(ix) + '-none.txt')
+    
+    return none_type_files
+
   def getworker_cpualloc_files(self, num_workers):
       cpualloc_files = []
       cpualloc_files.append('cpu-tf-master-0.conf')
@@ -1753,6 +1762,28 @@ class Estimator(object):
                   break
 
       return gradient_computation_time
+
+  def write_session_none(self, model_dir, w_type, w_index):
+    f = os.path.join(model_dir, 'tf-' + str(w_type) + '-' + str(w_index) + '-none.txt')
+    file =open(f, 'w')
+    file.write('session is none.')
+    file.close()
+
+  def are_all_sessions_terminated(self, model_dir, nonetype_filenames, num_workers):
+    status = False
+    while True:
+      count = 0
+      for filename in nonetype_filenames:
+        f = os.path.join(model_dir, filename)
+        if os.path.isfile(f):
+          file = open(f, 'r')
+          if file.readline() == 'session is none.':
+            count = count +1
+      if count == num_workers:
+        status = True
+        break
+    
+    return status
 
   def readCPUallocfiles(self, model_dir, cpualloc_files, current_step, num_workers):
     '''
