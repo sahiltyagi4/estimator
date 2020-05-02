@@ -1598,8 +1598,10 @@ class Estimator(object):
                     #   ##mon_sess.close()
                     #   mon_sess = None
                     #   logging.info('@sahiltyagi4 made monitored session Nonetype')
-                    #   break      
+                    #   break
+          
           elif estimator_spec.sync_mode == 'ASP':
+            logging.info('@sahiltyagi4 inside the ASP loop...')
             if estimator_spec.window_size is not None:
               window_computation_time.append(float((max(op_ts) - min(op_ts)) / 1000))
               #to use a sliding window by shifitng on a single iteration
@@ -1607,13 +1609,14 @@ class Estimator(object):
                 window_avg_time = self.average_computation_time_in_window(window_computation_time)
                 self.write_computation_time_to_file(self._model_dir, str(window_avg_time), curr_step, w_type, w_index)
                 do_windows_exist = self.check_worker_batchsize_files(self._model_dir, worker_batchsizes_filenames)
+                logging.info('@sahiltyagi4 do windows exist value is ' + str(do_windows_exist))
                 if do_windows_exist:
                   gradient_computation_time = self.asp_read_batchfiles(worker_batchsizes_filenames, self._model_dir)
-                  logging.info('@sahiltyagi4 computed gradient_computation_time list in ASP mode...')
                   if w_type == 'master':
                     should_training_stop = self.compute_cluster_delta_fn(gradient_computation_time, w_type, estimator_spec.reactive_adjustment_threshold, 
                     curr_step, b_static, num_workers, estimator_spec.adjustment_mode)
                   
+                  logging.info('@sahiltyagi4 ASP should training stop ' + str(should_training_stop))
                   window_computation_time = []
                   if should_training_stop:
                     if not mon_sess._is_closed():
@@ -1690,6 +1693,7 @@ class Estimator(object):
       file = open(f, 'r')
       gradient_computation_time.append(float(file.readline().split(',')[0]))
     
+    logging.info('@sahiltyagi4 in ASP all files have been read.....')
     return gradient_computation_time
 
   def read_batchsize_files(self, worker_batchsizes_filenames, model_dir, current_step, num_workers):
