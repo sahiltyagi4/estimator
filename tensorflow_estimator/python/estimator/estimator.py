@@ -1654,11 +1654,14 @@ class Estimator(object):
     return should_training_stop
 
   def check_worker_batchsize_files(self, model_dir, worker_batchsizes_filenames):
-    #checks if the files exist in ASP
+    #checks if the conf files exist in ASP
     workers_window_computed = False
+    logging.info('@sahiltyagi4 windows batchsizefiles ' + str(worker_batchsizes_filenames))
     for workerfile in worker_batchsizes_filenames:
       f = os.path.join(model_dir, workerfile)
-      if not os.path.isfile(f):
+      status = os.path.isfile(f)
+      logging.info('@sahiltygai4 status is ' + str(status))
+      if not status:
         return False
       else:
         workers_window_computed = True
