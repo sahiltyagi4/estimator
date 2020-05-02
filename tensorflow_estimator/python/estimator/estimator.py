@@ -1493,6 +1493,8 @@ class Estimator(object):
     b_static = int(os.environ['UNIFORM_CLUSTER_BATCH_SIZE'])
     window_computation_time = []
     worker_batchsizes_filenames = self.get_worker_batchsize_filenames(num_workers)
+    logging.info('@sahiltyagi4 no. of workers is ' + str(num_workers))
+    logging.info('@sahiltyagi4 worker batchsize filenames ' + str(worker_batchsizes_filenames))
     #cpualloc_files = self.getworker_cpualloc_files(num_workers)
     onetimeflag = True
     anotheronetimeflag = True
@@ -1681,9 +1683,9 @@ class Estimator(object):
 
   def get_worker_batchsize_filenames(self, num_workers):
       worker_batchsizes_filenames = []
-      logging.info('@sahiltyagi4 number of workers are ' + str(num_workers+1))
+      logging.info('@sahiltyagi4 number of workers are ' + str(num_workers))
       worker_batchsizes_filenames.append('tf-master-0.txt')
-      for ix in range(0, num_workers):
+      for ix in range(0, (num_workers-1)):
           worker_batchsizes_filenames.append('tf-worker-' + str(ix) + '.txt')
       return worker_batchsizes_filenames
 
