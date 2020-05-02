@@ -1877,7 +1877,7 @@ class Estimator(object):
 
       delta = (b_static*num_workers) - cumulative_batch_size
       logging.info('@sahiltyagi debug mode delta ' + str(delta))
-      logging.info('@sahiltyagi debug mode updated bs ' + updated_batchsizes)
+      logging.info('@sahiltyagi debug mode updated bs ' + str(updated_batchsizes))
       logging.info('@sahiltyagi debug mode cumulative bs ' + str(cumulative_batch_size))
       normalized_updated_batch_sizes = self.normalize_batch_sizes(delta, updated_batchsizes)
       logging.info('@sahiltyagi4 normalized batch-sizes with exponential smoothing/deadbanding are  ' + str(normalized_updated_batch_sizes))
