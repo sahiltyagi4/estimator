@@ -1630,6 +1630,7 @@ class Estimator(object):
                   logging.info('@sahiltyagi4 ASP should training stop ' + str(should_training_stop))
                   if should_training_stop:
                     if not mon_sess._is_closed():
+                      logging.info('@sahiltyagi4 made monitored session Nonetype')
                       logging.info('@sahiltyagi4 going to end ASP training since there is a call for readjustment!')
                       mon_sess = None
                       break
