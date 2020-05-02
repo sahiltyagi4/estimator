@@ -1811,6 +1811,8 @@ class Estimator(object):
         old_batch_sizes = self.fetch_oldbatchisizes(self._model_dir)
         new_batch_sizes = self.determine_batchsizes(cluster_avg_time, gradient_computation_time, old_batch_sizes, b_static, num_workers)
         if len(old_batch_sizes) != len(new_batch_sizes):
+          logging.info('@sahiltyagi4 old batches: ' + str(old_batch_sizes))
+          logging.info('@sahiltyagi4 new batches ' + str(new_batch_sizes))
           raise ValueError('batch-size list length changed in iterations!')
 
         for ix in range(0, len(old_batch_sizes)):
@@ -1856,6 +1858,7 @@ class Estimator(object):
 
   def determine_batchsizes(self, cluster_avg_time, gradient_computation_time, old_batchsizes, b_static, num_workers):
     fraction_perworker = []
+    fraction_perworker.append(1)
     for workertime in gradient_computation_time:
       fraction_perworker.append((cluster_avg_time/workertime))
     
