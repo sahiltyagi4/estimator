@@ -1598,30 +1598,28 @@ class Estimator(object):
                     #   ##mon_sess.close()
                     #   mon_sess = None
                     #   logging.info('@sahiltyagi4 made monitored session Nonetype')
-                    #   break
-                
-            elif estimator_spec.sync_mode == 'ASP':
-              if estimator_spec.window_size is not None:
-                window_computation_time.append(float((max(op_ts) - min(op_ts)) / 1000))
-                #to use a sliding window by shifitng on a single iteration
-                if len(window_computation_time) == estimator_spec.window_size:
-                  window_avg_time = self.average_computation_time_in_window(window_computation_time)
-                  self.write_computation_time_to_file(self._model_dir, str(window_avg_time), curr_step, w_type, w_index)
-                  do_windows_exist = self.check_worker_batchsize_files(self._model_dir, worker_batchsizes_filenames)
-                  if do_windows_exist:
-                    gradient_computation_time = self.asp_read_batchfiles(worker_batchsizes_filenames, self._model_dir)
-                    logging.info('@sahiltyagi4 computed gradient_computation_time list in ASP mode...')
-                    if w_type == 'master':
-                      should_training_stop = self.compute_cluster_delta_fn(gradient_computation_time, w_type, estimator_spec.reactive_adjustment_threshold, 
-                      curr_step, b_static, num_workers, estimator_spec.adjustment_mode)
-
-                    window_computation_time = []
-                    if should_training_stop:
-                      if not mon_sess._is_closed():
-                        logging.info('@sahiltyagi4 going to end ASP training since there is a call for readjustment!')
-                        mon_sess = None
-                        break
-
+                    #   break      
+          elif estimator_spec.sync_mode == 'ASP':
+            if estimator_spec.window_size is not None:
+              window_computation_time.append(float((max(op_ts) - min(op_ts)) / 1000))
+              #to use a sliding window by shifitng on a single iteration
+              if len(window_computation_time) == estimator_spec.window_size:
+                window_avg_time = self.average_computation_time_in_window(window_computation_time)
+                self.write_computation_time_to_file(self._model_dir, str(window_avg_time), curr_step, w_type, w_index)
+                do_windows_exist = self.check_worker_batchsize_files(self._model_dir, worker_batchsizes_filenames)
+                if do_windows_exist:
+                  gradient_computation_time = self.asp_read_batchfiles(worker_batchsizes_filenames, self._model_dir)
+                  logging.info('@sahiltyagi4 computed gradient_computation_time list in ASP mode...')
+                  if w_type == 'master':
+                    should_training_stop = self.compute_cluster_delta_fn(gradient_computation_time, w_type, estimator_spec.reactive_adjustment_threshold, 
+                    curr_step, b_static, num_workers, estimator_spec.adjustment_mode)
+                  
+                  window_computation_time = []
+                  if should_training_stop:
+                    if not mon_sess._is_closed():
+                      logging.info('@sahiltyagi4 going to end ASP training since there is a call for readjustment!')
+                      mon_sess = None
+                      break
 
     if not any_step_done:
       logging.warning('Training with estimator made no steps. '
