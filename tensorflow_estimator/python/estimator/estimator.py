@@ -1615,6 +1615,7 @@ class Estimator(object):
                       should_training_stop = self.compute_cluster_delta_fn(gradient_computation_time, w_type, estimator_spec.reactive_adjustment_threshold, 
                       curr_step, b_static, num_workers, estimator_spec.adjustment_mode)
 
+                    window_computation_time = []
                     if should_training_stop:
                       if not mon_sess._is_closed():
                         logging.info('@sahiltyagi4 going to end ASP training since there is a call for readjustment!')
