@@ -1812,7 +1812,7 @@ class Estimator(object):
         new_batch_sizes = self.determine_batchsizes(cluster_avg_time, gradient_computation_time, old_batch_sizes, b_static, num_workers)
         if len(old_batch_sizes) != len(new_batch_sizes):
           logging.info('@sahiltyagi4 old batches: ' + str(old_batch_sizes))
-          logging.info('@sahiltyagi4 new batches ' + str(new_batch_sizes))
+          logging.info('@sahiltyagi4 new batches: ' + str(new_batch_sizes))
           raise ValueError('batch-size list length changed in iterations!')
 
         for ix in range(0, len(old_batch_sizes)):
@@ -1822,10 +1822,10 @@ class Estimator(object):
           
           if delta > threshold:
             should_training_stop = True
-            self.exp_smoothing_write_newbatchsize(self._model_dir, new_batch_sizes, w_type)
+            self.deadband_write_newbatchsize(self._model_dir, new_batch_sizes, w_type)
             return should_training_stop
 
-  def exp_smoothing_write_newbatchsize(self, model_dir, new_batch_sizes, w_type):
+  def deadband_write_newbatchsize(self, model_dir, new_batch_sizes, w_type):
     outfile = 'clusterbatchsizes.conf'
     if w_type == 'master':
       logging.info('@sahiltyagi4 going to write batchsize_history and clusterbatchsizes.conf from master node!')
@@ -1873,11 +1873,14 @@ class Estimator(object):
       worker_batch_size = round(old_batchsizes[index] * fraction_perworker[index])
       updated_batchsizes.append(worker_batch_size)
       if index != 0:
-              cumulative_batch_size = cumulative_batch_size + worker_batch_size
+        cumulative_batch_size = cumulative_batch_size + worker_batch_size
 
       delta = (b_static*num_workers) - cumulative_batch_size
+      logging.info('@sahiltyagi debug mode delta ' + str(delta))
+      logging.info('@sahiltyagi debug mode updated bs ' + updated_batchsizes)
+      logging.info('@sahiltyagi debug mode cumulative bs ' + str(cumulative_batch_size))
       normalized_updated_batch_sizes = self.normalize_batch_sizes(delta, updated_batchsizes)
-      logging.info('@sahiltyagi4 normalized batch-sizes with exponential smoothing ' + str(normalized_updated_batch_sizes))
+      logging.info('@sahiltyagi4 normalized batch-sizes with exponential smoothing/deadbanding are  ' + str(normalized_updated_batch_sizes))
       return normalized_updated_batch_sizes
 
 
@@ -1954,14 +1957,14 @@ class Estimator(object):
       node_scale = self.get_node_scale()
 
       logging.info('value of delta is ' + str(delta))
-      ('updatedbatchsizes being used ' + str(updated_batchsizes))
+      logging.info('updatedbatchsizes being used ' + str(updated_batchsizes))
       for index in range(0, len(updated_batchsizes)):
-          worker_batch_size_adjustment.append(node_scale[index] * delta)
+        worker_batch_size_adjustment.append(node_scale[index] * delta)
 
       logging.info('adjustments to be made to normalize cumulative batch-size: ' + str(worker_batch_size_adjustment))
 
       for ix in range(0, len(updated_batchsizes)):
-          normalized_updated_batch_sizes.append(updated_batchsizes[ix] + worker_batch_size_adjustment[ix])
+        normalized_updated_batch_sizes.append(updated_batchsizes[ix] + worker_batch_size_adjustment[ix])
 
       logging.info('normalized and updated batch-sizes to be used in model are: ' + str(normalized_updated_batch_sizes))
       return normalized_updated_batch_sizes
