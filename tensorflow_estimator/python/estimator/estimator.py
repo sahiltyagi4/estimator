@@ -1692,8 +1692,9 @@ class Estimator(object):
     f = os.path.join(model_dir, 'computation_time_history.txt')
     file = open(f, 'a')
     for worker_file in worker_batchsizes_filenames:
-      file.write(worker_file.readline() + ',')
       f2 = os.path.join(model_dir, worker_file)
+      w_file = open(f2, 'r')
+      file.write(w_file.readline() + ',')
       if os.path.isfile(f2):
         os.remove(f2)
     
