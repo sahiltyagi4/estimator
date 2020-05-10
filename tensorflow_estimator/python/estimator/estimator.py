@@ -1854,6 +1854,9 @@ class Estimator(object):
           frac = worker_computation_time_frac[ix]
           # ix 0 is master, 1 is worker0, 2 worker1 etc.
           logging.info('@sahiltyagi4 fraction value is ' + str(frac) + ' on worker index ' + str(ix))
+          # May 10th addition ACSOS
+          if frac < 0:
+            frac = -frac
           if frac > threshold:
             should_training_stop = True
             
