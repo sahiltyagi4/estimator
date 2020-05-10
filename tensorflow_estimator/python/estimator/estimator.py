@@ -1630,6 +1630,8 @@ class Estimator(object):
                     #if should_training_stop and are_sessions_closed:
                     if should_training_stop:
                       if not mon_sess._is_closed():
+                        # May 10th ACSOS. delete all worker files once done.
+                        self.delete_avg_computationtime_files(self._model_dir, worker_batchsizes_filenames)
                         logging.info('@sahiltyagi4 made monitored session Nonetype')
                         logging.info('@sahiltyagi4 going to end ASP training since there is a call for readjustment!')
                         mon_sess = None
@@ -1685,6 +1687,18 @@ class Estimator(object):
 
   def average_computation_time_in_window(self, window_computation_time):
       return float(np.mean(window_computation_time))
+
+  def delete_avg_computationtime_files(self, model_dir, worker_batchsizes_filenames):
+    f = os.path.join(model_dir, 'computation_time_history.txt')
+    file = open(f, 'a')
+    for worker_file in worker_batchsizes_filenames:
+      file.write(worker_file.readline() + ',')
+      f2 = os.path.join(model_dir, worker_file)
+      if os.path.isfile(f2):
+        os.remove(f2)
+    
+    file.write('\n')
+    file.close()
 
   def get_worker_batchsize_filenames(self, num_workers):
       worker_batchsizes_filenames = []
