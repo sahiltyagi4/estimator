@@ -1480,6 +1480,7 @@ class Estimator(object):
                   every_n_steps=self._config.log_step_count_steps,
                   output_dir=self._config.model_dir))
 
+    anotheronetimeflag = True
     with training.MonitoredTrainingSession(
         master=self._config.master,
         is_chief=self._config.is_chief,
