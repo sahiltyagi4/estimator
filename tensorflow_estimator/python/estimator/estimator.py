@@ -1480,28 +1480,6 @@ class Estimator(object):
                   every_n_steps=self._config.log_step_count_steps,
                   output_dir=self._config.model_dir))
 
-    tf_config = json.loads(os.environ['TF_CONFIG'])
-    w_type = tf_config['task']['type']
-    w_index = tf_config['task']['index']
-
-    if 'worker' in tf_config['cluster']:
-        num_workers = int(len(tf_config['cluster']['master']) + len(tf_config['cluster']['worker']))
-    else:
-      # for case where using only master and no workers
-        num_workers = 1
-    ##num_ps = int(len(tf_config['cluster']['ps']))
-    b_static = int(os.environ['UNIFORM_CLUSTER_BATCH_SIZE'])
-    window_computation_time = []
-    worker_batchsizes_filenames = self.get_worker_batchsize_filenames(num_workers)
-    nonetype_filenames = self.getnonetypefilenames(num_workers)
-    logging.info('@sahiltyagi4 no. of workers is ' + str(num_workers))
-    logging.info('@sahiltyagi4 worker batchsize filenames ' + str(worker_batchsizes_filenames))
-    #cpualloc_files = self.getworker_cpualloc_files(num_workers)
-    onetimeflag = True
-    anotheronetimeflag = True
-
-    if w_type == 'master':
-        saver = tf.train.Saver()
     with training.MonitoredTrainingSession(
         master=self._config.master,
         is_chief=self._config.is_chief,
@@ -1557,85 +1535,85 @@ class Estimator(object):
                         + ' and step_start ' + str(step_start) + ' and global step ' + str(curr_step))
             logging.info('@sahiltyagi4 ONLY RUNMETEDATA stats and parsing is ' + str(final_endtime - step_end) + ' with finaltime ' + str(final_endtime)
                         + ' and step_end ' + str(step_end) + ' and global step ' + str(curr_step))
-          else:
-            if onetimeflag:
-                f = open(self.model_dir + '/incorrectGPUctf.json', 'w')
-                f.write(str(ctf))
-                f.close()
-                onetimeflag = False
-            logging.info('@sahiltyagi4 train_op computed but op_ts might be empty with length ' + str(len(op_ts)))
-            logging.info('@sahiltyagi4 train_op computed but compute_grads op not for step ' + str(curr_step))
-
-          if estimator_spec.sync_mode == 'BSP':
-            #when using deadbanding, set window_size to 1.
-            if estimator_spec.window_size is not None:
-              window_computation_time.append(float((max(op_ts) - min(op_ts)) / 1000))
-              # start processing only when sufficient steps equal to window_size specified in estimator spec has been reached
-              if len(window_computation_time) == estimator_spec.window_size:
-                window_avg_time = self.average_computation_time_in_window(window_computation_time)
-                self.write_computation_time_to_file(self._model_dir, str(window_avg_time), curr_step, w_type, w_index)
-                gradient_computation_time = self.read_batchsize_files(worker_batchsizes_filenames, self._model_dir, curr_step, num_workers)
-
-                # only when a window is full, fetch docker container info and write to its corresponding worker cpu conf file
-                #self.getCPUallocinfo(self._model_dir, 'tf-' + str(w_type) + '-' + str(w_index))
-                # wait till all CPU alloc files are written.
-                # read all cpu files here to compute RESOURCE_ALLOC and write that to resource_alloc.conf
-                #cpu_alloc = self.readCPUallocfiles(self._model_dir, cpualloc_files, curr_step, num_workers)
-                #self.write_cpualloc_nodescale(self._model_dir, cpu_alloc)
-
-                logging.info('@sahiltyagi4 value of gradient_computation_time is ' + str(gradient_computation_time))
-                if w_type == 'master':
-                  should_training_stop = self.compute_cluster_delta_fn(gradient_computation_time, w_type, estimator_spec.reactive_adjustment_threshold, 
-                  curr_step, b_static, num_workers, estimator_spec.adjustment_mode)
-
-                window_computation_time = []
-                if should_training_stop:
-                  if not mon_sess._is_closed():
-                    logging.info('@sahiltyagi4 made monitored session Nonetype')
-                    mon_sess = None
-                    break
-                    # if w_type == 'master':
-                    #   logging.info('@sahiltyagi4 looking to save checkpoint file for step ' + str(curr_step))
-                    #   # saver.save(self.get_session(mon_sess), os.path.join(self._model_dir, 'mymodel-' + str(curr_step)))
-                    #   #self.wait_till_checkpointing_completes(self._model_dir, 'mymodel-' + str(curr_step) + '.meta')
-                    #   ##mon_sess.close()
-                    #   mon_sess = None
-                    #   logging.info('@sahiltyagi4 made monitored session Nonetype')
-                    #   break
-          
-          elif estimator_spec.sync_mode == 'ASP':
-            logging.info('@sahiltyagi4 inside the ASP loop...')
-            if estimator_spec.window_size is not None:
-              window_computation_time.append(float((max(op_ts) - min(op_ts)) / 1000))
-              #to use a sliding window by shifitng on a single iteration
-              if len(window_computation_time) == estimator_spec.window_size:
-                logging.info('@sahiltyagi4 window size completed once...')
-                window_avg_time = self.average_computation_time_in_window(window_computation_time)
-                window_computation_time = []
-                self.write_computation_time_to_file(self._model_dir, str(window_avg_time), curr_step, w_type, w_index)
-                do_windows_exist = self.check_worker_batchsize_files(self._model_dir, worker_batchsizes_filenames)
-                logging.info('@sahiltyagi4 do windows exist value is ' + str(do_windows_exist))
-                if do_windows_exist:
-                  gradient_computation_time = self.asp_read_batchfiles(worker_batchsizes_filenames, self._model_dir)
-                  logging.info('@sahiltyagi4 gradient computation time in ASP is ' + str(gradient_computation_time))
-                  self.write_session_none(self._model_dir, w_type, w_index)
-                  if w_type == 'master':
-                    should_training_stop = self.compute_cluster_delta_fn(gradient_computation_time, w_type, estimator_spec.reactive_adjustment_threshold, 
-                    curr_step, b_static, num_workers, estimator_spec.adjustment_mode)
-                    #self.log_should_training_stop(self._model_dir, should_training_stop)
-                    #should_training_stop = self.read_should_training_stop(self._model_dir)
-                    logging.info('@sahiltyagi4 ASP should training stop ' + str(should_training_stop))
-                    #are_sessions_closed = self.are_all_sessions_terminated(self._model_dir, nonetype_filenames, num_workers)
-                    #when all sessions are made Nonetype, only then kill and restart model
-                    #if should_training_stop and are_sessions_closed:
-                    if should_training_stop:
-                      if not mon_sess._is_closed():
-                        # May 10th ACSOS. delete all worker files once done.
-                        self.delete_avg_computationtime_files(self._model_dir, worker_batchsizes_filenames)
-                        logging.info('@sahiltyagi4 made monitored session Nonetype')
-                        logging.info('@sahiltyagi4 going to end ASP training since there is a call for readjustment!')
-                        mon_sess = None
-                        break
+          # else:
+          #   if onetimeflag:
+          #       f = open(self.model_dir + '/incorrectGPUctf.json', 'w')
+          #       f.write(str(ctf))
+          #       f.close()
+          #       onetimeflag = False
+          #   logging.info('@sahiltyagi4 train_op computed but op_ts might be empty with length ' + str(len(op_ts)))
+          #   logging.info('@sahiltyagi4 train_op computed but compute_grads op not for step ' + str(curr_step))
+          #
+          # if estimator_spec.sync_mode == 'BSP':
+          #   #when using deadbanding, set window_size to 1.
+          #   if estimator_spec.window_size is not None:
+          #     window_computation_time.append(float((max(op_ts) - min(op_ts)) / 1000))
+          #     # start processing only when sufficient steps equal to window_size specified in estimator spec has been reached
+          #     if len(window_computation_time) == estimator_spec.window_size:
+          #       window_avg_time = self.average_computation_time_in_window(window_computation_time)
+          #       self.write_computation_time_to_file(self._model_dir, str(window_avg_time), curr_step, w_type, w_index)
+          #       gradient_computation_time = self.read_batchsize_files(worker_batchsizes_filenames, self._model_dir, curr_step, num_workers)
+          #
+          #       # only when a window is full, fetch docker container info and write to its corresponding worker cpu conf file
+          #       #self.getCPUallocinfo(self._model_dir, 'tf-' + str(w_type) + '-' + str(w_index))
+          #       # wait till all CPU alloc files are written.
+          #       # read all cpu files here to compute RESOURCE_ALLOC and write that to resource_alloc.conf
+          #       #cpu_alloc = self.readCPUallocfiles(self._model_dir, cpualloc_files, curr_step, num_workers)
+          #       #self.write_cpualloc_nodescale(self._model_dir, cpu_alloc)
+          #
+          #       logging.info('@sahiltyagi4 value of gradient_computation_time is ' + str(gradient_computation_time))
+          #       if w_type == 'master':
+          #         should_training_stop = self.compute_cluster_delta_fn(gradient_computation_time, w_type, estimator_spec.reactive_adjustment_threshold,
+          #         curr_step, b_static, num_workers, estimator_spec.adjustment_mode)
+          #
+          #       window_computation_time = []
+          #       if should_training_stop:
+          #         if not mon_sess._is_closed():
+          #           logging.info('@sahiltyagi4 made monitored session Nonetype')
+          #           mon_sess = None
+          #           break
+          #           # if w_type == 'master':
+          #           #   logging.info('@sahiltyagi4 looking to save checkpoint file for step ' + str(curr_step))
+          #           #   # saver.save(self.get_session(mon_sess), os.path.join(self._model_dir, 'mymodel-' + str(curr_step)))
+          #           #   #self.wait_till_checkpointing_completes(self._model_dir, 'mymodel-' + str(curr_step) + '.meta')
+          #           #   ##mon_sess.close()
+          #           #   mon_sess = None
+          #           #   logging.info('@sahiltyagi4 made monitored session Nonetype')
+          #           #   break
+          #
+          # elif estimator_spec.sync_mode == 'ASP':
+          #   logging.info('@sahiltyagi4 inside the ASP loop...')
+          #   if estimator_spec.window_size is not None:
+          #     window_computation_time.append(float((max(op_ts) - min(op_ts)) / 1000))
+          #     #to use a sliding window by shifitng on a single iteration
+          #     if len(window_computation_time) == estimator_spec.window_size:
+          #       logging.info('@sahiltyagi4 window size completed once...')
+          #       window_avg_time = self.average_computation_time_in_window(window_computation_time)
+          #       window_computation_time = []
+          #       self.write_computation_time_to_file(self._model_dir, str(window_avg_time), curr_step, w_type, w_index)
+          #       do_windows_exist = self.check_worker_batchsize_files(self._model_dir, worker_batchsizes_filenames)
+          #       logging.info('@sahiltyagi4 do windows exist value is ' + str(do_windows_exist))
+          #       if do_windows_exist:
+          #         gradient_computation_time = self.asp_read_batchfiles(worker_batchsizes_filenames, self._model_dir)
+          #         logging.info('@sahiltyagi4 gradient computation time in ASP is ' + str(gradient_computation_time))
+          #         self.write_session_none(self._model_dir, w_type, w_index)
+          #         if w_type == 'master':
+          #           should_training_stop = self.compute_cluster_delta_fn(gradient_computation_time, w_type, estimator_spec.reactive_adjustment_threshold,
+          #           curr_step, b_static, num_workers, estimator_spec.adjustment_mode)
+          #           #self.log_should_training_stop(self._model_dir, should_training_stop)
+          #           #should_training_stop = self.read_should_training_stop(self._model_dir)
+          #           logging.info('@sahiltyagi4 ASP should training stop ' + str(should_training_stop))
+          #           #are_sessions_closed = self.are_all_sessions_terminated(self._model_dir, nonetype_filenames, num_workers)
+          #           #when all sessions are made Nonetype, only then kill and restart model
+          #           #if should_training_stop and are_sessions_closed:
+          #           if should_training_stop:
+          #             if not mon_sess._is_closed():
+          #               # May 10th ACSOS. delete all worker files once done.
+          #               self.delete_avg_computationtime_files(self._model_dir, worker_batchsizes_filenames)
+          #               logging.info('@sahiltyagi4 made monitored session Nonetype')
+          #               logging.info('@sahiltyagi4 going to end ASP training since there is a call for readjustment!')
+          #               mon_sess = None
+          #               break
 
     if not any_step_done:
       logging.warning('Training with estimator made no steps. '
