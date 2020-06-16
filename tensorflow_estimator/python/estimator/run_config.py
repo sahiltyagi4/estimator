@@ -23,6 +23,7 @@ import json
 import os
 
 import six
+import sys
 
 from tensorflow.core.protobuf import config_pb2
 from tensorflow.core.protobuf import rewriter_config_pb2
@@ -262,6 +263,8 @@ def _validate_properties(run_config):
   """Validates the properties."""
   def _validate(property_name, cond, message):
     property_value = getattr(run_config, property_name)
+    if property_name == 'mpi_rank':
+      logging.info('@sahiltyagi4 value for mpi_rank property is ' + str(property_value))
     if property_value is not None and not cond(property_value):
       raise ValueError(message)
 
@@ -287,7 +290,7 @@ def _validate_properties(run_config):
   _validate('node_batch_size', lambda node_batch_size: node_batch_size > 0,
             message='node_batch_size should be > 0')
 
-  _validate('mpi_rank', lambda mpi_rank: mpi_rank < 0,
+  _validate('mpi_rank', lambda mpi_rank: mpi_rank >= 0,
             message='mpi_rank should be >= 0')
 
   _validate('save_checkpoints_steps', lambda steps: steps >= 0,
@@ -357,7 +360,7 @@ class RunConfig(object):
                keep_checkpoint_every_n_hours=10000,
                log_step_count_steps=100,
                node_batch_size=128,
-               mpi_rank=None,
+               mpi_rank=sys.maxint,
                train_distribute=None,
                device_fn=None,
                protocol=None,
