@@ -748,13 +748,21 @@ class _TrainingExecutor(object):
                      self._estimator.config.save_checkpoints_steps,
                      self._estimator.config.save_checkpoints_secs))
 
+    config = self._estimator.config
+    mpi_rank = config.get_mpi_rank()
+    logging.info('@sahiltyagi4 MPI rank for given worker is ' + str(mpi_rank))
+
     evaluator = _TrainingExecutor._Evaluator(self._estimator, self._eval_spec,
                                              self._train_spec.max_steps)
 
     listener_for_eval = _NewCheckpointListenerForEvaluate(
         evaluator, self._eval_spec.throttle_secs,
         self._continuous_eval_listener)
-    saving_listeners = [listener_for_eval]
+
+    if mpi_rank == 0:
+        saving_listeners = [listener_for_eval]
+    else:
+        saving_listeners = None
 
     self._estimator.train(
         input_fn=self._train_spec.input_fn,

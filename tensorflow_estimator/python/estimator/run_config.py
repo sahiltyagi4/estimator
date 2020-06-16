@@ -49,6 +49,7 @@ _DEFAULT_REPLACEABLE_LIST = [
     'keep_checkpoint_every_n_hours',
     'log_step_count_steps',
     'node_batch_size',
+    'mpi_rank',
     'train_distribute',
     'device_fn',
     'protocol',
@@ -286,6 +287,9 @@ def _validate_properties(run_config):
   _validate('node_batch_size', lambda node_batch_size: node_batch_size > 0,
             message='node_batch_size should be > 0')
 
+  _validate('mpi_rank', lambda mpi_rank: mpi_rank < 0,
+            message='mpi_rank should be >= 0')
+
   _validate('save_checkpoints_steps', lambda steps: steps >= 0,
             message='save_checkpoints_steps should be >= 0')
   _validate('save_checkpoints_secs', lambda secs: secs >= 0,
@@ -353,6 +357,7 @@ class RunConfig(object):
                keep_checkpoint_every_n_hours=10000,
                log_step_count_steps=100,
                node_batch_size=128,
+               mpi_rank=None,
                train_distribute=None,
                device_fn=None,
                protocol=None,
@@ -537,6 +542,7 @@ class RunConfig(object):
 
     # @sahiltyagi ..variable to be returned by get_node_batch_size()
     self.node_batch_size=node_batch_size
+    self.mpi_rank=mpi_rank
     logging.info('@sahiltyagi4 RunConfig object per-node batch-size: %d', self.get_node_batch_size)
 
     RunConfig._replace(
@@ -552,6 +558,7 @@ class RunConfig(object):
         keep_checkpoint_every_n_hours=keep_checkpoint_every_n_hours,
         log_step_count_steps=log_step_count_steps,
         node_batch_size=node_batch_size,
+        mpi_rank=mpi_rank,
         train_distribute=train_distribute,
         device_fn=device_fn,
         protocol=protocol,
@@ -572,10 +579,6 @@ class RunConfig(object):
       logging.info('sahiltyagi4 checking distributed setting from TF_CONFIG')
       self._init_distributed_setting_from_environment_var(tf_config)
       self._maybe_overwrite_session_config_for_distributed_training()
-
-  # def set_node_batch_size(self, new_node_batch_size):
-  #   self.node_batch_size = new_node_batch_size
-  #   logging.info('@sahiltyagi4 batch-size value called by get_node_batch_size fn. ' + str(self.get_node_batch_size))
 
   def _maybe_overwrite_session_config_for_distributed_training(self):
     """Overwrites the session_config for distributed training.
@@ -738,6 +741,10 @@ class RunConfig(object):
   @property
   def get_node_batch_size(self):
     return self.node_batch_size
+
+  @property
+  def get_mpi_rank(self):
+      return self.mpi_rank
 
   @property
   def is_chief(self):
