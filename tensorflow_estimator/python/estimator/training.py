@@ -749,7 +749,7 @@ class _TrainingExecutor(object):
                      self._estimator.config.save_checkpoints_secs))
 
     config = self._estimator.config
-    mpi_rank = config.get_mpi_rank()
+    mpi_rank = config.get_mpi_rank
     logging.info('@sahiltyagi4 MPI rank for given worker is ' + str(mpi_rank))
 
     evaluator = _TrainingExecutor._Evaluator(self._estimator, self._eval_spec,
