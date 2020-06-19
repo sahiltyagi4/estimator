@@ -3,6 +3,11 @@
 |-----------------|
 | [![Documentation](https://img.shields.io/badge/api-reference-blue.svg)](https://www.tensorflow.org/api_docs/python/tf/estimator) |
 
+This branch 'dynamic_v2' aims to do variable and dynamic batching without the kill-restart technique used so far. Here, whenever the necessary condition
+for readjustment is encountered, the training loop is terminated (and the model parameters checkpointed). But the TF server and and outer-loop isn't. They
+are re-run again with the new input fn. Here, the new input fn means the same initial input fn but with a different batch-size. Will add more details as
+progress is made. 
+
 TensorFlow Estimator is a high-level TensorFlow API that greatly simplifies machine learning programming.
 Estimators encapsulate training, evaluation, prediction, and exporting for your model.
 

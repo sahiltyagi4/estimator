@@ -839,12 +839,6 @@ class _TrainingExecutor(object):
                    start_delay_secs)
       time.sleep(start_delay_secs)
 
-    # self._estimator.train(
-    #     input_fn=_cifar10_input_fn,
-    #     max_steps=self._train_spec.max_steps,
-    #     hooks=list(self._train_spec.hooks) + list(self._train_hooks),
-    #     saving_listeners=saving_listeners)
-
     self._estimator.train(
         input_fn=self._train_spec.input_fn,
         max_steps=self._train_spec.max_steps,
