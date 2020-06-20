@@ -26,6 +26,7 @@ import time
 import six
 import tensorflow as tf
 import numpy as np
+import functools
 
 from tensorflow.core.protobuf import config_pb2
 from tensorflow.python.distribute import estimator_training as distribute_coordinator_training
@@ -839,11 +840,31 @@ class _TrainingExecutor(object):
                    start_delay_secs)
       time.sleep(start_delay_secs)
 
-    self._estimator.train(
-        input_fn=self._train_spec.input_fn,
-        max_steps=self._train_spec.max_steps,
-        hooks=list(self._train_spec.hooks) + list(self._train_hooks),
-        saving_listeners=saving_listeners)
+    while True:
+      #@sahiltyagi4: call input fn here instead of the initial input fn defined with Estimator object.
+      logging.info('@sahiltyagi4 going to switch the input function with a batch-size!!!!')
+      switched_input_fn = config.get_switched_input_fn
+      new_batch_size = 1024
+      new_input_fn = functools.partial(
+          switched_input_fn,
+          '/resnet-cifar10/models/tutorials/image/cifar10_estimator/cifar-10-data',
+          subset='train',
+          num_shards=0,
+          batch_size=new_batch_size,
+          run_config=config,
+          use_distortion_for_training=True)
+
+      logging.info('@sahiltyagi4 value set for new batch-size on switched input fn is {}'.format(new_batch_size))
+      loss, should_switch_input_fn = self._estimator.train(
+          # input_fn=self._train_spec.input_fn,
+          input_fn=new_input_fn,
+          max_steps=self._train_spec.max_steps,
+          hooks=list(self._train_spec.hooks) + list(self._train_hooks),
+          saving_listeners=saving_listeners)
+
+      if not should_switch_input_fn:
+        logging.info('Loss for final step: %s.', loss)
+        break
 
   def _start_continuous_evaluation(self):
     """Repeatedly calls `Estimator` evaluate and export until training ends."""

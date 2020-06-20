@@ -49,6 +49,7 @@ _DEFAULT_REPLACEABLE_LIST = [
     'keep_checkpoint_every_n_hours',
     'log_step_count_steps',
     'node_batch_size',
+    'switched_input_fn',
     'train_distribute',
     'device_fn',
     'protocol',
@@ -353,6 +354,7 @@ class RunConfig(object):
                keep_checkpoint_every_n_hours=10000,
                log_step_count_steps=100,
                node_batch_size=128,
+               switched_input_fn=None,
                train_distribute=None,
                device_fn=None,
                protocol=None,
@@ -537,6 +539,7 @@ class RunConfig(object):
 
     # @sahiltyagi ..variable to be returned by get_node_batch_size()
     self.node_batch_size=node_batch_size
+    self.switched_input_fn=switched_input_fn
     logging.info('@sahiltyagi4 RunConfig object per-node batch-size: %d', self.get_node_batch_size)
 
     RunConfig._replace(
@@ -552,6 +555,7 @@ class RunConfig(object):
         keep_checkpoint_every_n_hours=keep_checkpoint_every_n_hours,
         log_step_count_steps=log_step_count_steps,
         node_batch_size=node_batch_size,
+        switched_input_fn=switched_input_fn,
         train_distribute=train_distribute,
         device_fn=device_fn,
         protocol=protocol,
@@ -572,10 +576,6 @@ class RunConfig(object):
       logging.info('sahiltyagi4 checking distributed setting from TF_CONFIG')
       self._init_distributed_setting_from_environment_var(tf_config)
       self._maybe_overwrite_session_config_for_distributed_training()
-
-  # def set_node_batch_size(self, new_node_batch_size):
-  #   self.node_batch_size = new_node_batch_size
-  #   logging.info('@sahiltyagi4 batch-size value called by get_node_batch_size fn. ' + str(self.get_node_batch_size))
 
   def _maybe_overwrite_session_config_for_distributed_training(self):
     """Overwrites the session_config for distributed training.
@@ -738,6 +738,11 @@ class RunConfig(object):
   @property
   def get_node_batch_size(self):
     return self.node_batch_size
+
+  # @sahiltyagi4... for the switched input fn with the updated batch-size after readjustment
+  @property
+  def get_switched_input_fn(self):
+    return self.switched_input_fn
 
   @property
   def is_chief(self):

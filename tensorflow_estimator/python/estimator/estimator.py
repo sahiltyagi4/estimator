@@ -370,9 +370,9 @@ class Estimator(object):
       hooks.extend(self._convert_train_steps_to_hooks(steps, max_steps))
 
       saving_listeners = _check_listeners_type(saving_listeners)
-      loss = self._train_model(input_fn, hooks, saving_listeners)
-      logging.info('Loss for final step: %s.', loss)
-      return self
+      loss, switch_input_fn = self._train_model(input_fn, hooks, saving_listeners)
+      logging.info('@sahiltyagi4 Loss before batch-size readjustment is made: %s.', loss)
+      return loss, switch_input_fn
 
   def _convert_train_steps_to_hooks(self, steps, max_steps):
     """Create hooks to run correct number of steps in training.
@@ -1521,9 +1521,10 @@ class Estimator(object):
       #     logging.info('***************************variables and op names are: ' + str(op.name))
       run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
       run_metadata = tf.RunMetadata()
+      switch_input_fn = False
 
       #while not mon_sess.should_stop():
-      while mon_sess is not None:
+      while mon_sess is not None and not switch_input_fn:
           step_start = time.time()
           should_training_stop = False
           _, loss, curr_step = mon_sess.run([estimator_spec.train_op, estimator_spec.loss, tf.train.get_or_create_global_step()], options=run_options, run_metadata=run_metadata)
@@ -1592,6 +1593,7 @@ class Estimator(object):
                 if should_training_stop:
                   if not mon_sess._is_closed():
                     logging.info('@sahiltyagi4 made monitored session Nonetype')
+                    switch_input_fn = True
                     mon_sess = None
                     break
                     # if w_type == 'master':
@@ -1634,6 +1636,7 @@ class Estimator(object):
                         self.delete_avg_computationtime_files(self._model_dir, worker_batchsizes_filenames)
                         logging.info('@sahiltyagi4 made monitored session Nonetype')
                         logging.info('@sahiltyagi4 going to end ASP training since there is a call for readjustment!')
+                        switch_input_fn = True
                         mon_sess = None
                         break
 
@@ -1641,7 +1644,7 @@ class Estimator(object):
       logging.warning('Training with estimator made no steps. '
                       'Perhaps input is empty or misspecified.')
     logging.info('@sahiltyagi4 going to return final loss now....')
-    return loss
+    return loss, switch_input_fn
 
   def get_session(self,sess):
       session = sess
