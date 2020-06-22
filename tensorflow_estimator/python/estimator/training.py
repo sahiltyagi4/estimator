@@ -844,10 +844,10 @@ class _TrainingExecutor(object):
       #@sahiltyagi4: call input fn here instead of the initial input fn defined with Estimator object.
       logging.info('@sahiltyagi4 going to switch the input function with a batch-size!!!!')
       switched_input_fn = config.get_switched_input_fn
-      new_batch_size = 1024
+      new_batch_size = os.environ['WORKER_BATCH_SIZE']
       new_input_fn = functools.partial(
           switched_input_fn,
-          '/resnet-cifar10/models/tutorials/image/cifar10_estimator/cifar-10-data',
+          config.get_datadir,
           subset='train',
           num_shards=0,
           batch_size=new_batch_size,
@@ -865,6 +865,8 @@ class _TrainingExecutor(object):
       if not should_switch_input_fn:
         logging.info('Loss for final step: %s.', loss)
         break
+
+    logging.info('@sahiltyagi4 TRAINING TERMINATED FOR GOOD!')
 
   def _start_continuous_evaluation(self):
     """Repeatedly calls `Estimator` evaluate and export until training ends."""

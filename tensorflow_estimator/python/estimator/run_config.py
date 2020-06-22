@@ -355,6 +355,7 @@ class RunConfig(object):
                log_step_count_steps=100,
                node_batch_size=128,
                switched_input_fn=None,
+               data_dir=None,
                train_distribute=None,
                device_fn=None,
                protocol=None,
@@ -538,8 +539,9 @@ class RunConfig(object):
                                compat_internal.path_to_str(model_dir))
 
     # @sahiltyagi ..variable to be returned by get_node_batch_size()
-    self.node_batch_size=node_batch_size
-    self.switched_input_fn=switched_input_fn
+    self.node_batch_size = node_batch_size
+    self.switched_input_fn = switched_input_fn
+    self.data_dir = data_dir
     logging.info('@sahiltyagi4 RunConfig object per-node batch-size: %d', self.get_node_batch_size)
 
     RunConfig._replace(
@@ -556,6 +558,7 @@ class RunConfig(object):
         log_step_count_steps=log_step_count_steps,
         node_batch_size=node_batch_size,
         switched_input_fn=switched_input_fn,
+        data_dir=data_dir,
         train_distribute=train_distribute,
         device_fn=device_fn,
         protocol=protocol,
@@ -743,6 +746,11 @@ class RunConfig(object):
   @property
   def get_switched_input_fn(self):
     return self.switched_input_fn
+
+  # @sahiltyagi4: to get directory to load data for input fn
+  @property
+  def get_datadir(self):
+      return self.data_dir
 
   @property
   def is_chief(self):

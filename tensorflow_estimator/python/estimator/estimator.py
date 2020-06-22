@@ -1489,7 +1489,8 @@ class Estimator(object):
     else:
       # for case where using only master and no workers
         num_workers = 1
-    ##num_ps = int(len(tf_config['cluster']['ps']))
+
+    num_ps = int(len(tf_config['cluster']['ps']))
     b_static = int(os.environ['UNIFORM_CLUSTER_BATCH_SIZE'])
     window_computation_time = []
     worker_batchsizes_filenames = self.get_worker_batchsize_filenames(num_workers)
@@ -1587,7 +1588,7 @@ class Estimator(object):
                 logging.info('@sahiltyagi4 value of gradient_computation_time is ' + str(gradient_computation_time))
                 if w_type == 'master':
                   should_training_stop = self.compute_cluster_delta_fn(gradient_computation_time, w_type, estimator_spec.reactive_adjustment_threshold, 
-                  curr_step, b_static, num_workers, estimator_spec.adjustment_mode)
+                  curr_step, b_static, num_workers, estimator_spec.adjustment_mode, w_index, num_ps)
 
                 window_computation_time = []
                 if should_training_stop:
@@ -1852,7 +1853,7 @@ class Estimator(object):
     file.write(cpustring)
     file.close()
 
-  def compute_cluster_delta_fn(self, gradient_computation_time, w_type, threshold, current_step, b_static, num_workers, adjustment_mode):
+  def compute_cluster_delta_fn(self, gradient_computation_time, w_type, threshold, current_step, b_static, num_workers, adjustment_mode, w_index, num_ps):
       '''
       :param: gradient_computation_time list
       :return: a boolean whether to continue or stop training if any worker takes more time compared to other workers by a certain threshold. currently threshold is set to 0.1.
@@ -1884,7 +1885,7 @@ class Estimator(object):
 
         ## call fn to compute the updated batch-sizes with which to restart the model and logs its to clusterbatchsizes.conf and other log files.
         if should_training_stop :
-          self.calculate_updated_batchsizes(self._model_dir, cluster_avg_time, gradient_computation_time, w_type, b_static, num_workers)
+          self.calculate_updated_batchsizes(self._model_dir, cluster_avg_time, gradient_computation_time, w_type, b_static, num_workers, w_index, num_ps)
 
         logging.info('@sahiltyagi4 value of should training stop is ' + str(should_training_stop) + ' for step ' + str(current_step))
         return should_training_stop
@@ -1896,6 +1897,14 @@ class Estimator(object):
           logging.info('@sahiltyagi4 old batches: ' + str(old_batch_sizes))
           logging.info('@sahiltyagi4 new batches: ' + str(new_batch_sizes))
           raise ValueError('batch-size list length changed in iterations!')
+
+          # setting env variable on per-worker basis to use in switch input fn for dynamic batching WITHOUT kill-restart technique
+          if w_type == 'master':
+              os.environ['WORKER_BATCH_SIZE'] = normalized_updated_batch_sizes[w_index + num_ps]
+          elif w_type == 'worker':
+              # plus 1 below signifies 'master' node
+              os.environ['WORKER_BATCH_SIZE'] = normalized_updated_batch_sizes[num_ps + 1 + w_index]
+
 
         for ix in range(0, len(old_batch_sizes)):
           delta = new_batch_sizes[ix] - old_batch_sizes[ix]
@@ -1967,7 +1976,7 @@ class Estimator(object):
     return normalized_updated_batch_sizes
 
 
-  def calculate_updated_batchsizes(self, model_dir, cluster_avg_time, gradient_computation_time, w_type, b_static, num_workers):
+  def calculate_updated_batchsizes(self, model_dir, cluster_avg_time, gradient_computation_time, w_type, b_static, num_workers, w_index, num_ps):
       '''
       :param: average time across cluster for computation at each step, gradient_computation_time list has individual time of computation for each worker
       :return: the updated batch-sizes after two-level normalization.
@@ -2005,6 +2014,14 @@ class Estimator(object):
 
       delta = (b_static*num_workers) - cumulative_batch_size
       normalized_updated_batch_sizes = self.normalize_batch_sizes(delta, updated_batchsizes)
+
+      #setting env variable on per-worker basis to use in switch input fn for dynamic batching WITHOUT kill-restart technique
+      if w_type == 'master':
+          os.environ['WORKER_BATCH_SIZE'] = normalized_updated_batch_sizes[w_index + num_ps]
+      elif w_type == 'worker':
+          # plus 1 below signifies 'master' node
+          os.environ['WORKER_BATCH_SIZE'] = normalized_updated_batch_sizes[num_ps + 1 + w_index]
+
       logging.info('@sahiltyagi4 normalized updated batch-sizes after two-level normalization are ' + str(normalized_updated_batch_sizes))
 
       if w_type == 'master':
