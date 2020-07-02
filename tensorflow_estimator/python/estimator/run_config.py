@@ -51,6 +51,7 @@ _DEFAULT_REPLACEABLE_LIST = [
     'log_step_count_steps',
     'node_batch_size',
     'mpi_rank',
+    'switched_input_fn',
     'train_distribute',
     'device_fn',
     'protocol',
@@ -361,6 +362,7 @@ class RunConfig(object):
                log_step_count_steps=100,
                node_batch_size=128,
                mpi_rank=sys.maxint,
+               switched_input_fn=None,
                train_distribute=None,
                device_fn=None,
                protocol=None,
@@ -544,8 +546,9 @@ class RunConfig(object):
                                compat_internal.path_to_str(model_dir))
 
     # @sahiltyagi ..variable to be returned by get_node_batch_size()
-    self.node_batch_size=node_batch_size
-    self.mpi_rank=mpi_rank
+    self.node_batch_size = node_batch_size
+    self.mpi_rank = mpi_rank
+    self.switched_input_fn = switched_input_fn
     logging.info('@sahiltyagi4 RunConfig object per-node batch-size: %d', self.get_node_batch_size)
 
     RunConfig._replace(
@@ -562,6 +565,7 @@ class RunConfig(object):
         log_step_count_steps=log_step_count_steps,
         node_batch_size=node_batch_size,
         mpi_rank=mpi_rank,
+        switched_input_fn=switched_input_fn,
         train_distribute=train_distribute,
         device_fn=device_fn,
         protocol=protocol,
@@ -740,14 +744,20 @@ class RunConfig(object):
   def evaluation_master(self):
     return self._evaluation_master
 
-  # @sahiltyagi4 ....to retrieve the node_batch_size. This value is fed to the batch_size parameter of the input function
+  # @sahiltyagi4...to retrieve the node_batch_size. This value is fed to the batch_size parameter of the input function
   @property
   def get_node_batch_size(self):
     return self.node_batch_size
 
+  # @sahiltyagi4 to denote the rank of the MPI node. this is used to fetch the corresponding batch-size to the worker
   @property
   def get_mpi_rank(self):
       return self.mpi_rank
+
+  # @sahiltyagi4... for the switched input fn with the updated batch-size after readjustment
+  @property
+  def get_switched_input_fn(self):
+      return self.switched_input_fn
 
   @property
   def is_chief(self):

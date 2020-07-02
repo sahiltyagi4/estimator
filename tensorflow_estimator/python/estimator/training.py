@@ -26,6 +26,7 @@ import time
 import six
 import tensorflow as tf
 import numpy as np
+import functools
 
 from tensorflow.core.protobuf import config_pb2
 from tensorflow.python.distribute import estimator_training as distribute_coordinator_training
@@ -847,17 +848,45 @@ class _TrainingExecutor(object):
                    start_delay_secs)
       time.sleep(start_delay_secs)
 
-    # self._estimator.train(
-    #     input_fn=_cifar10_input_fn,
-    #     max_steps=self._train_spec.max_steps,
-    #     hooks=list(self._train_spec.hooks) + list(self._train_hooks),
-    #     saving_listeners=saving_listeners)
+    while True:
+        logging.info('@sahiltyagi4 going to switch the input function with a batch-size!!!!')
+        switched_input_fn = config.get_switched_input_fn
+        # new_batch_size = os.environ['WORKER_BATCH_SIZE']
+        # returns the list in clusterbatchsizes.conf and picks the worker batch-size size based on index which is the mpi_rank
+        new_batch_size = self.fetch_batchisizes(self._estimator.model_dir)[config.get_mpi_rank]
+        new_input_fn = functools.partial(
+            switched_input_fn,
+            config.get_datadir,
+            subset='train',
+            num_shards=0,
+            batch_size=new_batch_size,
+            run_config=config,
+            use_distortion_for_training=True)
 
-    self._estimator.train(
-        input_fn=self._train_spec.input_fn,
-        max_steps=self._train_spec.max_steps,
-        hooks=list(self._train_spec.hooks) + list(self._train_hooks),
-        saving_listeners=saving_listeners)
+        logging.info('@sahiltyagi4 value set for new batch-size on switched input fn is {}'.format(new_batch_size))
+        loss, should_switch_input_fn = self._estimator.train(
+            # input_fn=self._train_spec.input_fn,
+            input_fn=new_input_fn,
+            max_steps=self._train_spec.max_steps,
+            hooks=list(self._train_spec.hooks) + list(self._train_hooks),
+            saving_listeners=saving_listeners)
+
+        if not should_switch_input_fn:
+            logging.info('Loss for final step: %s.', loss)
+            break
+
+    logging.info('@sahiltyagi4 TRAINING TERMINATED FOR GOOD!')
+
+  def fetch_batchisizes(self, model_dir):
+      batchsizes = []
+      outfile = 'clusterbatchsizes.conf'
+      f = os.path.join(model_dir, outfile)
+      file = open(f, 'r')
+      for val in file.readline().split(','):
+          batchsizes.append(float(val.replace('[', '').replace(']', '')))
+
+      file.close()
+      return batchsizes
 
   def _start_continuous_evaluation(self):
     """Repeatedly calls `Estimator` evaluate and export until training ends."""
