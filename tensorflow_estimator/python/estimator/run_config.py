@@ -49,6 +49,7 @@ _DEFAULT_REPLACEABLE_LIST = [
     'keep_checkpoint_every_n_hours',
     'log_step_count_steps',
     'node_batch_size',
+    'data_dir',
     'switched_input_fn',
     'train_distribute',
     'device_fn',
