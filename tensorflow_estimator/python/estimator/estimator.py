@@ -1518,8 +1518,8 @@ class Estimator(object):
 
       loss = None
       any_step_done = False
-      # for op in tf.get_default_graph().get_operations():
-      #     logging.info('***************************variables and op names are: ' + str(op.name))
+      for op in tf.get_default_graph().get_operations():
+          logging.info('***************************variables and op names are: ' + str(op.name))
       run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
       run_metadata = tf.RunMetadata()
       switch_input_fn = False
