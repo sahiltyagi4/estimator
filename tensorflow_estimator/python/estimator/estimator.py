@@ -1537,8 +1537,8 @@ class Estimator(object):
           gradient_variance2 = mon_sess.run(tf.get_default_graph().get_tensor_by_name("agg_grads_variance0:0"))
           logging.info('@sahiltyagi4 aggregated gradient variance2 is ' + str(gradient_variance2) + ' for global step ' + str(curr_step))
 
-          gradient_variance1 = mon_sess.run(tf.get_default_graph().get_tensor_by_name("sync_replicas/aggregated_gradients_variance:0"))
-          logging.info('@sahiltyagi4 aggregated gradient variance1 is ' + str(gradient_variance1) + ' for global step ' + str(curr_step))
+          #gradient_variance1 = mon_sess.run(tf.get_default_graph().get_tensor_by_name("sync_replicas/aggregated_gradients_variance:0"))
+          #logging.info('@sahiltyagi4 aggregated gradient variance1 is ' + str(gradient_variance1) + ' for global step ' + str(curr_step))
 
           tl = timeline.Timeline(run_metadata.step_stats)
           ctf = tl.generate_chrome_trace_format()
