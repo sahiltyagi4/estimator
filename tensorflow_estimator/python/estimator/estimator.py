@@ -1524,6 +1524,11 @@ class Estimator(object):
       run_metadata = tf.RunMetadata()
       switch_input_fn = False
 
+      mon_sess.run(tf.global_variables_initializer())
+      logging.info('@sahiltyagi4 first time the test variable 1 called....')
+      mon_sess.run(print(tf.get_default_graph().get_tensor_by_name('test1234567:0')))
+      logging.info('@sahiltyagi4 successfully called test_variable 1')
+
       #while not mon_sess.should_stop():
       while mon_sess is not None and not switch_input_fn:
           step_start = time.time()
@@ -1533,6 +1538,11 @@ class Estimator(object):
           any_step_done = True
           logging.info('@sahiltyagi train_op iteration time given worker is ' + str(step_end - step_start) + ' with starttime ' + str(step_start) + ' and endtime ' + str(step_end)
                         + ' and global step ' + str(curr_step))
+
+          mon_sess.run(tf.get_default_graph().get_operation_by_name('sync_replicas/pqrstuv1234'))
+          logging.info('@sahiltyagi4 successfully called operation to assign value')
+          mon_sess.run(print(tf.get_default_graph().get_tensor_by_name('test1234567:0')))
+          logging.info('@sahiltyagi4 replaced the value of the tensor...')
 
           # grad_var3 = mon_sess.run([tf.get_variable('agg_grads_variance1')])
           # logging.info('@sahiltyagi4 aggregated gradient variance1 is ' + str(grad_var3) + ' for global step ' + str(curr_step))
