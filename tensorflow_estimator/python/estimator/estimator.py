@@ -1524,10 +1524,10 @@ class Estimator(object):
       run_metadata = tf.RunMetadata()
       switch_input_fn = False
 
-      mon_sess.run(tf.global_variables_initializer())
-      logging.info('@sahiltyagi4 first time the test variable 1 called....')
-      mon_sess.run(print(tf.get_default_graph().get_tensor_by_name('test1234567:0')))
-      logging.info('@sahiltyagi4 successfully called test_variable 1')
+      # mon_sess.run(tf.global_variables_initializer())
+      # logging.info('@sahiltyagi4 first time the test variable 1 called....')
+      # mon_sess.run(print(tf.get_default_graph().get_tensor_by_name('test1234567:0')))
+      # logging.info('@sahiltyagi4 successfully called test_variable 1')
 
       #while not mon_sess.should_stop():
       while mon_sess is not None and not switch_input_fn:
