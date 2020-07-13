@@ -1541,7 +1541,7 @@ class Estimator(object):
 
           mon_sess.run(tf.get_default_graph().get_operation_by_name('sync_replicas/pqrstuv1234'))
           logging.info('@sahiltyagi4 successfully called operation to assign value')
-          mon_sess.run(print(tf.get_default_graph().get_tensor_by_name('test1234567:0')))
+          logging.info((mon_sess.run(tf.get_default_graph().get_tensor_by_name('test1234567:0'))))
           logging.info('@sahiltyagi4 replaced the value of the tensor...')
 
           # grad_var3 = mon_sess.run([tf.get_variable('agg_grads_variance1')])
