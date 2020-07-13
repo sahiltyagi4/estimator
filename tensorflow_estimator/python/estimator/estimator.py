@@ -1518,8 +1518,8 @@ class Estimator(object):
 
       loss = None
       any_step_done = False
-      # for op in tf.get_default_graph().get_operations():
-      #     logging.info('***************************variables and op names are: ' + str(op.name))
+      for op in tf.get_default_graph().get_operations():
+          logging.info('***************************variables and op names are: ' + str(op.name))
       run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
       run_metadata = tf.RunMetadata()
       switch_input_fn = False
@@ -1534,10 +1534,13 @@ class Estimator(object):
           logging.info('@sahiltyagi train_op iteration time given worker is ' + str(step_end - step_start) + ' with starttime ' + str(step_start) + ' and endtime ' + str(step_end)
                         + ' and global step ' + str(curr_step))
 
+          grad_var3 = mon_sess.run([tf.get_variable('agg_grads_variance1')])
+          logging.info('@sahiltyagi4 aggregated gradient variance1 is ' + str(grad_var3) + ' for global step ' + str(curr_step))
+
           # mon_sess.run(tf.get_default_graph().get_tensor_by_name("agg_grads_variance0:0"))
           # logging.info('@sahiltyagi4 done first mon_sess run')
-          # mon_sess.run(tf.get_default_graph().get_operation_by_name("sync_replicas/aggregated_gradients_variance"))
-          # logging.info('@sahiltyagi4 done second mon_sess run')
+          #mon_sess.run(tf.get_default_graph().get_operation_by_name("sync_replicas/aggregated_gradients_variance"))
+          logging.info('@sahiltyagi4 done second mon_sess run')
           # gradient_variance2 = mon_sess.run(tf.get_default_graph().get_tensor_by_name("agg_grads_variance0:0"))
           # logging.info('@sahiltyagi4 aggregated gradient variance2 is ' + str(gradient_variance2) + ' for global step ' + str(curr_step))
 
