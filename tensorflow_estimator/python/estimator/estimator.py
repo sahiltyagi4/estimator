@@ -1539,9 +1539,7 @@ class Estimator(object):
           logging.info('@sahiltyagi train_op iteration time given worker is ' + str(step_end - step_start) + ' with starttime ' + str(step_start) + ' and endtime ' + str(step_end)
                         + ' and global step ' + str(curr_step))
 
-          logging.info('@sahiltyagi4 going to run op for gradient print...')
-          mon_sess.run(tf.get_default_graph().get_operation_by_name('op_grad_print'))
-          logging.info('@sahiltyagi4 done running gradient print op...')
+
           logging.info(mon_sess.run(tf.get_default_graph().get_tensor_by_name('gradientprint123:0')))
           logging.info('@sahiltyagi4 done PRINTING GRADIENTS...')
 
