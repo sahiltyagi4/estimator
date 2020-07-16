@@ -1539,8 +1539,8 @@ class Estimator(object):
           logging.info('@sahiltyagi train_op iteration time given worker is ' + str(step_end - step_start) + ' with starttime ' + str(step_start) + ' and endtime ' + str(step_end)
                         + ' and global step ' + str(curr_step))
 
-          mon_sess.run(tf.get_default_graph().get_operation_by_name('sync_replicas/pqrstuv1234'))
-          logging.info('@sahiltyagi4 successfully called operation to assign value')
+          #mon_sess.run(tf.get_default_graph().get_operation_by_name('pqrstuv1234'))
+          #logging.info('@sahiltyagi4 successfully called operation to assign value')
           logging.info((mon_sess.run(tf.get_default_graph().get_tensor_by_name('test1234567:0'))))
           logging.info('@sahiltyagi4 replaced the value of the tensor...')
 
