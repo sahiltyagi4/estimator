@@ -1540,7 +1540,7 @@ class Estimator(object):
                         + ' and global step ' + str(curr_step))
 
 
-          logging.info(mon_sess.run(tf.get_default_graph().get_tensor_by_name('gradientprint123:0')))
+          logging.info(mon_sess.run(tf.get_default_graph().get_tensor_by_name('resnet/tower_0/gradientprint123:0')))
           logging.info('@sahiltyagi4 done PRINTING GRADIENTS...')
 
           # logging.info((mon_sess.run(tf.get_default_graph().get_tensor_by_name('agg_grads_variance0:0'))))
