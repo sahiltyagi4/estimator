@@ -1539,9 +1539,11 @@ class Estimator(object):
           logging.info('@sahiltyagi train_op iteration time given worker is ' + str(step_end - step_start) + ' with starttime ' + str(step_start) + ' and endtime ' + str(step_end)
                         + ' and global step ' + str(curr_step))
 
-
-          logging.info(mon_sess.run(tf.get_default_graph().get_tensor_by_name('resnet/tower_0/gradientprint123:0')))
-          logging.info('@sahiltyagi4 done PRINTING GRADIENTS...')
+          worker_grad_variance = mon_sess.run(tf.get_default_graph().get_tensor_by_name('resnet/tower_0/gradientprint123:0'))
+          logging.info('@sahiltyagi4 printing worker gradients')
+          logging.info(worker_grad_variance)
+          logging.info(tf.shape(worker_grad_variance))
+          #self.write_gradients_to_file(self._model_dir, w_type, w_index, str(worker_grad_variance))
 
           # logging.info((mon_sess.run(tf.get_default_graph().get_tensor_by_name('agg_grads_variance0:0'))))
           # logging.info('@sahiltyagi4 replaced the value of the tensor...')
@@ -1699,6 +1701,11 @@ class Estimator(object):
     file = open(f, 'w')
     file.write(str(should_training_stop))
     file.close()
+
+  def write_gradients_to_file(self, model_dir, w_name, w_index, grads):
+      f = os.path.join(model_dir, 'gradient_'+w_name+w_index)
+      file = open(f, 'w')
+      file.write(grads.replace('[', '').replace(']', ''))
 
   def read_should_training_stop(self, model_dir):
     f = os.path.join(model_dir, 'should_training_stop.conf')
