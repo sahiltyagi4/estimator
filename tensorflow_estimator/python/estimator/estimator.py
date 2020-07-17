@@ -1542,7 +1542,8 @@ class Estimator(object):
           worker_grad_variance = mon_sess.run(tf.get_default_graph().get_tensor_by_name('resnet/tower_0/gradientprint123:0'))
           logging.info('@sahiltyagi4 printing worker gradients')
           logging.info(worker_grad_variance)
-          logging.info(mon_sess.run(tf.shape(worker_grad_variance)))
+          logging.info('@sahiltyagi4 length of worker gradients')
+          logging.info( mon_sess.run(tf.get_default_graph().get_tensor_by_name('resnet/tower_0/gradientslength:0')))
           #self.write_gradients_to_file(self._model_dir, w_type, w_index, str(worker_grad_variance))
 
           # logging.info((mon_sess.run(tf.get_default_graph().get_tensor_by_name('agg_grads_variance0:0'))))
