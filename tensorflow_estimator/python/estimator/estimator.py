@@ -1525,11 +1525,6 @@ class Estimator(object):
       run_metadata = tf.RunMetadata()
       switch_input_fn = False
 
-      # mon_sess.run(tf.global_variables_initializer())
-      # logging.info('@sahiltyagi4 first time the test variable 1 called....')
-      # mon_sess.run(print(tf.get_default_graph().get_tensor_by_name('test1234567:0')))
-      # logging.info('@sahiltyagi4 successfully called test_variable 1')
-
       #while not mon_sess.should_stop():
       while mon_sess is not None and not switch_input_fn:
           step_start = time.time()
@@ -1540,9 +1535,9 @@ class Estimator(object):
           logging.info('@sahiltyagi train_op iteration time given worker is ' + str(step_end - step_start) + ' with starttime ' + str(step_start) + ' and endtime ' + str(step_end)
                         + ' and global step ' + str(curr_step))
 
-          mon_sess.run(tf.get_default_graph().get_operation_by_name('pqrstuv1234'))
-          gradient_variance2 = mon_sess.run(tf.get_default_graph().get_tensor_by_name("agg_grads_variance0:0"))
-          logging.info('@sahiltyagi4 aggregated gradient variance2 is ' + str(gradient_variance2) + ' for global step ' + str(curr_step))
+          # mon_sess.run(tf.get_default_graph().get_operation_by_name('pqrstuv1234'))
+          # gradient_variance2 = mon_sess.run(tf.get_default_graph().get_tensor_by_name("agg_grads_variance0:0"))
+          # logging.info('@sahiltyagi4 aggregated gradient variance2 is ' + str(gradient_variance2) + ' for global step ' + str(curr_step))
 
           tl = timeline.Timeline(run_metadata.step_stats)
           ctf = tl.generate_chrome_trace_format()
