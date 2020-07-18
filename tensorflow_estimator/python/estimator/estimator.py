@@ -1494,6 +1494,7 @@ class Estimator(object):
     b_static = int(os.environ['UNIFORM_CLUSTER_BATCH_SIZE'])
     window_computation_time = []
     worker_batchsizes_filenames = self.get_worker_batchsize_filenames(num_workers)
+    gradient_files = self.get_gradient_filenames(num_workers)
     nonetype_filenames = self.getnonetypefilenames(num_workers)
     logging.info('@sahiltyagi4 no. of workers is ' + str(num_workers))
     logging.info('@sahiltyagi4 worker batchsize filenames ' + str(worker_batchsizes_filenames))
@@ -1539,43 +1540,9 @@ class Estimator(object):
           logging.info('@sahiltyagi train_op iteration time given worker is ' + str(step_end - step_start) + ' with starttime ' + str(step_start) + ' and endtime ' + str(step_end)
                         + ' and global step ' + str(curr_step))
 
-          worker_grad_variance = mon_sess.run(tf.get_default_graph().get_tensor_by_name('resnet/tower_0/gradientprint123:0'))
-          logging.info('@sahiltyagi4 printing worker gradients')
-          logging.info(worker_grad_variance)
-          logging.info('@sahiltyagi4 length of worker gradients')
-          logging.info( mon_sess.run(tf.get_default_graph().get_tensor_by_name('resnet/tower_0/gradientslength:0')))
-          #self.write_gradients_to_file(self._model_dir, w_type, w_index, str(worker_grad_variance))
-
-          # logging.info((mon_sess.run(tf.get_default_graph().get_tensor_by_name('agg_grads_variance0:0'))))
-          # logging.info('@sahiltyagi4 replaced the value of the tensor...')
-          # mon_sess.run(tf.get_default_graph().get_operation_by_name('pqrstuv1234'))
-          # logging.info('@sahiltyagi4 successfully called operation to assign value')
-          # logging.info((mon_sess.run(tf.get_default_graph().get_tensor_by_name('agg_grads_variance0:0'))))
-          # logging.info('@sahiltyagi4 replaced the value of the tensor...')
-
-          # mon_sess.run(tf.get_default_graph().get_operation_by_name('pqrstuv1234'))
-          # logging.info('@sahiltyagi4 successfully called operation to assign value')
-          # logging.info((mon_sess.run(tf.get_default_graph().get_tensor_by_name('test1234567:0'))))
-          # logging.info('@sahiltyagi4 replaced the value of the tensor...')
-
-          # grad_var3 = mon_sess.run([tf.get_variable('agg_grads_variance1')])
-          # logging.info('@sahiltyagi4 aggregated gradient variance1 is ' + str(grad_var3) + ' for global step ' + str(curr_step))
-
-          # grad_var3 = mon_sess.run([tf.get_variable('agg_grads_variance0')])
-          # logging.info('@sahiltyagi4 aggregated gradient variance1 is ' + str(grad_var3) + ' for global step ' + str(curr_step))
-
-          # grad_var4 = mon_sess.run([tf.get_default_graph().get_tensor_by_name('sync_replicas/qwertyio:0')])
-          # logging.info('@sahiltyagi4 aggregated gradient variance1 is ' + str(grad_var4) + ' for global step ' + str(curr_step))
-
-          #mon_sess.run(tf.get_default_graph().get_tensor_by_name("agg_grads_variance0:0"))
-          #logging.info('@sahiltyagi4 done first mon_sess run')
-          #mon_sess.run(tf.get_default_graph().get_operation_by_name("sync_replicas/aggregated_gradients_variance"))
-          #logging.info('@sahiltyagi4 done second mon_sess run')
-          # gradient_variance2 = mon_sess.run(tf.get_default_graph().get_tensor_by_name("agg_grads_variance0:0"))
-          # logging.info('@sahiltyagi4 aggregated gradient variance2 is ' + str(gradient_variance2) + ' for global step ' + str(curr_step))
-
-          #gradient_variance1 = mon_sess.run(tf.get_default_graph().get_tensor_by_name("sync_replicas/aggregated_gradients_variance:0"))
-          #logging.info('@sahiltyagi4 aggregated gradient variance1 is ' + str(gradient_variance1) + ' for global step ' + str(curr_step))
+          mon_sess.run(tf.get_default_graph().get_operation_by_name('pqrstuv1234'))
+          gradient_variance2 = mon_sess.run(tf.get_default_graph().get_tensor_by_name("agg_grads_variance0:0"))
+          logging.info('@sahiltyagi4 aggregated gradient variance2 is ' + str(gradient_variance2) + ' for global step ' + str(curr_step))
 
           tl = timeline.Timeline(run_metadata.step_stats)
           ctf = tl.generate_chrome_trace_format()
@@ -1612,6 +1579,15 @@ class Estimator(object):
             logging.info('@sahiltyagi4 train_op computed but compute_grads op not for step ' + str(curr_step))
 
           if estimator_spec.sync_mode == 'BSP':
+            # gradient averaging in BSP across multiple nodes
+            # worker_grad_variance = mon_sess.run(tf.get_default_graph().get_tensor_by_name('resnet/tower_0/gradientprint123:0'))
+            # logging.info('@sahiltyagi4 printing worker gradients')
+            # logging.info(worker_grad_variance)
+            # logging.info('@sahiltyagi4 length of worker gradients')
+            # logging.info(mon_sess.run(tf.get_default_graph().get_tensor_by_name('resnet/tower_0/gradientslength:0')))
+            # self.write_gradients_to_file(self._model_dir, w_type, w_index, str(worker_grad_variance))
+            # self.workers_gradientwrite_wait(gradient_files)
+
             #when using deadbanding, set window_size to 1.
             if estimator_spec.window_size is not None:
               window_computation_time.append(float((max(op_ts) - min(op_ts)) / 1000))
@@ -1704,9 +1680,26 @@ class Estimator(object):
     file.close()
 
   def write_gradients_to_file(self, model_dir, w_name, w_index, grads):
-      f = os.path.join(model_dir, 'gradient_'+w_name+w_index)
+      f = os.path.join(model_dir, 'gradient_'+w_name+w_index+'.txt')
       file = open(f, 'w')
       file.write(grads.replace('[', '').replace(']', ''))
+
+  def get_gradient_filenames(self, num_workers):
+      gradient_files = []
+      gradient_files.append('gradient_master0.txt')
+      for i in range(num_workers - 1):
+          gradient_files.append(('gradient_worker' + str(i) + '.txt'))
+      return gradient_files
+
+  def workers_gradientwrite_wait(self, gradient_files):
+      while True:
+          ctr=0
+          for file in gradient_files:
+              f = os.path.join(self._model_dir, file)
+              if os.path.exists(f):
+                  ctr = ctr+1
+          if ctr == len(gradient_files):
+              break
 
   def read_should_training_stop(self, model_dir):
     f = os.path.join(model_dir, 'should_training_stop.conf')
