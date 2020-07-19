@@ -1535,8 +1535,8 @@ class Estimator(object):
           logging.info('@sahiltyagi train_op iteration time given worker is ' + str(step_end - step_start) + ' with starttime ' + str(step_start) + ' and endtime ' + str(step_end)
                         + ' and global step ' + str(curr_step))
 
-          if curr_step > 1:
-              mon_sess.run(tf.get_default_graph().get_operation_by_name("variance_aggregated"))
+          if curr_step > 0:
+              mon_sess.run(tf.get_default_graph().get_operation_by_name("sync_replicas/variance_aggregated"))
 
           # mon_sess.run(tf.get_default_graph().get_operation_by_name('pqrstuv1234'))
           # gradient_variance2 = mon_sess.run(tf.get_default_graph().get_tensor_by_name("agg_grads_variance0:0"))
