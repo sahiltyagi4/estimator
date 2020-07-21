@@ -1494,7 +1494,6 @@ class Estimator(object):
     b_static = int(os.environ['UNIFORM_CLUSTER_BATCH_SIZE'])
     window_computation_time = []
     worker_batchsizes_filenames = self.get_worker_batchsize_filenames(num_workers)
-    gradient_files = self.get_gradient_filenames(num_workers)
     nonetype_filenames = self.getnonetypefilenames(num_workers)
     logging.info('@sahiltyagi4 no. of workers is ' + str(num_workers))
     logging.info('@sahiltyagi4 worker batchsize filenames ' + str(worker_batchsizes_filenames))
