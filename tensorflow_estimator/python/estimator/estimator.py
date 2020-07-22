@@ -1494,6 +1494,7 @@ class Estimator(object):
     b_static = int(os.environ['UNIFORM_CLUSTER_BATCH_SIZE'])
     window_computation_time = []
     worker_batchsizes_filenames = self.get_worker_batchsize_filenames(num_workers)
+    gradient_files = self.get_gradient_filenames(num_workers)
     nonetype_filenames = self.getnonetypefilenames(num_workers)
     logging.info('@sahiltyagi4 no. of workers is ' + str(num_workers))
     logging.info('@sahiltyagi4 worker batchsize filenames ' + str(worker_batchsizes_filenames))
@@ -1534,10 +1535,11 @@ class Estimator(object):
           logging.info('@sahiltyagi train_op iteration time given worker is ' + str(step_end - step_start) + ' with starttime ' + str(step_start) + ' and endtime ' + str(step_end)
                         + ' and global step ' + str(curr_step))
 
-          gradient_variance = mon_sess.run(tf.get_default_graph().get_tensor_by_name('gradient_variance:0'))
-          logging.info('@sahiltyagi4 aggregated gradient variance2 is ' + str(gradient_variance) + ' for global step ' + str(curr_step))
-          b_simple = mon_sess.run(tf.get_default_graph().get_tensor_by_name('b_simple:0'))
-          logging.info('@sahiltyagi4 b_simple noise scale is ' + str(b_simple) + ' for current global step ' + str(curr_step))
+          gradient_variance2 = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['tensor_for_variance']))
+          logging.info('@sahiltyagi4 aggregated gradient variance2 is ' + str(gradient_variance2) + ' for global step ' + str(curr_step))
+
+          b_simple = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['tensor_for_b_simple']))
+          logging.info('@sahiltyagi4 b_simple noise scale is ' + str(b_simple) + ' for global step ' + str(curr_step))
 
           tl = timeline.Timeline(run_metadata.step_stats)
           ctf = tl.generate_chrome_trace_format()
@@ -1574,6 +1576,15 @@ class Estimator(object):
             logging.info('@sahiltyagi4 train_op computed but compute_grads op not for step ' + str(curr_step))
 
           if estimator_spec.sync_mode == 'BSP':
+            # gradient averaging in BSP across multiple nodes
+            # worker_grad_variance = mon_sess.run(tf.get_default_graph().get_tensor_by_name('resnet/tower_0/gradientprint123:0'))
+            # logging.info('@sahiltyagi4 printing worker gradients')
+            # logging.info(worker_grad_variance)
+            # logging.info('@sahiltyagi4 length of worker gradients')
+            # logging.info(mon_sess.run(tf.get_default_graph().get_tensor_by_name('resnet/tower_0/gradientslength:0')))
+            # self.write_gradients_to_file(self._model_dir, w_type, w_index, str(worker_grad_variance))
+            # self.workers_gradientwrite_wait(gradient_files)
+
             #when using deadbanding, set window_size to 1.
             if estimator_spec.window_size is not None:
               window_computation_time.append(float((max(op_ts) - min(op_ts)) / 1000))
@@ -1582,6 +1593,13 @@ class Estimator(object):
                 window_avg_time = self.average_computation_time_in_window(window_computation_time)
                 self.write_computation_time_to_file(self._model_dir, str(window_avg_time), curr_step, w_type, w_index)
                 gradient_computation_time = self.read_batchsize_files(worker_batchsizes_filenames, self._model_dir, curr_step, num_workers)
+
+                # only when a window is full, fetch docker container info and write to its corresponding worker cpu conf file
+                #self.getCPUallocinfo(self._model_dir, 'tf-' + str(w_type) + '-' + str(w_index))
+                # wait till all CPU alloc files are written.
+                # read all cpu files here to compute RESOURCE_ALLOC and write that to resource_alloc.conf
+                #cpu_alloc = self.readCPUallocfiles(self._model_dir, cpualloc_files, curr_step, num_workers)
+                #self.write_cpualloc_nodescale(self._model_dir, cpu_alloc)
 
                 logging.info('@sahiltyagi4 value of gradient_computation_time is ' + str(gradient_computation_time))
                 if w_type == 'master':
@@ -1595,6 +1613,14 @@ class Estimator(object):
                     switch_input_fn = True
                     mon_sess = None
                     break
+                    # if w_type == 'master':
+                    #   logging.info('@sahiltyagi4 looking to save checkpoint file for step ' + str(curr_step))
+                    #   # saver.save(self.get_session(mon_sess), os.path.join(self._model_dir, 'mymodel-' + str(curr_step)))
+                    #   #self.wait_till_checkpointing_completes(self._model_dir, 'mymodel-' + str(curr_step) + '.meta')
+                    #   ##mon_sess.close()
+                    #   mon_sess = None
+                    #   logging.info('@sahiltyagi4 made monitored session Nonetype')
+                    #   break
           
           elif estimator_spec.sync_mode == 'ASP':
             logging.info('@sahiltyagi4 inside the ASP loop...')
@@ -1649,6 +1675,28 @@ class Estimator(object):
     file = open(f, 'w')
     file.write(str(should_training_stop))
     file.close()
+
+  def write_gradients_to_file(self, model_dir, w_name, w_index, grads):
+      f = os.path.join(model_dir, 'gradient_'+w_name+w_index+'.txt')
+      file = open(f, 'w')
+      file.write(grads.replace('[', '').replace(']', ''))
+
+  def get_gradient_filenames(self, num_workers):
+      gradient_files = []
+      gradient_files.append('gradient_master0.txt')
+      for i in range(num_workers - 1):
+          gradient_files.append(('gradient_worker' + str(i) + '.txt'))
+      return gradient_files
+
+  def workers_gradientwrite_wait(self, gradient_files):
+      while True:
+          ctr=0
+          for file in gradient_files:
+              f = os.path.join(self._model_dir, file)
+              if os.path.exists(f):
+                  ctr = ctr+1
+          if ctr == len(gradient_files):
+              break
 
   def read_should_training_stop(self, model_dir):
     f = os.path.join(model_dir, 'should_training_stop.conf')
@@ -1711,6 +1759,24 @@ class Estimator(object):
       none_type_files.append('tf-worker-' + str(ix) + '-none.txt')
     
     return none_type_files
+
+  def getworker_cpualloc_files(self, num_workers):
+      cpualloc_files = []
+      cpualloc_files.append('cpu-tf-master-0.conf')
+      for ix in range(0, num_workers):
+        cpualloc_files.append('cpu-tf-worker-' + str(ix) + '.conf')
+      return cpualloc_files
+
+  def getCPUallocinfo(self, model_dir, worker_name):
+      cmd = subprocess.Popen(['docker','container','inspect',worker_name,'--format="{{.HostConfig.NanoCpus}}"'], shell=True, stdout=subprocess.PIPE)
+      output, err = cmd.communicate()
+      status = cmd.wait()
+      logging.info('output is ' + str(output))
+      cpu = int(output.split('\n')[0].replace('000000000','').replace('"',''))
+      file = os.path.join(model_dir, 'cpu-' + worker_name + '.conf')
+      f = open(file, 'w')
+      f.write(str(cpu))
+      f.close()
 
   def asp_read_batchfiles(self, worker_batchsizes_filenames, model_dir):
     gradient_computation_time = []
@@ -1776,6 +1842,33 @@ class Estimator(object):
     
     return status
 
+  def readCPUallocfiles(self, model_dir, cpualloc_files, current_step, num_workers):
+    '''
+      :returns: waits till all workers have written their updated CPU allocations to their corresponding conf files. returns list of core count
+    '''
+    while True:
+      cpu_alloc = []
+      sum_of_worker_current_steps = 0
+      for file in cpualloc_files:
+        f = os.path.join(model_dir, file)
+        if os.path.isfile(f):
+          out = open(f, 'r')
+          for line in out:
+            cpu_alloc.append(int(line))
+            if current_step == 0:
+              sum_of_worker_current_steps = sum_of_worker_current_steps + 1
+            else:
+              sum_of_worker_current_steps = sum_of_worker_current_steps + int(line.split(',')[1])
+          out.close()
+      if current_step == 0:
+        if sum_of_worker_current_steps == num_workers:
+          break
+      else:
+        if sum_of_worker_current_steps == (current_step*num_workers):
+          break
+
+    return cpu_alloc
+
   def write_computation_time_to_file(self, model_dir, worker_computation_time, current_step, worker_type, index):
       '''
       :returns: write_computation_time_to_file fn called to write value of COMPUTE_GRAD call time to corresponding file for the given worker type and index
@@ -1785,6 +1878,18 @@ class Estimator(object):
       file = open(f, 'w')
       file.write(worker_computation_time + ',' + str(current_step))
       file.close()
+      #logging.info('@sahiltyagi4 writing computation time to file for step ' + str(current_step))
+
+  def write_cpualloc_nodescale(self, model_dir, cpu_alloc):
+    cpustring = ''
+    for cores in cpu_alloc:
+      cpustring = cpustring + str(cores) + ','
+
+    cpustring = cpustring[0:len(cpustring) -1]
+    f = os.path.join(model_dir, 'resource_alloc.conf')
+    file = open(f, 'w')
+    file.write(cpustring)
+    file.close()
 
   def compute_cluster_delta_fn(self, gradient_computation_time, w_type, threshold, current_step, b_static, num_workers, adjustment_mode, w_index, num_ps):
       '''
