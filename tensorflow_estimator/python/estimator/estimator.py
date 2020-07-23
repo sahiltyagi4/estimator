@@ -1527,7 +1527,6 @@ class Estimator(object):
 
       #while not mon_sess.should_stop():
       while mon_sess is not None and not switch_input_fn:
-          local_step = self.estimator
           step_start = time.time()
           should_training_stop = False
           _, loss, curr_global_step = mon_sess.run([estimator_spec.train_op, estimator_spec.loss, tf.train.get_or_create_global_step()], options=run_options, run_metadata=run_metadata)
