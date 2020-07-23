@@ -1527,19 +1527,20 @@ class Estimator(object):
 
       #while not mon_sess.should_stop():
       while mon_sess is not None and not switch_input_fn:
+          local_step = self.estimator
           step_start = time.time()
           should_training_stop = False
-          _, loss, curr_step = mon_sess.run([estimator_spec.train_op, estimator_spec.loss, tf.train.get_or_create_global_step()], options=run_options, run_metadata=run_metadata)
+          _, loss, curr_global_step = mon_sess.run([estimator_spec.train_op, estimator_spec.loss, tf.train.get_or_create_global_step()], options=run_options, run_metadata=run_metadata)
           step_end = time.time()
           any_step_done = True
           logging.info('@sahiltyagi train_op iteration time given worker is ' + str(step_end - step_start) + ' with starttime ' + str(step_start) + ' and endtime ' + str(step_end)
-                        + ' and global step ' + str(curr_step))
+                        + ' and global step ' + str(curr_global_step))
 
           gradient_variance2 = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['tensor_for_variance']))
-          logging.info('@sahiltyagi4 aggregated gradient variance2 is ' + str(gradient_variance2) + ' for global step ' + str(curr_step))
+          logging.info('@sahiltyagi4 aggregated gradient variance2 is ' + str(gradient_variance2) + ' for global step ' + str(curr_global_step))
 
           b_simple = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['tensor_for_b_simple']))
-          logging.info('@sahiltyagi4 b_simple noise scale is ' + str(b_simple) + ' for global step ' + str(curr_step))
+          logging.info('@sahiltyagi4 b_simple noise scale is ' + str(b_simple) + ' for global step ' + str(curr_global_step))
 
           tl = timeline.Timeline(run_metadata.step_stats)
           ctf = tl.generate_chrome_trace_format()
@@ -1561,11 +1562,11 @@ class Estimator(object):
                 anotheronetimeflag = False
 
             logging.info('@sahiltyagi upto COMPUTE GRADS call time is ' + str((max(op_ts) - min(op_ts)) / 1000) + 'ms with starttime ' + str(min(op_ts) / 1000000) + ' and endtime '
-                        + str(max(op_ts) / 1000000) + ' and global step ' + str(curr_step))
+                        + str(max(op_ts) / 1000000) + ' and global step ' + str(curr_global_step))
             logging.info('@sahiltyagi TOTAL_TIME including runmetadata stats and parsing ' + str(final_endtime - step_start) + ' with finaltime ' + str(final_endtime)
-                        + ' and step_start ' + str(step_start) + ' and global step ' + str(curr_step))
+                        + ' and step_start ' + str(step_start) + ' and global step ' + str(curr_global_step))
             logging.info('@sahiltyagi4 ONLY RUNMETEDATA stats and parsing is ' + str(final_endtime - step_end) + ' with finaltime ' + str(final_endtime)
-                        + ' and step_end ' + str(step_end) + ' and global step ' + str(curr_step))
+                        + ' and step_end ' + str(step_end) + ' and global step ' + str(curr_global_step))
           else:
             if onetimeflag:
                 f = open(self.model_dir + '/incorrectGPUctf.json', 'w')
@@ -1573,26 +1574,17 @@ class Estimator(object):
                 f.close()
                 onetimeflag = False
             logging.info('@sahiltyagi4 train_op computed but op_ts might be empty with length ' + str(len(op_ts)))
-            logging.info('@sahiltyagi4 train_op computed but compute_grads op not for step ' + str(curr_step))
+            logging.info('@sahiltyagi4 train_op computed but compute_grads op not for step ' + str(curr_global_step))
 
           if estimator_spec.sync_mode == 'BSP':
-            # gradient averaging in BSP across multiple nodes
-            # worker_grad_variance = mon_sess.run(tf.get_default_graph().get_tensor_by_name('resnet/tower_0/gradientprint123:0'))
-            # logging.info('@sahiltyagi4 printing worker gradients')
-            # logging.info(worker_grad_variance)
-            # logging.info('@sahiltyagi4 length of worker gradients')
-            # logging.info(mon_sess.run(tf.get_default_graph().get_tensor_by_name('resnet/tower_0/gradientslength:0')))
-            # self.write_gradients_to_file(self._model_dir, w_type, w_index, str(worker_grad_variance))
-            # self.workers_gradientwrite_wait(gradient_files)
-
             #when using deadbanding, set window_size to 1.
             if estimator_spec.window_size is not None:
               window_computation_time.append(float((max(op_ts) - min(op_ts)) / 1000))
               # start processing only when sufficient steps equal to window_size specified in estimator spec has been reached
               if len(window_computation_time) == estimator_spec.window_size:
                 window_avg_time = self.average_computation_time_in_window(window_computation_time)
-                self.write_computation_time_to_file(self._model_dir, str(window_avg_time), curr_step, w_type, w_index)
-                gradient_computation_time = self.read_batchsize_files(worker_batchsizes_filenames, self._model_dir, curr_step, num_workers)
+                self.write_computation_time_to_file(self._model_dir, str(window_avg_time), curr_global_step, w_type, w_index)
+                gradient_computation_time = self.read_batchsize_files(worker_batchsizes_filenames, self._model_dir, curr_global_step, num_workers)
 
                 # only when a window is full, fetch docker container info and write to its corresponding worker cpu conf file
                 #self.getCPUallocinfo(self._model_dir, 'tf-' + str(w_type) + '-' + str(w_index))
@@ -1604,7 +1596,7 @@ class Estimator(object):
                 logging.info('@sahiltyagi4 value of gradient_computation_time is ' + str(gradient_computation_time))
                 if w_type == 'master':
                   should_training_stop = self.compute_cluster_delta_fn(gradient_computation_time, w_type, estimator_spec.reactive_adjustment_threshold, 
-                  curr_step, b_static, num_workers, estimator_spec.adjustment_mode, w_index, num_ps)
+                  curr_global_step, b_static, num_workers, estimator_spec.adjustment_mode, w_index, num_ps)
 
                 window_computation_time = []
                 if should_training_stop:
@@ -1631,7 +1623,7 @@ class Estimator(object):
                 logging.info('@sahiltyagi4 window size completed once...')
                 window_avg_time = self.average_computation_time_in_window(window_computation_time)
                 window_computation_time = []
-                self.write_computation_time_to_file(self._model_dir, str(window_avg_time), curr_step, w_type, w_index)
+                self.write_computation_time_to_file(self._model_dir, str(window_avg_time), curr_global_step, w_type, w_index)
                 do_windows_exist = self.check_worker_batchsize_files(self._model_dir, worker_batchsizes_filenames)
                 logging.info('@sahiltyagi4 do windows exist value is ' + str(do_windows_exist))
                 if do_windows_exist:
@@ -1640,7 +1632,7 @@ class Estimator(object):
                   self.write_session_none(self._model_dir, w_type, w_index)
                   if w_type == 'master':
                     should_training_stop = self.compute_cluster_delta_fn(gradient_computation_time, w_type, estimator_spec.reactive_adjustment_threshold, 
-                    curr_step, b_static, num_workers, estimator_spec.adjustment_mode)
+                    curr_global_step, b_static, num_workers, estimator_spec.adjustment_mode)
                     #self.log_should_training_stop(self._model_dir, should_training_stop)
                     #should_training_stop = self.read_should_training_stop(self._model_dir)
                     logging.info('@sahiltyagi4 ASP should training stop ' + str(should_training_stop))
