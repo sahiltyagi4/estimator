@@ -844,7 +844,7 @@ class _TrainingExecutor(object):
       #@sahiltyagi4: call input fn here instead of the initial input fn defined with Estimator object.
       logging.info('@sahiltyagi4 going to switch the input function with a batch-size!!!!')
       switched_input_fn = config.get_switched_input_fn
-      new_batch_size = os.environ['WORKER_BATCH_SIZE']
+      new_batch_size = int(os.environ['WORKER_BATCH_SIZE'])
       new_input_fn = functools.partial(
           switched_input_fn,
           config.get_datadir,

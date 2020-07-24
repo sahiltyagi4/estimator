@@ -1927,13 +1927,17 @@ class Estimator(object):
           logging.info('@sahiltyagi4 new batches: ' + str(new_batch_sizes))
           raise ValueError('batch-size list length changed in iterations!')
 
-          # setting env variable on per-worker basis to use in switch input fn for dynamic batching WITHOUT kill-restart technique
-          if w_type == 'master':
-              os.environ['WORKER_BATCH_SIZE'] = normalized_updated_batch_sizes[w_index + num_ps]
-          elif w_type == 'worker':
-              # plus 1 below signifies 'master' node
-              os.environ['WORKER_BATCH_SIZE'] = normalized_updated_batch_sizes[num_ps + 1 + w_index]
+          # # setting env variable on per-worker basis to use in switch input fn for dynamic batching WITHOUT kill-restart technique
+          # if w_type == 'master':
+          #     os.environ['WORKER_BATCH_SIZE'] = normalized_updated_batch_sizes[w_index + num_ps]
+          # elif w_type == 'worker':
+          #     # plus 1 below signifies 'master' node
+          #     os.environ['WORKER_BATCH_SIZE'] = normalized_updated_batch_sizes[num_ps + 1 + w_index]
 
+        if w_type == 'master':
+            os.environ['WORKER_BATCH_SIZE'] = str(int(new_batch_sizes[w_index + num_ps]))
+        elif w_type == 'worker':
+            os.environ['WORKER_BATCH_SIZE'] = str(int(new_batch_sizes[num_ps + 1 + w_index]))
 
         for ix in range(0, len(old_batch_sizes)):
           delta = new_batch_sizes[ix] - old_batch_sizes[ix]
