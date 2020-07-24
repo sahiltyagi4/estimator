@@ -2050,10 +2050,10 @@ class Estimator(object):
 
       #setting env variable on per-worker basis to use in switch input fn for dynamic batching WITHOUT kill-restart technique
       if w_type == 'master':
-          os.environ['WORKER_BATCH_SIZE'] = normalized_updated_batch_sizes[w_index + num_ps]
+          os.environ['WORKER_BATCH_SIZE'] = str(int(normalized_updated_batch_sizes[w_index + num_ps]))
       elif w_type == 'worker':
           # plus 1 below signifies 'master' node
-          os.environ['WORKER_BATCH_SIZE'] = normalized_updated_batch_sizes[num_ps + 1 + w_index]
+          os.environ['WORKER_BATCH_SIZE'] = str(int(normalized_updated_batch_sizes[num_ps + 1 + w_index]))
 
       logging.info('@sahiltyagi4 normalized updated batch-sizes after two-level normalization are ' + str(normalized_updated_batch_sizes))
 
