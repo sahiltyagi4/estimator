@@ -1704,7 +1704,7 @@ class Estimator(object):
 
   def remove_window_logs(self, model_dir, w_type, w_index):
       f = os.path.join(model_dir, 'should_training_stop.conf')
-      if os.path.exists(f):
+      if os.path.exists(f) and w_type == 'master':
           os.remove(f)
       f = os.path.join(model_dir, w_type+'-'+str(w_index)+'-training.conf')
       if os.path.exists(f):
