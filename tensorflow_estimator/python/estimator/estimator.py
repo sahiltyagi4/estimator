@@ -1715,6 +1715,8 @@ class Estimator(object):
       for i in range(0, (num_workers-1)):
           training_status_logs.append(('worker-'+str(i)+'-training.conf'))
 
+      return training_status_logs
+
   def check_workers_training_status(self, model_dir, training_status_logs, num_workers):
       while True:
           ctr = 0
