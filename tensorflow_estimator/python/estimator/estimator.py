@@ -1616,6 +1616,8 @@ class Estimator(object):
                 # here all workers wait for master to tell them about the training status
                 should_training_stop = self.read_should_training_stop(self._model_dir, w_type, w_index)
                 self.check_workers_training_status(self._model_dir, training_status_logs, num_workers)
+                current_batchsizes = self.fetch_current_batchisizes(self._model_dir)
+                self.set_worker_batchsize(w_type, w_index, num_ps, current_batchsizes)
 
                 window_computation_time = []
                 if should_training_stop:
@@ -1662,6 +1664,8 @@ class Estimator(object):
                   should_training_stop = self.read_should_training_stop(self._model_dir, w_type, w_index)
                   logging.info('@sahiltyagi4 ASP should training stop ' + str(should_training_stop))
                   self.check_workers_training_status(self._model_dir, training_status_logs, num_workers)
+                  current_batchsizes = self.fetch_current_batchisizes(self._model_dir)
+                  self.set_worker_batchsize(w_type, w_index, num_ps, current_batchsizes)
                   #are_sessions_closed = self.are_all_sessions_terminated(self._model_dir,
                   # nonetype_filenames, num_workers)
                   #when all sessions are made Nonetype, only then kill and restart model
@@ -1694,6 +1698,12 @@ class Estimator(object):
     file = open(f, 'w')
     file.write(str(should_training_stop) + ',1')
     file.close()
+
+  def set_worker_batchsize(self, w_type, w_index, num_ps, current_batchsizes):
+      if w_type == 'master':
+          os.environ['WORKER_BATCH_SIZE'] = str(int(current_batchsizes[w_index + num_ps]))
+      elif w_type == 'worker':
+          os.environ['WORKER_BATCH_SIZE'] = str(int(current_batchsizes[w_index + num_ps + 1]))
 
   def read_should_training_stop(self, model_dir, w_type, w_index):
     f = os.path.join(model_dir, 'should_training_stop.conf')
@@ -1986,7 +1996,7 @@ class Estimator(object):
         return should_training_stop
       
       elif adjustment_mode == 'deadbanding':
-        old_batch_sizes = self.fetch_oldbatchisizes(self._model_dir)
+        old_batch_sizes = self.fetch_current_batchisizes(self._model_dir)
         new_batch_sizes = self.determine_batchsizes(cluster_avg_time, gradient_computation_time,
                                                     old_batch_sizes, b_static, num_workers)
         if len(old_batch_sizes) != len(new_batch_sizes):
@@ -2038,16 +2048,16 @@ class Estimator(object):
       file.write(finalstring)
       file.close()
 
-  def fetch_oldbatchisizes(self, model_dir):
-    old_batchsizes = []
+  def fetch_current_batchisizes(self, model_dir):
+    current_batchsizes = []
     outfile = 'clusterbatchsizes.conf'
     f = os.path.join(model_dir, outfile)
     file = open(f, 'r')
     for val in file.readline().split(','):
-      old_batchsizes.append(float(val.replace('[', '').replace(']', '')))
+      current_batchsizes.append(float(val.replace('[', '').replace(']', '')))
   
     file.close()
-    return old_batchsizes
+    return current_batchsizes
 
   def determine_batchsizes(self, cluster_avg_time, gradient_computation_time, old_batchsizes, b_static, num_workers):
     fraction_perworker = []
@@ -2115,14 +2125,6 @@ class Estimator(object):
 
       delta = (b_static*num_workers) - cumulative_batch_size
       normalized_updated_batch_sizes = self.normalize_batch_sizes(delta, updated_batchsizes)
-
-      #setting env variable on per-worker basis to use in switch input fn for dynamic batching WITHOUT kill-restart technique
-      if w_type == 'master':
-          os.environ['WORKER_BATCH_SIZE'] = str(int(normalized_updated_batch_sizes[w_index + num_ps]))
-      elif w_type == 'worker':
-          # plus 1 below signifies 'master' node
-          os.environ['WORKER_BATCH_SIZE'] = str(int(normalized_updated_batch_sizes[num_ps + 1 + w_index]))
-
       logging.info('@sahiltyagi4 normalized updated batch-sizes after two-level normalization are ' + str(normalized_updated_batch_sizes))
 
       if w_type == 'master':
