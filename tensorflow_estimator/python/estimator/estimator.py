@@ -1525,17 +1525,19 @@ class Estimator(object):
       run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
       run_metadata = tf.RunMetadata()
       switch_input_fn = False
+      global_current_step = 0
 
       #while not mon_sess.should_stop():
       while mon_sess is not None and not switch_input_fn:
           local_step = tf.get_default_graph().get_tensor_by_name('current_local_step:0')
-          global_current_step = mon_sess.run(tf.train.get_or_create_global_step())
+          #global_current_step = mon_sess.run(tf.train.get_or_create_global_step())
           if (global_current_step - local_step) <= int(estimator_spec.staleness):
               step_start = time.time()
               should_training_stop = False
               _, loss, curr_global_step = mon_sess.run([estimator_spec.train_op, estimator_spec.loss,
                                                         tf.train.get_or_create_global_step()], options=run_options,
                                                        run_metadata=run_metadata)
+              global_current_step = curr_global_step
               step_end = time.time()
               any_step_done = True
               logging.info('@sahiltyagi train_op iteration time given worker is ' + str(step_end - step_start)
