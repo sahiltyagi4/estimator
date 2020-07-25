@@ -1618,6 +1618,7 @@ class Estimator(object):
                 self.check_workers_training_status(self._model_dir, training_status_logs, num_workers)
                 current_batchsizes = self.fetch_current_batchisizes(self._model_dir)
                 self.set_worker_batchsize(w_type, w_index, num_ps, current_batchsizes)
+                self.remove_window_logs(self._model_dir, w_type, w_index)
 
                 window_computation_time = []
                 if should_training_stop:
@@ -1666,6 +1667,8 @@ class Estimator(object):
                   self.check_workers_training_status(self._model_dir, training_status_logs, num_workers)
                   current_batchsizes = self.fetch_current_batchisizes(self._model_dir)
                   self.set_worker_batchsize(w_type, w_index, num_ps, current_batchsizes)
+                  self.remove_window_logs(self._model_dir, w_type, w_index)
+
                   #are_sessions_closed = self.are_all_sessions_terminated(self._model_dir,
                   # nonetype_filenames, num_workers)
                   #when all sessions are made Nonetype, only then kill and restart model
@@ -1698,6 +1701,14 @@ class Estimator(object):
     file = open(f, 'w')
     file.write(str(should_training_stop) + ',1')
     file.close()
+
+  def remove_window_logs(self, model_dir, w_type, w_index):
+      f = os.path.join(model_dir, 'should_training_stop.conf')
+      if os.path.exists(f):
+          os.remove(f)
+      f = os.path.join(model_dir, w_type+'-'+str(w_index)+'-training.conf')
+      if os.path.exists(f):
+          os.remove(f)
 
   def set_worker_batchsize(self, w_type, w_index, num_ps, current_batchsizes):
       if w_type == 'master':
