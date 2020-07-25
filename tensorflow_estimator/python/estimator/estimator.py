@@ -1529,7 +1529,7 @@ class Estimator(object):
 
       #while not mon_sess.should_stop():
       while mon_sess is not None and not switch_input_fn:
-          local_step = tf.get_default_graph().get_tensor_by_name('current_local_step:0')
+          local_step =  mon_sess.run(tf.get_default_graph().get_tensor_by_name('current_local_step:0'))
           logging.info('@sahiltyagi4 local current step is ' + str(local_step))
           #global_current_step = mon_sess.run(tf.train.get_or_create_global_step())
           if True:
