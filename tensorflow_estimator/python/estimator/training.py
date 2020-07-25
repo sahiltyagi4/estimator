@@ -863,8 +863,8 @@ class _TrainingExecutor(object):
           hooks=list(self._train_spec.hooks) + list(self._train_hooks),
           saving_listeners=saving_listeners)
 
-      logging.info('@sahiltyagi4 start time on switch input fn ' + start_time)
-      logging.info('@sahiltyagi4 end time on switch input fn ' + time.time())
+      logging.info('@sahiltyagi4 start time on switch input fn ' + str(start_time))
+      logging.info('@sahiltyagi4 end time on switch input fn ' + str(time.time()))
 
       if not should_switch_input_fn:
         logging.info('Loss for final step: %s.', loss)
