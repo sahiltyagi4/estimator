@@ -1544,7 +1544,7 @@ class Estimator(object):
               _, loss, curr_global_step = mon_sess.run([estimator_spec.train_op, estimator_spec.loss,
                                                         tf.train.get_or_create_global_step()], options=run_options,
                                                        run_metadata=run_metadata)
-              local_current_step = local_current_step + 1
+              local_current_step = curr_global_step
               step_end = time.time()
               any_step_done = True
               logging.info('@sahiltyagi train_op iteration time given worker is ' + str(step_end - step_start)
@@ -1641,7 +1641,7 @@ class Estimator(object):
                           window_computation_time = []
                           if should_training_stop:
                               # save local step to be picked later when switching input fn with new batch-size
-                              self.log_local_step(self._model_dir, local_current_step, w_type, w_index)
+                              self.log_local_step(self._model_dir, curr_global_step, w_type, w_index)
                               if not mon_sess._is_closed():
                                   logging.info('@sahiltyagi4 made monitored session Nonetype')
                                   switch_input_fn = True
