@@ -1525,21 +1525,26 @@ class Estimator(object):
       run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
       run_metadata = tf.RunMetadata()
       switch_input_fn = False
-      global_current_step = 0
+      local_current_step = 0
+      step_file = os.path.join(self._model_dir, 'localstep-'+w_type+str(w_index)+'.log')
+      if os.path.exists(step_file):
+          file = open(file, 'r')
+          local_current_step = int(file.readline())
+          file.close()
 
       #while not mon_sess.should_stop():
       while mon_sess is not None and not switch_input_fn:
-          local_step =  mon_sess.run(tf.get_default_graph().get_tensor_by_name('resnet/tower_0/local_step_variable:0'))
-          logging.info('@sahiltyagi4 local current step is ' + str(local_step))
-          #global_current_step = mon_sess.run(tf.train.get_or_create_global_step())
-          if True:
-          #if (global_current_step - local_step) <= int(estimator_spec.staleness):
+          global_current_step = mon_sess.run(tf.train.get_or_create_global_step())
+          logging.info('@sahiltyagi4 logged global step is ' + str(global_current_step))
+          logging.info('@sahiltyagi4 logged local step is ' + str(local_current_step))
+          #if True:
+          if (global_current_step - local_current_step) <= int(estimator_spec.staleness):
               step_start = time.time()
               should_training_stop = False
               _, loss, curr_global_step = mon_sess.run([estimator_spec.train_op, estimator_spec.loss,
                                                         tf.train.get_or_create_global_step()], options=run_options,
                                                        run_metadata=run_metadata)
-              global_current_step = curr_global_step
+              local_current_step = local_current_step + 1
               step_end = time.time()
               any_step_done = True
               logging.info('@sahiltyagi train_op iteration time given worker is ' + str(step_end - step_start)
@@ -1635,6 +1640,8 @@ class Estimator(object):
 
                           window_computation_time = []
                           if should_training_stop:
+                              # save local step to be picked later when switching input fn with new batch-size
+                              self.log_local_step(self._model_dir, local_current_step, w_type, w_index)
                               if not mon_sess._is_closed():
                                   logging.info('@sahiltyagi4 made monitored session Nonetype')
                                   switch_input_fn = True
@@ -1691,6 +1698,8 @@ class Estimator(object):
                               # when all sessions are made Nonetype, only then kill and restart model
                               # if should_training_stop and are_sessions_closed:
                               if should_training_stop:
+                                  # save local step to be picked later when switching input fn with new batch-size
+                                  self.log_local_step(self._model_dir, local_current_step, w_type, w_index)
                                   if not mon_sess._is_closed():
                                       # May 10th ACSOS. delete all worker files once done.
                                       self.delete_avg_computationtime_files(self._model_dir,
@@ -1714,6 +1723,12 @@ class Estimator(object):
           # pylint: disable=W0212
           session = session._sess
       return
+
+  def log_local_step(self, model_dir, local_step, w_type, w_index):
+      f = os.path.join(model_dir, 'localstep-'+w_type+str(w_index)+'.log')
+      file = open(f, 'w')
+      file.write(local_step)
+      file.close()
 
   def log_should_training_stop(self, model_dir, should_training_stop):
     f = os.path.join(model_dir, 'should_training_stop.conf')
