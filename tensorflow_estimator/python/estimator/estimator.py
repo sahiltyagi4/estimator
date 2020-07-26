@@ -1528,7 +1528,7 @@ class Estimator(object):
       local_current_step = 0
       step_file = os.path.join(self._model_dir, 'localstep-'+w_type+str(w_index)+'.log')
       if os.path.exists(step_file):
-          file = open(file, 'r')
+          file = open(step_file, 'r')
           local_current_step = int(file.readline())
           file.close()
 
