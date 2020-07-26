@@ -1727,7 +1727,7 @@ class Estimator(object):
   def log_local_step(self, model_dir, local_step, w_type, w_index):
       f = os.path.join(model_dir, 'localstep-'+w_type+str(w_index)+'.log')
       file = open(f, 'w')
-      file.write(local_step)
+      file.write(str(local_step))
       file.close()
 
   def log_should_training_stop(self, model_dir, should_training_stop):
