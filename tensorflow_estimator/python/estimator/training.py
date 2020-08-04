@@ -697,6 +697,7 @@ class _TrainingExecutor(object):
   def run_worker(self):
     """Runs task (training) worker."""
     # TODO(xiejw): To allow execution framework to add train hooks.
+    logging.info('@sahiltyagi4 called run_worker again!')
     return self._start_distributed_training()
 
   def run_master(self):
@@ -714,6 +715,7 @@ class _TrainingExecutor(object):
     #
     # But here, throttle_secs will skip the next intermediate checkpoint and,
     # so, the double final export chance is very small.
+    logging.info('@sahiltyagi4 called run_master again!')
     evaluator = _TrainingExecutor._Evaluator(self._estimator, self._eval_spec,
                                              self._train_spec.max_steps)
 
@@ -740,6 +742,7 @@ class _TrainingExecutor(object):
   def run_local(self):
     """Runs training and evaluation locally (non-distributed)."""
     _assert_eval_spec(self._eval_spec)
+    logging.info('@sahiltyagi4 doing test with local run here!')
 
     train_hooks = list(self._train_spec.hooks) + list(self._train_hooks)
     logging.info('Start train and evaluate loop. The evaluate will happen '
@@ -863,8 +866,7 @@ class _TrainingExecutor(object):
           hooks=list(self._train_spec.hooks) + list(self._train_hooks),
           saving_listeners=saving_listeners)
 
-      logging.info('@sahiltyagi4 start time on switch input fn ' + str(start_time))
-      logging.info('@sahiltyagi4 end time on switch input fn ' + str(time.time()))
+      logging.info('@sahiltyagi4 start time on switch input fn ' + str(start_time) + ' and end time on switch input fn ' + str(time.time()))
 
       if not should_switch_input_fn:
         logging.info('Loss for final step: %s.', loss)

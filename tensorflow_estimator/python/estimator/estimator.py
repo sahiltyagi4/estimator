@@ -1712,7 +1712,7 @@ class Estimator(object):
                                       break
           else:
               logging.info('@sahiltyagi4 ignored update due to staleness bound for local step '
-                           + str(local_current_step) + ' and current global step ' + str(curr_global_step))
+                           + str(local_current_step) + ' and current global step ' + str(global_current_step))
 
     if not any_step_done:
       logging.warning('Training with estimator made no steps. '
