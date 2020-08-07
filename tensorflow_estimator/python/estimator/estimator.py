@@ -1629,7 +1629,7 @@ class Estimator(object):
                                                                                  num_workers,
                                                                                  estimator_spec.adjustment_mode,
                                                                                  w_index, num_ps)
-                              self.log_should_training_stop(self._model_dir, should_master_stop)
+                              self.log_should_training_stop(self._model_dir, should_master_stop, curr_global_step)
 
                           # here all workers wait for master to tell them about the training status
                           should_training_stop = self.read_should_training_stop(self._model_dir, w_type, w_index, curr_global_step)
@@ -1685,12 +1685,12 @@ class Estimator(object):
                                                                                      curr_global_step, b_static,
                                                                                      num_workers,
                                                                                      estimator_spec.adjustment_mode)
-                                  self.log_should_training_stop(self._model_dir, should_master_stop)
+                                  self.log_should_training_stop(self._model_dir, should_master_stop, curr_global_step)
 
                               should_training_stop = self.read_should_training_stop(self._model_dir, w_type, w_index)
                               logging.info('@sahiltyagi4 ASP should training stop ' + str(should_training_stop))
 
-                              # Aug 7 2020. ADDRESS THIS...LED TO RACE CONDITION. FIND A FIX
+                              # Aug 7 2020. ADDRESS THIS...LED TO A RACE CONDITION. FIND A FIX FOR ASP
                               # self.check_workers_training_status(self._model_dir, training_status_logs, num_workers)
 
                               current_batchsizes = self.fetch_current_batchisizes(self._model_dir)
@@ -1737,7 +1737,7 @@ class Estimator(object):
       file.write(str(local_step))
       file.close()
 
-  def log_should_training_stop(self, model_dir, should_training_stop):
+  def log_should_training_stop(self, model_dir, should_training_stop, current_step):
     f = os.path.join(model_dir, 'should_training_stop.conf')
     file = open(f, 'w')
     file.write(str(should_training_stop) + ',1')
@@ -1796,9 +1796,11 @@ class Estimator(object):
           ctr = 0
           for logfile in training_status_logs:
               f=os.path.join(model_dir, logfile)
-              file = open(f, 'r')
-              ctr = ctr + int(file.readline().split(',')[1])
-
+              if os.path.exists(f):
+                  file = open(f, 'r')
+                  line = file.readline().split(',')
+                  if len(line) == 2:
+                      ctr = ctr + int(line[1])
           if ctr == num_workers * global_step:
               logging.info('@sahiltyagi4 all workers processed current step in synchronous training...')
               break
