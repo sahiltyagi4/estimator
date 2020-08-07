@@ -1632,12 +1632,12 @@ class Estimator(object):
                               self.log_should_training_stop(self._model_dir, should_master_stop)
 
                           # here all workers wait for master to tell them about the training status
-                          should_training_stop = self.read_should_training_stop(self._model_dir, w_type, w_index)
+                          should_training_stop = self.read_should_training_stop(self._model_dir, w_type, w_index, curr_global_step)
                           self.check_workers_training_status_bsp(self._model_dir, training_status_logs, num_workers,
                                                                  curr_global_step)
                           current_batchsizes = self.fetch_current_batchisizes(self._model_dir)
                           self.set_worker_batchsize(w_type, w_index, num_ps, current_batchsizes)
-                          self.remove_window_logs(self._model_dir, w_type, w_index)
+                          # self.remove_window_logs(self._model_dir, w_type, w_index)
 
                           window_computation_time = []
                           if should_training_stop:
@@ -1695,7 +1695,7 @@ class Estimator(object):
 
                               current_batchsizes = self.fetch_current_batchisizes(self._model_dir)
                               self.set_worker_batchsize(w_type, w_index, num_ps, current_batchsizes)
-                              self.remove_window_logs(self._model_dir, w_type, w_index)
+                              # self.remove_window_logs(self._model_dir, w_type, w_index)
 
                               # are_sessions_closed = self.are_all_sessions_terminated(self._model_dir,
                               # nonetype_filenames, num_workers)
@@ -1743,13 +1743,13 @@ class Estimator(object):
     file.write(str(should_training_stop) + ',1')
     file.close()
 
-  def remove_window_logs(self, model_dir, w_type, w_index):
-      f = os.path.join(model_dir, 'should_training_stop.conf')
-      if os.path.exists(f) and w_type == 'master':
-          os.remove(f)
-      f = os.path.join(model_dir, w_type+'-'+str(w_index)+'-training.conf')
-      if os.path.exists(f):
-          os.remove(f)
+  # def remove_window_logs(self, model_dir, w_type, w_index):
+  #     f = os.path.join(model_dir, 'should_training_stop.conf')
+  #     if os.path.exists(f) and w_type == 'master':
+  #         os.remove(f)
+  #     f = os.path.join(model_dir, w_type+'-'+str(w_index)+'-training.conf')
+  #     if os.path.exists(f):
+  #         os.remove(f)
 
   def set_worker_batchsize(self, w_type, w_index, num_ps, current_batchsizes):
       if w_type == 'master':
@@ -1757,7 +1757,7 @@ class Estimator(object):
       elif w_type == 'worker':
           os.environ['WORKER_BATCH_SIZE'] = str(int(current_batchsizes[w_index + num_ps + 1]))
 
-  def read_should_training_stop(self, model_dir, w_type, w_index):
+  def read_should_training_stop(self, model_dir, w_type, w_index, global_step):
     f = os.path.join(model_dir, 'should_training_stop.conf')
     while True:
         if os.path.exists(f):
@@ -1767,7 +1767,7 @@ class Estimator(object):
             break
     f = os.path.join(model_dir, w_type+'-'+str(w_index)+'-training.conf')
     file = open(f, 'w')
-    file.write('wrote training status for ' + w_type + '-' + str(w_index))
+    file.write('wrote training status for ' + w_type + '-' + str(w_index) + ',' + str(global_step))
     file.close()
     return should_training_stop
 
