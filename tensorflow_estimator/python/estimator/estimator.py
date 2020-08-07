@@ -1633,7 +1633,8 @@ class Estimator(object):
 
                           # here all workers wait for master to tell them about the training status
                           should_training_stop = self.read_should_training_stop(self._model_dir, w_type, w_index)
-                          self.check_workers_training_status(self._model_dir, training_status_logs, num_workers)
+                          self.check_workers_training_status_bsp(self._model_dir, training_status_logs, num_workers,
+                                                                 curr_global_step)
                           current_batchsizes = self.fetch_current_batchisizes(self._model_dir)
                           self.set_worker_batchsize(w_type, w_index, num_ps, current_batchsizes)
                           self.remove_window_logs(self._model_dir, w_type, w_index)
@@ -1688,7 +1689,10 @@ class Estimator(object):
 
                               should_training_stop = self.read_should_training_stop(self._model_dir, w_type, w_index)
                               logging.info('@sahiltyagi4 ASP should training stop ' + str(should_training_stop))
-                              self.check_workers_training_status(self._model_dir, training_status_logs, num_workers)
+
+                              # Aug 7 2020. ADDRESS THIS...LED TO RACE CONDITION. FIND A FIX
+                              # self.check_workers_training_status(self._model_dir, training_status_logs, num_workers)
+
                               current_batchsizes = self.fetch_current_batchisizes(self._model_dir)
                               self.set_worker_batchsize(w_type, w_index, num_ps, current_batchsizes)
                               self.remove_window_logs(self._model_dir, w_type, w_index)
@@ -1775,16 +1779,28 @@ class Estimator(object):
 
       return training_status_logs
 
-  def check_workers_training_status(self, model_dir, training_status_logs, num_workers):
+  # def check_workers_training_status(self, model_dir, training_status_logs, num_workers):
+  #     while True:
+  #         ctr = 0
+  #         for logfile in training_status_logs:
+  #             f=os.path.join(model_dir, logfile)
+  #             if os.path.exists(f):
+  #                 ctr = ctr+1
+  #             else:
+  #                 break
+  #         if ctr == num_workers:
+  #             break
+
+  def check_workers_training_status_bsp(self, model_dir, training_status_logs, num_workers, global_step):
       while True:
           ctr = 0
           for logfile in training_status_logs:
               f=os.path.join(model_dir, logfile)
-              if os.path.exists(f):
-                  ctr = ctr+1
-              else:
-                  break
-          if ctr == num_workers:
+              file = open(f, 'r')
+              ctr = ctr + int(file.readline().split(',')[1])
+
+          if ctr == num_workers * global_step:
+              logging.info('@sahiltyagi4 all workers processed current step in synchronous training...')
               break
 
   def write_gradients_to_file(self, model_dir, w_name, w_index, grads):
