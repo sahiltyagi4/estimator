@@ -1503,8 +1503,8 @@ class Estimator(object):
     onetimeflag = True
     anotheronetimeflag = True
 
-    if w_type == 'master':
-        saver = tf.train.Saver()
+    # if w_type == 'master':
+    #     saver = tf.train.Saver()
     with training.MonitoredTrainingSession(
         master=self._config.master,
         is_chief=self._config.is_chief,
@@ -1520,8 +1520,8 @@ class Estimator(object):
 
       loss = None
       any_step_done = False
-      for op in tf.get_default_graph().get_operations():
-          logging.info('***************************variables and op names are: ' + str(op.name))
+      # for op in tf.get_default_graph().get_operations():
+      #     logging.info('***************************variables and op names are: ' + str(op.name))
       run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
       run_metadata = tf.RunMetadata()
       switch_input_fn = False
@@ -1533,7 +1533,7 @@ class Estimator(object):
           file.close()
 
       #while not mon_sess.should_stop():
-      while mon_sess is not None:
+      while mon_sess is not None and not switch_input_fn:
           global_current_step = mon_sess.run(tf.train.get_or_create_global_step())
           logging.info('@sahiltyagi4 logged global step is ' + str(global_current_step))
           logging.info('@sahiltyagi4 logged local step is ' + str(local_current_step))
