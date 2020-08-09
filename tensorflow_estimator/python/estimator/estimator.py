@@ -1763,7 +1763,9 @@ class Estimator(object):
     while True:
         if os.path.exists(f):
             file = open(f, 'r')
-            should_training_stop = bool(file.readline().split(',')[0])
+            line = file.readline()
+            should_training_stop = bool(line.split(',')[0])
+            logging.info('DEBUG MODE READ_SHOULD_TRAINING_STOP FN...' + str(should_training_stop))
             file.close()
             break
     f = os.path.join(model_dir, w_type+'-'+str(w_index)+'-training.conf')
