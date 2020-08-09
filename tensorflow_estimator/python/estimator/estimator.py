@@ -1533,7 +1533,7 @@ class Estimator(object):
           file.close()
 
       #while not mon_sess.should_stop():
-      while mon_sess is not None and not switch_input_fn:
+      while mon_sess is not None:
           global_current_step = mon_sess.run(tf.train.get_or_create_global_step())
           logging.info('@sahiltyagi4 logged global step is ' + str(global_current_step))
           logging.info('@sahiltyagi4 logged local step is ' + str(local_current_step))
@@ -1573,11 +1573,11 @@ class Estimator(object):
 
               if len(op_ts) > 0:
                   final_endtime = time.time()
-                  if anotheronetimeflag:
-                      f = open(self._model_dir + '/correctGPUctf.json', 'w')
-                      f.write(str(ctf))
-                      f.close()
-                      anotheronetimeflag = False
+                  # if anotheronetimeflag:
+                  #     f = open(self._model_dir + '/correctGPUctf.json', 'w')
+                  #     f.write(str(ctf))
+                  #     f.close()
+                  #     anotheronetimeflag = False
 
                   logging.info('@sahiltyagi upto COMPUTE GRADS call time is ' + str((max(op_ts) - min(op_ts)) / 1000)
                                + 'ms with starttime ' + str(min(op_ts) / 1000000) + ' and endtime '
@@ -1629,12 +1629,13 @@ class Estimator(object):
                                                                                  num_workers,
                                                                                  estimator_spec.adjustment_mode,
                                                                                  w_index, num_ps)
+                              logging.info('DEBUG LOGGING FOR SHOULD_MASTER_STOP ' + str(should_master_stop))
                               self.log_should_training_stop(self._model_dir, should_master_stop, curr_global_step)
 
                           # here all workers wait for master to tell them about the training status
                           should_training_stop = self.read_should_training_stop(self._model_dir, w_type, w_index, curr_global_step)
                           self.check_workers_training_status_bsp(self._model_dir, training_status_logs, num_workers,
-                                                                 curr_global_step)
+                                                                 curr_global_step, w_type)
                           current_batchsizes = self.fetch_current_batchisizes(self._model_dir)
                           self.set_worker_batchsize(w_type, w_index, num_ps, current_batchsizes)
                           # self.remove_window_logs(self._model_dir, w_type, w_index)
@@ -1740,7 +1741,7 @@ class Estimator(object):
   def log_should_training_stop(self, model_dir, should_training_stop, current_step):
     f = os.path.join(model_dir, 'should_training_stop.conf')
     file = open(f, 'w')
-    file.write(str(should_training_stop) + ',1')
+    file.write(str(should_training_stop) + ',' + current_step)
     file.close()
 
   # def remove_window_logs(self, model_dir, w_type, w_index):
@@ -1791,7 +1792,7 @@ class Estimator(object):
   #         if ctr == num_workers:
   #             break
 
-  def check_workers_training_status_bsp(self, model_dir, training_status_logs, num_workers, global_step):
+  def check_workers_training_status_bsp(self, model_dir, training_status_logs, num_workers, global_step, w_type):
       while True:
           ctr = 0
           for logfile in training_status_logs:
@@ -1802,8 +1803,14 @@ class Estimator(object):
                   if len(line) == 2:
                       ctr = ctr + int(line[1])
           if ctr == num_workers * global_step:
+              self.remove_training_status_log(model_dir, w_type)
               logging.info('@sahiltyagi4 all workers processed current step in synchronous training...')
               break
+
+  def remove_training_status_log(self, model_dir, w_type):
+      f = os.path.join(model_dir, 'should_training_stop.conf')
+      if os.path.exists(f) and w_type == 'master':
+          os.remove(f)
 
   def write_gradients_to_file(self, model_dir, w_name, w_index, grads):
       f = os.path.join(model_dir, 'gradient_'+w_name+w_index+'.txt')
