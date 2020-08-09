@@ -1741,7 +1741,7 @@ class Estimator(object):
   def log_should_training_stop(self, model_dir, should_training_stop, current_step):
     f = os.path.join(model_dir, 'should_training_stop.conf')
     file = open(f, 'w')
-    file.write(str(should_training_stop) + ',' + current_step)
+    file.write(str(should_training_stop) + ',' + str(current_step))
     file.close()
 
   # def remove_window_logs(self, model_dir, w_type, w_index):
