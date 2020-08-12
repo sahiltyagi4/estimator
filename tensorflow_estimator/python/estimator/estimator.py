@@ -1638,6 +1638,7 @@ class Estimator(object):
                           logging.info('@sahiltyagi4 global step being fed is ' + str(curr_global_step))
                           should_training_stop = self.sync_workers_should_training_stop(self._model_dir, w_type, w_index,
                                                                                curr_global_step)
+                          logging.info('@sahiltyagi4 value returned  for training status is ' + str(should_training_stop))
                           # self.check_workers_training_status_bsp(self._model_dir, training_status_logs, num_workers,
                           #                                        curr_global_step, w_type)
                           self.sync_check_training_stop(self._model_dir, training_status_logs, num_workers,
@@ -1812,9 +1813,9 @@ class Estimator(object):
               f = os.path.join(model_dir, logfile)
               if os.path.exists(f):
                   file = open(f, 'r')
-                  str = file.readline()
-                  if len(str) == 2 and int(str.split(',')[1]) == global_step:
-                      ctr = ctr + int(str.split(',')[1])
+                  line = file.readline()
+                  if len(line.split(',')) == 2 and int(line.split(',')[1]) == global_step:
+                      ctr = ctr + int(line.split(',')[1])
 
           if ctr == num_workers * global_step:
               logging.info('@sahiltyagi4 all workers processed current step in synchronous training...')
