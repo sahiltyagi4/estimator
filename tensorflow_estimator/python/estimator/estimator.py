@@ -1635,6 +1635,7 @@ class Estimator(object):
                           # here all workers wait for master to tell them about the training status
                           # should_training_stop = self.read_should_training_stop(self._model_dir, w_type, w_index,
                           # curr_global_step)
+                          logging.info('@sahiltyagi4 global step being fed is ' + str(curr_global_step))
                           should_training_stop = self.sync_workers_should_training_stop(self._model_dir, w_type, w_index,
                                                                                curr_global_step)
                           # self.check_workers_training_status_bsp(self._model_dir, training_status_logs, num_workers,
@@ -1770,7 +1771,7 @@ class Estimator(object):
               logging.info('@sahiltyagi4 list of training status log is ' + str(log_status.split(',')))
               file.close()
               if len(log_status.split(',')) == 2:
-                  if int(log_status.split(',')[1] == global_step):
+                  if int(log_status.split(',')[1]) == global_step:
                       should_training_stop = bool(log_status.split(',')[0])
                       logging.info('DEBUG MODE READ_SHOULD_TRAINING_STOP FN...' + str(should_training_stop))
                       break
