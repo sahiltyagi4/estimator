@@ -1765,13 +1765,13 @@ class Estimator(object):
       while True:
           if os.path.exists(f):
               file = open(f, 'r')
-              str = file.readline()
-              logging.info('@sahiltyagi4 random logging where worker reads training status....' + str(str))
-              logging.info('@sahiltyagi4 list of training status log is ' + str(str.split(',')))
+              log_status = file.readline()
+              logging.info('@sahiltyagi4 random logging where worker reads training status....' + str(log_status))
+              logging.info('@sahiltyagi4 list of training status log is ' + str(log_status.split(',')))
               file.close()
-              if len(str.split(',')) == 2:
-                  if int(str.split(',')[1] == global_step):
-                      should_training_stop = bool(str.split(',')[0])
+              if len(log_status.split(',')) == 2:
+                  if int(log_status.split(',')[1] == global_step):
+                      should_training_stop = bool(log_status.split(',')[0])
                       logging.info('DEBUG MODE READ_SHOULD_TRAINING_STOP FN...' + str(should_training_stop))
                       break
 
