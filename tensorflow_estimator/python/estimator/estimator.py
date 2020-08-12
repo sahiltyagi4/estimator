@@ -1767,10 +1767,11 @@ class Estimator(object):
               file = open(f, 'r')
               str = file.readline()
               file.close()
-              if int(str.split(',')[1] == global_step):
-                  should_training_stop = bool(str.split(',')[0])
-                  logging.info('DEBUG MODE READ_SHOULD_TRAINING_STOP FN...' + str(should_training_stop))
-                  break
+              if len(str.split(',')) == 2:
+                  if int(str.split(',')[1] == global_step):
+                      should_training_stop = bool(str.split(',')[0])
+                      logging.info('DEBUG MODE READ_SHOULD_TRAINING_STOP FN...' + str(should_training_stop))
+                      break
 
       f = os.path.join(model_dir, w_type + '-' + str(w_index) + '-training.conf')
       file = open(f, 'w')
