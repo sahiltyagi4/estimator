@@ -1766,7 +1766,8 @@ class Estimator(object):
           if os.path.exists(f):
               file = open(f, 'r')
               str = file.readline()
-              logging.info('@sahiltyagi4 random logging where worker reads training status....')
+              logging.info('@sahiltyagi4 random logging where worker reads training status....' + str(str))
+              logging.info('@sahiltyagi4 list of training status log is ' + str(str.split(',')))
               file.close()
               if len(str.split(',')) == 2:
                   if int(str.split(',')[1] == global_step):
