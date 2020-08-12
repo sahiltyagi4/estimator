@@ -844,7 +844,7 @@ class _TrainingExecutor(object):
       time.sleep(start_delay_secs)
 
     while True:
-      #@sahiltyagi4: call input fn here instead of the initial input fn defined with Estimator object.
+      # @sahiltyagi4: call input fn here instead of the initial input fn defined with Estimator object.
       start_time = time.time()
       logging.info('@sahiltyagi4 going to switch the input function with a batch-size!!!!')
       switched_input_fn = config.get_switched_input_fn
@@ -860,11 +860,16 @@ class _TrainingExecutor(object):
 
       logging.info('@sahiltyagi4 value set for new batch-size on switched input fn is {}'.format(new_batch_size))
       loss, should_switch_input_fn = self._estimator.train(
-          # input_fn=self._train_spec.input_fn,
           input_fn=new_input_fn,
           max_steps=self._train_spec.max_steps,
           hooks=list(self._train_spec.hooks) + list(self._train_hooks),
           saving_listeners=saving_listeners)
+
+      # loss = self._estimator.train(
+      #     input_fn=self._train_spec.input_fn,
+      #     max_steps=self._train_spec.max_steps,
+      #     hooks=list(self._train_spec.hooks) + list(self._train_hooks),
+      #     saving_listeners=saving_listeners)
 
       logging.info('@sahiltyagi4 start time on switch input fn ' + str(start_time) + ' and end time on switch input fn ' + str(time.time()))
 

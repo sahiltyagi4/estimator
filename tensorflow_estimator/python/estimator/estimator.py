@@ -1633,9 +1633,14 @@ class Estimator(object):
                               self.log_should_training_stop(self._model_dir, should_master_stop, curr_global_step)
 
                           # here all workers wait for master to tell them about the training status
-                          should_training_stop = self.read_should_training_stop(self._model_dir, w_type, w_index, curr_global_step)
-                          self.check_workers_training_status_bsp(self._model_dir, training_status_logs, num_workers,
-                                                                 curr_global_step, w_type)
+                          # should_training_stop = self.read_should_training_stop(self._model_dir, w_type, w_index,
+                          # curr_global_step)
+                          should_stop = self.sync_workers_should_training_stop(self._model_dir, w_type, w_index,
+                                                                               curr_global_step)
+                          # self.check_workers_training_status_bsp(self._model_dir, training_status_logs, num_workers,
+                          #                                        curr_global_step, w_type)
+                          self.sync_check_training_stop(self._model_dir, training_status_logs, num_workers,
+                                                        curr_global_step)
                           current_batchsizes = self.fetch_current_batchisizes(self._model_dir)
                           self.set_worker_batchsize(w_type, w_index, num_ps, current_batchsizes)
                           # self.remove_window_logs(self._model_dir, w_type, w_index)
@@ -1648,7 +1653,10 @@ class Estimator(object):
                                   logging.info('@sahiltyagi4 made monitored session Nonetype')
                                   switch_input_fn = True
                                   mon_sess = None
-                                  break
+                                  # break
+                                  logging.info('@sahiltyagi4 going to return final loss now....')
+                                  return loss, switch_input_fn
+
                                   # if w_type == 'master':
                                   #   logging.info('@sahiltyagi4 looking to save checkpoint file for step ' + str(curr_step))
                                   #   # saver.save(self.get_session(mon_sess), os.path.join(self._model_dir, 'mymodel-'
@@ -1719,11 +1727,11 @@ class Estimator(object):
               logging.info('@sahiltyagi4 ignored update due to staleness bound for local step '
                            + str(local_current_step) + ' and current global step ' + str(global_current_step))
 
-    if not any_step_done:
-      logging.warning('Training with estimator made no steps. '
+      if not any_step_done:
+          logging.warning('Training with estimator made no steps. '
                       'Perhaps input is empty or misspecified.')
-    logging.info('@sahiltyagi4 going to return final loss now....')
-    return loss, switch_input_fn
+          # logging.info('@sahiltyagi4 going to return final loss now....')
+          # return loss, switch_input_fn
 
   def get_session(self,sess):
       session = sess
@@ -1741,16 +1749,9 @@ class Estimator(object):
   def log_should_training_stop(self, model_dir, should_training_stop, current_step):
     f = os.path.join(model_dir, 'should_training_stop.conf')
     file = open(f, 'w')
+    logging.info('@sahiltyagi4 going to write training_status as ' + str(should_training_stop))
     file.write(str(should_training_stop) + ',' + str(current_step))
     file.close()
-
-  # def remove_window_logs(self, model_dir, w_type, w_index):
-  #     f = os.path.join(model_dir, 'should_training_stop.conf')
-  #     if os.path.exists(f) and w_type == 'master':
-  #         os.remove(f)
-  #     f = os.path.join(model_dir, w_type+'-'+str(w_index)+'-training.conf')
-  #     if os.path.exists(f):
-  #         os.remove(f)
 
   def set_worker_batchsize(self, w_type, w_index, num_ps, current_batchsizes):
       if w_type == 'master':
@@ -1758,21 +1759,25 @@ class Estimator(object):
       elif w_type == 'worker':
           os.environ['WORKER_BATCH_SIZE'] = str(int(current_batchsizes[w_index + num_ps + 1]))
 
-  def read_should_training_stop(self, model_dir, w_type, w_index, global_step):
-    f = os.path.join(model_dir, 'should_training_stop.conf')
-    while True:
-        if os.path.exists(f):
-            file = open(f, 'r')
-            line = file.readline()
-            should_training_stop = bool(line.split(',')[0])
-            logging.info('DEBUG MODE READ_SHOULD_TRAINING_STOP FN...' + str(should_training_stop))
-            file.close()
-            break
-    f = os.path.join(model_dir, w_type+'-'+str(w_index)+'-training.conf')
-    file = open(f, 'w')
-    file.write('wrote training status for ' + w_type + '-' + str(w_index) + ',' + str(global_step))
-    file.close()
-    return should_training_stop
+  def sync_workers_should_training_stop(self, model_dir, w_type, w_index, global_step):
+      f = os.path.join(model_dir, 'should_training_stop.conf')
+      should_training_stop = False
+      while True:
+          if os.path.exists(f):
+              file = open(f, 'r')
+              str = file.readline()
+              file.close()
+              if int(str.split(',')[1] == global_step):
+                  should_training_stop = bool(str.split(',')[0])
+                  logging.info('DEBUG MODE READ_SHOULD_TRAINING_STOP FN...' + str(should_training_stop))
+                  break
+
+      f = os.path.join(model_dir, w_type + '-' + str(w_index) + '-training.conf')
+      file = open(f, 'w')
+      file.write(str(should_training_stop) + ',' + str(global_step))
+      file.close()
+      return should_training_stop
+
 
   def training_status_loglist(self, num_workers):
       training_status_logs = []
@@ -1782,37 +1787,34 @@ class Estimator(object):
 
       return training_status_logs
 
-  # def check_workers_training_status(self, model_dir, training_status_logs, num_workers):
+  # def check_workers_training_status_bsp(self, model_dir, training_status_logs, num_workers, global_step, w_type):
   #     while True:
   #         ctr = 0
   #         for logfile in training_status_logs:
   #             f=os.path.join(model_dir, logfile)
   #             if os.path.exists(f):
-  #                 ctr = ctr+1
-  #             else:
-  #                 break
-  #         if ctr == num_workers:
+  #                 file = open(f, 'r')
+  #                 line = file.readline().split(',')
+  #                 if len(line) == 2:
+  #                     ctr = ctr + int(line[1])
+  #         if ctr == num_workers * global_step:
+  #             logging.info('@sahiltyagi4 all workers processed current step in synchronous training...')
   #             break
 
-  def check_workers_training_status_bsp(self, model_dir, training_status_logs, num_workers, global_step, w_type):
+  def sync_check_training_stop(self, model_dir, training_status_logs, num_workers, global_step):
       while True:
-          ctr = 0
+          ctr=0
           for logfile in training_status_logs:
-              f=os.path.join(model_dir, logfile)
+              f = os.path.join(model_dir, logfile)
               if os.path.exists(f):
                   file = open(f, 'r')
-                  line = file.readline().split(',')
-                  if len(line) == 2:
-                      ctr = ctr + int(line[1])
+                  str = file.readline()
+                  if len(str) == 2 and int(str.split(',')[1]) == global_step:
+                      ctr = ctr + int(str.split(',')[1])
+
           if ctr == num_workers * global_step:
-              self.remove_training_status_log(model_dir, w_type)
               logging.info('@sahiltyagi4 all workers processed current step in synchronous training...')
               break
-
-  def remove_training_status_log(self, model_dir, w_type):
-      f = os.path.join(model_dir, 'should_training_stop.conf')
-      if os.path.exists(f) and w_type == 'master':
-          os.remove(f)
 
   def write_gradients_to_file(self, model_dir, w_name, w_index, grads):
       f = os.path.join(model_dir, 'gradient_'+w_name+w_index+'.txt')
