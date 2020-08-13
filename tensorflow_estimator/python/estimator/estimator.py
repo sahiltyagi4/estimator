@@ -1773,7 +1773,11 @@ class Estimator(object):
               file.close()
               if len(log_status.split(',')) == 2:
                   if int(log_status.split(',')[1]) == global_step:
-                      should_training_stop = bool(log_status.split(',')[0])
+                      if log_status.split(',')[0] == 'True':
+                          should_training_stop = True
+                      else:
+                          should_training_stop = False
+
                       logging.info('DEBUG MODE READ_SHOULD_TRAINING_STOP FN...' + str(should_training_stop))
                       break
 
