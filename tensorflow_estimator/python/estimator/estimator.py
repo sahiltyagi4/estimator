@@ -1872,8 +1872,9 @@ class Estimator(object):
                   file = open(f, 'r')
                   line = file.readline()
                   file.close()
-                  new_worker_steps[w_type + str(w_index)] = int(line.split(',')[1])
-                  worker_computation_times.append(float(line.split(',')[0]))
+                  if len(line.split(',')) == 2:
+                      new_worker_steps[w_type + str(w_index)] = int(line.split(',')[1])
+                      worker_computation_times.append(float(line.split(',')[0]))
 
           if ctr == num_workers:
               break
