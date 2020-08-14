@@ -1693,9 +1693,8 @@ class Estimator(object):
                           if worker_progress:
                               logging.info('@sahiltyagi4 gradient computation time in ASP is '
                                            + str(worker_computation_times))
-                              # SHOULD CALL THIS METHOD self.write_session_none(self._model_dir, w_type, w_index) ????
                               if w_type == 'master':
-                                  should_master_stop = self.compute_cluster_delta_fn(gradient_computation_time,
+                                  should_master_stop = self.compute_cluster_delta_fn(worker_computation_times,
                                                                                      w_type,
                                                                                      estimator_spec.reactive_adjustment_threshold,
                                                                                      curr_global_step, b_static,
