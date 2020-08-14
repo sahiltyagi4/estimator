@@ -1527,6 +1527,8 @@ class Estimator(object):
       switch_input_fn = False
       local_current_step = 0
       step_file = os.path.join(self._model_dir, 'localstep-'+w_type+str(w_index)+'.log')
+      self.old_worker_steps = {}
+      self.previous_asp_stop_step = 0
       if os.path.exists(step_file):
           file = open(step_file, 'r')
           local_current_step = int(file.readline())
@@ -1656,7 +1658,7 @@ class Estimator(object):
                                   switch_input_fn = True
                                   mon_sess = None
                                   # break
-                                  logging.info('@sahiltyagi4 going to return final loss now....')
+                                  logging.info('@sahiltyagi4 going to return synchronous window loss now....')
                                   return loss, switch_input_fn
 
                                   # if w_type == 'master':
@@ -1670,25 +1672,28 @@ class Estimator(object):
                                   #   break
 
               elif estimator_spec.sync_mode == 'ASP':
-                  logging.info('@sahiltyagi4 inside the ASP loop...')
                   if estimator_spec.window_size is not None:
                       window_computation_time.append(float((max(op_ts) - min(op_ts)) / 1000))
-                      # to use a sliding window by shifitng on a single iteration
+                      if len(window_computation_time) > estimator_spec.window_size:
+                          # worker completed a window before others completed their window AND logged it, so ignore the
+                          # oldest record and update with iteration times for newer iterations!
+                          logging.info('@sahiltyagi4 going to drop oldest entry since worker queue is full already '
+                                       + str(window_computation_time.pop(0)))
+
                       if len(window_computation_time) == estimator_spec.window_size:
-                          logging.info('@sahiltyagi4 window size completed once...')
+                          logging.info('@sahiltyagi4 filled a window on a worker....')
                           window_avg_time = self.average_computation_time_in_window(window_computation_time)
-                          window_computation_time = []
                           self.write_computation_time_to_file(self._model_dir, str(window_avg_time), curr_global_step,
                                                               w_type, w_index)
-                          do_windows_exist = self.check_worker_batchsize_files(self._model_dir,
-                                                                               worker_batchsizes_filenames)
-                          logging.info('@sahiltyagi4 do windows exist value is ' + str(do_windows_exist))
-                          if do_windows_exist:
-                              gradient_computation_time = self.asp_read_batchfiles(worker_batchsizes_filenames,
-                                                                                   self._model_dir)
-                              logging.info(
-                                  '@sahiltyagi4 gradient computation time in ASP is ' + str(gradient_computation_time))
-                              self.write_session_none(self._model_dir, w_type, w_index)
+                          worker_computation_times, worker_progress = self.check_async_workers_status(self._model_dir,
+                                                                                                      worker_batchsizes_filenames,
+                                                                                                      w_type,
+                                                                                                      w_index,
+                                                                                                      num_workers)
+                          if worker_progress:
+                              logging.info('@sahiltyagi4 gradient computation time in ASP is '
+                                           + str(worker_computation_times))
+                              # SHOULD CALL THIS METHOD self.write_session_none(self._model_dir, w_type, w_index) ????
                               if w_type == 'master':
                                   should_master_stop = self.compute_cluster_delta_fn(gradient_computation_time,
                                                                                      w_type,
@@ -1696,35 +1701,26 @@ class Estimator(object):
                                                                                      curr_global_step, b_static,
                                                                                      num_workers,
                                                                                      estimator_spec.adjustment_mode)
+                                  logging.info('DEBUG ASP LOGGING FOR SHOULD_MASTER_STOP ' + str(should_master_stop))
                                   self.log_should_training_stop(self._model_dir, should_master_stop, curr_global_step)
 
-                              should_training_stop = self.read_should_training_stop(self._model_dir, w_type, w_index)
-                              logging.info('@sahiltyagi4 ASP should training stop ' + str(should_training_stop))
+                              should_training_stop, did_previous_stopstep_change = self.log_previous_stop_step(self._model_dir)
+                              logging.info('@sahiltyagi4 ASP should training stop ' + str(should_training_stop)
+                                           + ' and did_previous_stopstep_change ' + str(did_previous_stopstep_change))
 
-                              # Aug 7 2020. ADDRESS THIS...LED TO A RACE CONDITION. FIND A FIX FOR ASP
-                              # self.check_workers_training_status(self._model_dir, training_status_logs, num_workers)
-
-                              current_batchsizes = self.fetch_current_batchisizes(self._model_dir)
-                              self.set_worker_batchsize(w_type, w_index, num_ps, current_batchsizes)
-                              # self.remove_window_logs(self._model_dir, w_type, w_index)
-
-                              # are_sessions_closed = self.are_all_sessions_terminated(self._model_dir,
-                              # nonetype_filenames, num_workers)
-                              # when all sessions are made Nonetype, only then kill and restart model
-                              # if should_training_stop and are_sessions_closed:
-                              if should_training_stop:
-                                  # save local step to be picked later when switching input fn with new batch-size
+                              if should_training_stop and did_previous_stopstep_change:
+                                  window_computation_time = []
+                                  current_batchsizes = self.fetch_current_batchisizes(self._model_dir)
+                                  self.set_worker_batchsize(w_type, w_index, num_ps, current_batchsizes)
                                   self.log_local_step(self._model_dir, local_current_step, w_type, w_index)
                                   if not mon_sess._is_closed():
-                                      # May 10th ACSOS. delete all worker files once done.
-                                      self.delete_avg_computationtime_files(self._model_dir,
-                                                                            worker_batchsizes_filenames)
-                                      logging.info('@sahiltyagi4 made monitored session Nonetype')
-                                      logging.info(
-                                          '@sahiltyagi4 going to end ASP training since there is a call for readjustment!')
+                                      logging.info('@sahiltyagi4 gonna make session Nonetype since adjustment needs '
+                                                   'to be made....')
                                       switch_input_fn = True
                                       mon_sess = None
-                                      break
+                                      # break
+                                      logging.info('@sahiltyagi4 going to return asynchronous window loss now....')
+                                      return loss, switch_input_fn
           else:
               logging.info('@sahiltyagi4 ignored update due to staleness bound for local step '
                            + str(local_current_step) + ' and current global step ' + str(global_current_step))
@@ -1741,6 +1737,22 @@ class Estimator(object):
           # pylint: disable=W0212
           session = session._sess
       return
+
+  def log_previous_stop_step(self, model_dir):
+      did_previous_stopstep_change = False
+      should_training_stop = False
+      f = os.path.join(model_dir, 'should_training_stop.conf')
+      file = open(f, 'r')
+      line = file.readline()
+      file.close()
+      if line.split(',')[0] == 'True':
+          should_training_stop = True
+
+      if self.previous_asp_stop_step != int(line.split(',')[1]):
+          did_previous_stopstep_change = True
+          self.previous_asp_stop_step = int(line.split(',')[1])
+
+      return should_training_stop, did_previous_stopstep_change
 
   def log_local_step(self, model_dir, local_step, w_type, w_index):
       f = os.path.join(model_dir, 'localstep-'+w_type+str(w_index)+'.log')
@@ -1796,20 +1808,6 @@ class Estimator(object):
 
       return training_status_logs
 
-  # def check_workers_training_status_bsp(self, model_dir, training_status_logs, num_workers, global_step, w_type):
-  #     while True:
-  #         ctr = 0
-  #         for logfile in training_status_logs:
-  #             f=os.path.join(model_dir, logfile)
-  #             if os.path.exists(f):
-  #                 file = open(f, 'r')
-  #                 line = file.readline().split(',')
-  #                 if len(line) == 2:
-  #                     ctr = ctr + int(line[1])
-  #         if ctr == num_workers * global_step:
-  #             logging.info('@sahiltyagi4 all workers processed current step in synchronous training...')
-  #             break
-
   def sync_check_training_stop(self, model_dir, training_status_logs, num_workers, global_step):
       while True:
           ctr=0
@@ -1861,6 +1859,45 @@ class Estimator(object):
         workers_window_computed = True
 
     return workers_window_computed
+
+  def check_async_workers_status(self, model_dir, worker_batchsizes_filenames, w_type, w_index, num_workers):
+      worker_progress = False
+      while True:
+          ctr = 0
+          new_worker_steps = {}
+          worker_computation_times = []
+          for worker_file in worker_batchsizes_filenames:
+              f = os.path.join(model_dir, worker_file)
+              if os.path.isfile(f):
+                  ctr = ctr + 1
+                  file = open(f, 'r')
+                  line = file.readline()
+                  file.close()
+                  new_worker_steps[w_type + str(w_index)] = int(line.split(',')[1])
+                  worker_computation_times.append(float(line.split(',')[0]))
+
+          if ctr == num_workers:
+              break
+
+      ctr = 0
+      logging.info('@sahiltyagi4 registered the steps from logs for each worker in cluster and shared iteration'
+                   ' times of other workers....')
+      for k,v in new_worker_steps.items():
+          if k not in self.old_worker_steps.keys():
+              self.old_worker_steps[k] = v
+
+          else:
+              if self.old_worker_steps.get(k) == v:
+                  ctr = ctr + 1
+              else:
+                  self.old_worker_steps[k] = v
+
+      if ctr > 0:
+          worker_progress = False
+      else:
+          worker_progress = True
+
+      return worker_computation_times, worker_progress
 
   #just meta, or index and data files too?
   def wait_till_checkpointing_completes(self, model_dir, checkpoint_meta_file):
@@ -2023,9 +2060,8 @@ class Estimator(object):
       file_name = 'tf-' + worker_type + '-' + str(index) + '.txt'
       f = os.path.join(model_dir, file_name)
       file = open(f, 'w')
-      file.write(worker_computation_time + ',' + str(current_step))
+      file.write(str(worker_computation_time) + ',' + str(current_step))
       file.close()
-      #logging.info('@sahiltyagi4 writing computation time to file for step ' + str(current_step))
 
   def write_cpualloc_nodescale(self, model_dir, cpu_alloc):
     cpustring = ''
@@ -2089,19 +2125,6 @@ class Estimator(object):
           logging.info('@sahiltyagi4 old batches: ' + str(old_batch_sizes))
           logging.info('@sahiltyagi4 new batches: ' + str(new_batch_sizes))
           raise ValueError('batch-size list length changed in iterations!')
-
-          # # setting env variable on per-worker basis to use in switch input fn for dynamic
-          # batching WITHOUT kill-restart technique
-          # if w_type == 'master':
-          #     os.environ['WORKER_BATCH_SIZE'] = normalized_updated_batch_sizes[w_index + num_ps]
-          # elif w_type == 'worker':
-          #     # plus 1 below signifies 'master' node
-          #     os.environ['WORKER_BATCH_SIZE'] = normalized_updated_batch_sizes[num_ps + 1 + w_index]
-
-        if w_type == 'master':
-            os.environ['WORKER_BATCH_SIZE'] = str(int(new_batch_sizes[w_index + num_ps]))
-        elif w_type == 'worker':
-            os.environ['WORKER_BATCH_SIZE'] = str(int(new_batch_sizes[num_ps + 1 + w_index]))
 
         for ix in range(0, len(old_batch_sizes)):
           delta = new_batch_sizes[ix] - old_batch_sizes[ix]
