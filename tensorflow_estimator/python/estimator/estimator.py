@@ -1699,7 +1699,8 @@ class Estimator(object):
                                                                                      estimator_spec.reactive_adjustment_threshold,
                                                                                      curr_global_step, b_static,
                                                                                      num_workers,
-                                                                                     estimator_spec.adjustment_mode)
+                                                                                     estimator_spec.adjustment_mode,
+                                                                                     w_index, num_ps)
                                   logging.info('DEBUG ASP LOGGING FOR SHOULD_MASTER_STOP ' + str(should_master_stop))
                                   self.log_should_training_stop(self._model_dir, should_master_stop, curr_global_step)
 
