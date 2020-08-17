@@ -1687,8 +1687,6 @@ class Estimator(object):
                                                               w_type, w_index)
                           worker_computation_times, worker_progress = self.check_async_workers_status(self._model_dir,
                                                                                                       worker_batchsizes_filenames,
-                                                                                                      w_type,
-                                                                                                      w_index,
                                                                                                       num_workers)
                           if worker_progress:
                               logging.info('@sahiltyagi4 gradient computation time in ASP is '
@@ -1860,7 +1858,7 @@ class Estimator(object):
 
     return workers_window_computed
 
-  def check_async_workers_status(self, model_dir, worker_batchsizes_filenames, w_type, w_index, num_workers):
+  def check_async_workers_status(self, model_dir, worker_batchsizes_filenames, num_workers):
       worker_progress = False
       while True:
           ctr = 0
@@ -1872,6 +1870,8 @@ class Estimator(object):
                   file = open(f, 'r')
                   line = file.readline()
                   file.close()
+                  w_type = worker_file.split('.')[0].split('-')[1]
+                  w_index = worker_file.split('.')[0].split('-')[2]
                   if len(line.split(',')) == 2:
                       ctr = ctr + 1
                       new_worker_steps[w_type + str(w_index)] = int(line.split(',')[1])
