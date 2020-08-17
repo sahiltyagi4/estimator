@@ -1537,10 +1537,10 @@ class Estimator(object):
       #while not mon_sess.should_stop():
       while mon_sess is not None and not switch_input_fn:
           global_current_step = mon_sess.run(tf.train.get_or_create_global_step())
-          logging.info('@sahiltyagi4 logged global step is ' + str(global_current_step))
-          logging.info('@sahiltyagi4 logged local step is ' + str(local_current_step))
-          #if True:
-          if (global_current_step - local_current_step) <= int(estimator_spec.staleness):
+          logging.info('@sahiltyagi4 logged global step is ' + str(global_current_step) + ' and logged local step is '
+                       + str(local_current_step))
+          if True:
+          #if (global_current_step - local_current_step) <= int(estimator_spec.staleness):
               step_start = time.time()
               should_training_stop = False
               _, loss, curr_global_step = mon_sess.run([estimator_spec.train_op, estimator_spec.loss,
@@ -1859,6 +1859,7 @@ class Estimator(object):
     return workers_window_computed
 
   def check_async_workers_status(self, model_dir, worker_batchsizes_filenames, num_workers):
+      logging.info('@sahiltyagi4 old_worker steps in ASP are ' + str(self.old_worker_steps))
       worker_progress = False
       while True:
           ctr = 0
