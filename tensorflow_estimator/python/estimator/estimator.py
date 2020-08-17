@@ -1869,11 +1869,11 @@ class Estimator(object):
           for worker_file in worker_batchsizes_filenames:
               f = os.path.join(model_dir, worker_file)
               if os.path.isfile(f):
-                  ctr = ctr + 1
                   file = open(f, 'r')
                   line = file.readline()
                   file.close()
                   if len(line.split(',')) == 2:
+                      ctr = ctr + 1
                       new_worker_steps[w_type + str(w_index)] = int(line.split(',')[1])
                       worker_computation_times.append(float(line.split(',')[0]))
 
@@ -1881,6 +1881,8 @@ class Estimator(object):
               break
 
       ctr = 0
+      logging.info('@sahiltyagi4 in NEW ASP status method ' + str(worker_computation_times))
+      logging.info('@sahiltyagi4 new worker steps dictionary ' + str(new_worker_steps))
       logging.info('@sahiltyagi4 registered the steps from logs for each worker in cluster and shared iteration'
                    ' times of other workers....')
       for k,v in new_worker_steps.items():
@@ -2219,6 +2221,9 @@ class Estimator(object):
       batchsizes = []
       for size in line.split(','):
           batchsizes.append(float(size))
+
+      logging.info('@sahiltyagi4 length check on batchsizes ' + str(batchsizes))
+      logging.info('@sahiltyagi4 length check on fraction perworker ' + str(fraction_perworker))
 
       if len(batchsizes) != len(fraction_perworker):
           logging.info(batchsizes)
