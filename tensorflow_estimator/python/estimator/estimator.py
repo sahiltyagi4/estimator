@@ -1534,10 +1534,14 @@ class Estimator(object):
           local_current_step = int(file.readline())
           file.close()
 
+      curr_global_step = 0
       #while not mon_sess.should_stop():
       while mon_sess is not None and not switch_input_fn:
-          global_current_step = mon_sess.run(tf.train.get_or_create_global_step())
-          logging.info('@sahiltyagi4 logged global step is ' + str(global_current_step) + ' and logged local step is '
+          # global_current_step = mon_sess.run(tf.train.get_or_create_global_step())
+          # logging.info('@sahiltyagi4 logged global step is ' + str(global_current_step) + ' and logged local step is '
+          #              + str(local_current_step))
+
+          logging.info('@sahiltyagi4 logged global step is ' + str(curr_global_step) + ' and logged local step is '
                        + str(local_current_step))
           if True:
           #if (global_current_step - local_current_step) <= int(estimator_spec.staleness):
