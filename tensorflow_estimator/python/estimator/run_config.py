@@ -754,12 +754,12 @@ class RunConfig(object):
 
   @property
   def get_workload(self):
-      return self.workload
+    return self.workload
 
   # @sahiltyagi4: to get directory to load data for input fn
   @property
   def get_datadir(self):
-      return self.data_dir
+    return self.data_dir
 
   @property
   def is_chief(self):

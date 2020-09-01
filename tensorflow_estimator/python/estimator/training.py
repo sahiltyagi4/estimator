@@ -850,7 +850,7 @@ class _TrainingExecutor(object):
       switched_input_fn = config.get_switched_input_fn
       new_batch_size = int(os.environ['WORKER_BATCH_SIZE'])
       workload = config.get_workload
-      logging.info('@sahiltyagi4 workload processed is ' + workload)
+      logging.info('@sahiltyagi4 workload processed is ' + str(workload))
       if 'resnet' in workload:
         logging.info('@sahiltyagi4 going to use workload ' + workload)
         new_input_fn = functools.partial(switched_input_fn,
