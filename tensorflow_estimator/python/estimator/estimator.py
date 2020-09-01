@@ -1492,6 +1492,7 @@ class Estimator(object):
 
     num_ps = int(len(tf_config['cluster']['ps']))
     b_static = int(os.environ['UNIFORM_CLUSTER_BATCH_SIZE'])
+    logging.info('@sahiltyagi4 training global batch-size is ' + str(b_static))
     window_computation_time = []
     worker_batchsizes_filenames = self.get_worker_batchsize_filenames(num_workers)
     gradient_files = self.get_gradient_filenames(num_workers)

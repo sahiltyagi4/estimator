@@ -51,6 +51,7 @@ _DEFAULT_REPLACEABLE_LIST = [
     'node_batch_size',
     'data_dir',
     'switched_input_fn',
+    'workload',
     'train_distribute',
     'device_fn',
     'protocol',
