@@ -850,7 +850,8 @@ class _TrainingExecutor(object):
       switched_input_fn = config.get_switched_input_fn
       new_batch_size = int(os.environ['WORKER_BATCH_SIZE'])
       workload = config.get_workload
-      if workload == 'resnet':
+      logging.info('@sahiltyagi4 workload processed is ' + workload)
+      if 'resnet' in workload:
         logging.info('@sahiltyagi4 going to use workload ' + workload)
         new_input_fn = functools.partial(switched_input_fn,
                                          config.get_datadir,
@@ -859,12 +860,10 @@ class _TrainingExecutor(object):
                                          batch_size=new_batch_size,
                                          run_config=config,
                                          use_distortion_for_training=True)
-
-      elif workload == 'regression':
+      elif 'regression' in workload:
         logging.info('@sahiltyagi4 going to use workload ' + workload)
         new_input_fn = functools.partial(switched_input_fn, batchsize=new_batch_size)
-
-      elif workload == 'mnist_cnn':
+      elif 'mnist_cnn' in workload:
         logging.info('@sahiltyagi4 going to use workload ' + workload)
         new_input_fn = functools.partial(switched_input_fn)
 
