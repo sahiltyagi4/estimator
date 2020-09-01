@@ -849,14 +849,24 @@ class _TrainingExecutor(object):
       logging.info('@sahiltyagi4 going to switch the input function with a batch-size!!!!')
       switched_input_fn = config.get_switched_input_fn
       new_batch_size = int(os.environ['WORKER_BATCH_SIZE'])
-      new_input_fn = functools.partial(
-          switched_input_fn,
-          config.get_datadir,
-          subset='train',
-          num_shards=0,
-          batch_size=new_batch_size,
-          run_config=config,
-          use_distortion_for_training=True)
+      workload = config.get_workload
+      if workload == 'resnet':
+          logging.info('going to use workload ' + workload)
+          new_input_fn = functools.partial(switched_input_fn,
+                                         config.get_datadir,
+                                         subset='train',
+                                         num_shards=0,
+                                         batch_size=new_batch_size,
+                                         run_config=config,
+                                         use_distortion_for_training=True)
+
+      elif workload == 'regression':
+          logging.info('going to use workload ' + workload)
+          new_input_fn = functools.partial(switched_input_fn, batchsize=new_batch_size)
+
+      elif workload == 'mnist_cnn':
+          logging.info('going to use workload ' + workload)
+          new_input_fn = functools.partial(switched_input_fn)
 
       logging.info('@sahiltyagi4 value set for new batch-size on switched input fn is {}'.format(new_batch_size))
       loss, should_switch_input_fn = self._estimator.train(
