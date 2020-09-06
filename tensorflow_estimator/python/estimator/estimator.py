@@ -1741,16 +1741,17 @@ class Estimator(object):
   def log_previous_stop_step(self, model_dir):
       did_previous_stopstep_change = False
       should_training_stop = False
-      f = os.path.join(model_dir, 'should_training_stop.conf')
-      file = open(f, 'r')
-      line = file.readline()
-      file.close()
-      if line.split(',')[0] == 'True':
-          should_training_stop = True
+      if self.previous_asp_stop_step != 0:
+          f = os.path.join(model_dir, 'should_training_stop.conf')
+          file = open(f, 'r')
+          line = file.readline()
+          file.close()
+          if line.split(',')[0] == 'True':
+              should_training_stop = True
 
-      if self.previous_asp_stop_step != int(line.split(',')[1]):
-          did_previous_stopstep_change = True
-          self.previous_asp_stop_step = int(line.split(',')[1])
+          if self.previous_asp_stop_step != int(line.split(',')[1]):
+              did_previous_stopstep_change = True
+              self.previous_asp_stop_step = int(line.split(',')[1])
 
       return should_training_stop, did_previous_stopstep_change
 
