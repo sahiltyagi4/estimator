@@ -1560,9 +1560,9 @@ class Estimator(object):
               # logging.info('@sahiltyagi4 aggregated gradient variance2 is ' + str(gradient_variance2)
               #              + ' for global step ' + str(curr_global_step))
 
-              # b_simple = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['tensor_for_b_simple']))
-              # logging.info('@sahiltyagi4 b_simple noise scale is ' + str(b_simple) + ' for global step '
-              #              + str(curr_global_step))
+              b_simple = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['tensor_for_b_simple']))
+              logging.info('@sahiltyagi4 b_simple noise scale is ' + str(b_simple) + ' for global step '
+                           + str(curr_global_step))
 
               tl = timeline.Timeline(run_metadata.step_stats)
               ctf = tl.generate_chrome_trace_format()
