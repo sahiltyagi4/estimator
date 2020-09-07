@@ -2319,8 +2319,10 @@ class Estimator(object):
               normalized_updated_batch_sizes.append(worker_batch_size)
 
       if len(indices_negative_batchsizes) > 0:
-          logging.info('@sahiltyagi4 total entries with negative batch-sizes registered ' + str(len(indices_negative_batchsizes)))
+          logging.info('@sahiltyagi4 total entries with negative batch-sizes registered ' + str(indices_negative_batchsizes))
+
           batchsize_to_split = global_batch_size - (minimum_batch_size_threshold*len(indices_negative_batchsizes))
+          logging.info('@sahiltyagi4 batch-size to split among positive batch-size workers ' + str(batchsize_to_split))
           normalized_updated_batch_sizes = []
           for ix in range(0, len(updated_batchsizes)):
               if ix in indices_negative_batchsizes:
@@ -2343,12 +2345,12 @@ class Estimator(object):
       for resource in resource_alloc.split(','):
           node_resources.append(float(resource))
 
-      logging.info('@sahiltyagi4 initial length of node_resources ' + str(len(node_resources)))
+      logging.info('@sahiltyagi4 initial length of node_resources ' + str(node_resources))
 
       for negative_index in indices_negative_batchsizes:
-          node_resources.pop(negative_index)
+          node_resources.pop(negative_index-1)
 
-      logging.info('@sahiltyagi4 post adjustment length of node_resources ' + str(len(node_resources)))
+      logging.info('@sahiltyagi4 post adjustment length of node_resources ' + str(node_resources))
 
       total_resources = np.sum(node_resources)
       for resource in node_resources:
