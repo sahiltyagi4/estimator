@@ -2339,7 +2339,7 @@ class Estimator(object):
       node_scale = []
       node_scale.append(0)
       resource_alloc = os.environ['RESOURCE_ALLOC']
-      total_resources = np.sum(resource_alloc)
+      total_resources = np.sum(resource_alloc.split(','))
       for resource in resource_alloc.split(','):
           node_scale.append((float(resource) / total_resources))
 
