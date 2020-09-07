@@ -2314,21 +2314,49 @@ class Estimator(object):
       for ix in range(0, len(updated_batchsizes)):
           worker_batch_size = updated_batchsizes[ix] + worker_batch_size_adjustment[ix]
           if worker_batch_size < 0:
-              indices_negative_batchsizes.append(ix)
+              indices_negative_batchsizes.append(int(ix))
           else:
               normalized_updated_batch_sizes.append(worker_batch_size)
 
       if len(indices_negative_batchsizes) > 0:
+          logging.info('@sahiltyagi4 total entries with negative batch-sizes registered ' + str(len(indices_negative_batchsizes)))
           batchsize_to_split = global_batch_size - (minimum_batch_size_threshold*len(indices_negative_batchsizes))
           normalized_updated_batch_sizes = []
           for ix in range(0, len(updated_batchsizes)):
               if ix in indices_negative_batchsizes:
                   normalized_updated_batch_sizes.append(minimum_batch_size_threshold)
               else:
-                  normalized_updated_batch_sizes.append(node_scale[ix] * batchsize_to_split)
+                  partial_node_scale = self.get_partial_node_scale(indices_negative_batchsizes)
+                  normalized_updated_batch_sizes.append(partial_node_scale[ix] * batchsize_to_split)
 
       logging.info('normalized and updated batch-sizes to be used in model are: ' + str(normalized_updated_batch_sizes))
       return normalized_updated_batch_sizes
+
+  def get_partial_node_scale(self, indices_negative_batchsizes):
+      '''
+            partial node scales for nodes that dont' have negative batches assigned in current window...
+      :return:
+      '''
+      partial_node_scale = []
+      node_resources = []
+      resource_alloc = os.environ['RESOURCE_ALLOC']
+      for resource in resource_alloc.split(','):
+          node_resources.append(float(resource))
+
+      logging.info('@sahiltyagi4 initial length of node_resources ' + str(len(node_resources)))
+
+      for negative_index in indices_negative_batchsizes:
+          node_resources.pop(negative_index)
+
+      logging.info('@sahiltyagi4 post adjustment length of node_resources ' + str(len(node_resources)))
+
+      total_resources = np.sum(node_resources)
+      for resource in node_resources:
+          partial_node_scale.append(resource/total_resources)
+
+      logging.info('@sahiltyagi4 partial node scale now is ' + str(len(partial_node_scale)))
+      return partial_node_scale
+
 
   def get_node_scale(self):
       '''
