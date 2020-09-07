@@ -2108,10 +2108,10 @@ class Estimator(object):
           if frac > threshold:
             should_training_stop = True
             
-          logging.info('@sahiltyagi4 a time fraction value is greater than threshold with all values '
-                       + str(worker_computation_time_frac))
-          logging.info('@sahiltyagi4 corresponding gradient computation times are ' + str(gradient_computation_time))
-          logging.info('@sahiltyagi4 average computation time across worker is ' + str(cluster_avg_time))
+        logging.info('@sahiltyagi4 a time fraction value is greater than threshold with all values '
+                     + str(worker_computation_time_frac))
+        logging.info('@sahiltyagi4 corresponding gradient computation times are ' + str(gradient_computation_time))
+        logging.info('@sahiltyagi4 average computation time across worker is ' + str(cluster_avg_time))
 
         ## call fn to compute the updated batch-sizes with which to restart the model and logs its to
         # clusterbatchsizes.conf and other log files.
@@ -2207,7 +2207,7 @@ class Estimator(object):
       :param: average time across cluster for computation at each step, gradient_computation_time list has individual time of computation for each worker
       :return: the updated batch-sizes after two-level normalization.
       '''
-      logging.info('@sahiltyagi4 going to execute fn call for calculating updated batch sizes on readjustment.')
+      logging.info('g')
       outfile = 'clusterbatchsizes.conf'
       fraction_perworker = []
       fraction_perworker.append(1)
@@ -2242,7 +2242,7 @@ class Estimator(object):
               cumulative_batch_size = cumulative_batch_size + worker_batch_size
 
       delta = (b_static*num_workers) - cumulative_batch_size
-      normalized_updated_batch_sizes = self.normalize_batch_sizes(delta, updated_batchsizes)
+      normalized_updated_batch_sizes = self.normalize_batch_sizes(delta, b_static*num_workers, updated_batchsizes)
       logging.info('@sahiltyagi4 normalized updated batch-sizes after two-level normalization are ' + str(normalized_updated_batch_sizes))
 
       if w_type == 'master':
@@ -2267,14 +2267,41 @@ class Estimator(object):
       logging.info('@sahiltyagi4 going to end calculate_updated_batchsizes fn call...')
 
 
-  def normalize_batch_sizes(self, delta, updated_batchsizes):
+  # def normalize_batch_sizes(self, delta, b_static, updated_batchsizes):
+  #     '''
+  #     :argument: normalizes the delta between the cumulative batch-size across the cluster to its static batching equilavalent (which is b_static times the number of workers).
+  #               delta can be positive or negative given the heterogeneity level and the sync mode being used.
+  #     :return: a list of the two-level normalized batch-sizes to be used to restart the model with kill-restart technique.
+  #     '''
+  #     normalized_updated_batch_sizes = []
+  #     worker_batch_size_adjustment = []
+  #     node_scale = self.get_node_scale()
+  #
+  #     logging.info('value of delta is ' + str(delta))
+  #     logging.info('updatedbatchsizes being used ' + str(updated_batchsizes))
+  #     for index in range(0, len(updated_batchsizes)):
+  #       worker_batch_size_adjustment.append(node_scale[index] * delta)
+  #
+  #     logging.info('adjustments to be made to normalize cumulative batch-size: ' + str(worker_batch_size_adjustment))
+  #
+  #     for ix in range(0, len(updated_batchsizes)):
+  #         worker_batch_size = updated_batchsizes[ix] + worker_batch_size_adjustment[ix]
+  #         normalized_updated_batch_sizes.append(worker_batch_size)
+  #
+  #     logging.info('normalized and updated batch-sizes to be used in model are: ' + str(normalized_updated_batch_sizes))
+  #     return normalized_updated_batch_sizes
+
+  def normalize_batch_sizes(self, delta, global_batch_size, updated_batchsizes):
       '''
-      :argument: normalizes the delta between the cumulative batch-size across the cluster to its static batching equilavalent (which is b_static times the number of workers).
-                delta can be positive or negative given the heterogeneity level and the sync mode being used.
+      :argument: normalizes the delta between the cumulative batch-size across the cluster to its static batching
+                equilvalent (which is b_static times the number of workers). delta can be positive or negative given
+                the heterogeneity level and the sync mode being used.
       :return: a list of the two-level normalized batch-sizes to be used to restart the model with kill-restart technique.
       '''
+      minimum_batch_size_threshold = 16
       normalized_updated_batch_sizes = []
       worker_batch_size_adjustment = []
+      indices_negative_batchsizes = []
       node_scale = self.get_node_scale()
 
       logging.info('value of delta is ' + str(delta))
@@ -2285,11 +2312,23 @@ class Estimator(object):
       logging.info('adjustments to be made to normalize cumulative batch-size: ' + str(worker_batch_size_adjustment))
 
       for ix in range(0, len(updated_batchsizes)):
-        normalized_updated_batch_sizes.append(updated_batchsizes[ix] + worker_batch_size_adjustment[ix])
+          worker_batch_size = updated_batchsizes[ix] + worker_batch_size_adjustment[ix]
+          if worker_batch_size < 0:
+              indices_negative_batchsizes.append(ix)
+          else:
+              normalized_updated_batch_sizes.append(worker_batch_size)
+
+      if len(indices_negative_batchsizes) > 0:
+          batchsize_to_split = global_batch_size - (minimum_batch_size_threshold*len(indices_negative_batchsizes))
+          normalized_updated_batch_sizes = []
+          for ix in range(0, len(updated_batchsizes)):
+              if ix in indices_negative_batchsizes:
+                  normalized_updated_batch_sizes.append(minimum_batch_size_threshold)
+              else:
+                  normalized_updated_batch_sizes.append(node_scale[ix] * batchsize_to_split)
 
       logging.info('normalized and updated batch-sizes to be used in model are: ' + str(normalized_updated_batch_sizes))
       return normalized_updated_batch_sizes
-
 
   def get_node_scale(self):
       '''
@@ -2299,11 +2338,8 @@ class Estimator(object):
       '''
       node_scale = []
       node_scale.append(0)
-      total_resources = 0.0
       resource_alloc = os.environ['RESOURCE_ALLOC']
-      for resource in resource_alloc.split(','):
-          total_resources = total_resources + float(resource)
-
+      total_resources = np.sum(resource_alloc)
       for resource in resource_alloc.split(','):
           node_scale.append((float(resource) / total_resources))
 
