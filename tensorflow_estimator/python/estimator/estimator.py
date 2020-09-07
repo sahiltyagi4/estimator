@@ -2337,9 +2337,12 @@ class Estimator(object):
       :returns: a list comprised of the ratio of the worker's core alloc to the cumulative cluster core allocation.
       '''
       node_scale = []
+      total_resources = 0
       node_scale.append(0)
       resource_alloc = os.environ['RESOURCE_ALLOC']
-      total_resources = np.sum(resource_alloc.split(','))
+      for resource in resource_alloc.split(','):
+          total_resources = total_resources + float(resource)
+
       for resource in resource_alloc.split(','):
           node_scale.append((float(resource) / total_resources))
 
