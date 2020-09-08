@@ -2352,6 +2352,12 @@ class Estimator(object):
       logging.info('@sahiltyagi4 pre-adjustment length of node_resources ' + str(node_resources))
       logging.info('@sahiltyagi4 pre-adjustment length of overall_resources ' + str(overall_resources))
 
+      remove_index_ps_negativebs = []
+      for index in indices_negative_batchsizes:
+          remove_index_ps_negativebs.append(int(index) -1)
+
+      logging.info('@sahiltyagi4 remove_index_ps_negativebs queue values ' + str(remove_index_ps_negativebs))
+
       for negative_index in indices_negative_batchsizes:
           node_resources.pop(negative_index-1)
 
@@ -2359,10 +2365,13 @@ class Estimator(object):
       logging.info('@sahiltyagi4 post adjustment length of overall_resources ' + str(overall_resources))
 
       total_resources = np.sum(node_resources)
+      logging.info('total resources is ' + str(total_resources))
       for ix in range(0, len(overall_resources)):
-          if ix in indices_negative_batchsizes:
+          if ix in remove_index_ps_negativebs:
+              logging.info('value of index to ignore is ' + str(ix))
               partial_node_scale.append(1)
           else:
+              logging.info('overall-resources value is ' + str(overall_resources[ix]))
               partial_node_scale.append(overall_resources[ix]/total_resources)
 
       logging.info('@sahiltyagi4 partial node scale now is ' + str(partial_node_scale))
