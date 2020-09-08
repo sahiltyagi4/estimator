@@ -2242,7 +2242,7 @@ class Estimator(object):
               cumulative_batch_size = cumulative_batch_size + worker_batch_size
 
       delta = (b_static*num_workers) - cumulative_batch_size
-      normalized_updated_batch_sizes = self.normalize_batch_sizes(delta, b_static*num_workers, updated_batchsizes)
+      normalized_updated_batch_sizes = self.normalize_batch_sizes(delta, b_static*num_workers, num_workers, updated_batchsizes)
       logging.info('@sahiltyagi4 normalized updated batch-sizes after two-level normalization are ' + str(normalized_updated_batch_sizes))
 
       if w_type == 'master':
@@ -2291,7 +2291,7 @@ class Estimator(object):
   #     logging.info('normalized and updated batch-sizes to be used in model are: ' + str(normalized_updated_batch_sizes))
   #     return normalized_updated_batch_sizes
 
-  def normalize_batch_sizes(self, delta, global_batch_size, updated_batchsizes):
+  def normalize_batch_sizes(self, delta, global_batch_size, num_workers, updated_batchsizes):
       '''
       :argument: normalizes the delta between the cumulative batch-size across the cluster to its static batching
                 equilvalent (which is b_static times the number of workers). delta can be positive or negative given
@@ -2324,12 +2324,14 @@ class Estimator(object):
           batchsize_to_split = global_batch_size - (minimum_batch_size_threshold*len(indices_negative_batchsizes))
           logging.info('@sahiltyagi4 batch-size to split among positive batch-size workers ' + str(batchsize_to_split))
           normalized_updated_batch_sizes = []
+          partial_node_scale = self.get_partial_node_scale(indices_negative_batchsizes)
           for ix in range(0, len(updated_batchsizes)):
               if ix in indices_negative_batchsizes:
                   normalized_updated_batch_sizes.append(minimum_batch_size_threshold)
+              elif ix == 0:
+                  normalized_updated_batch_sizes.append(global_batch_size/num_workers)
               else:
-                  partial_node_scale = self.get_partial_node_scale(indices_negative_batchsizes)
-                  normalized_updated_batch_sizes.append(partial_node_scale[ix] * batchsize_to_split)
+                  normalized_updated_batch_sizes.append(partial_node_scale[ix-1] * batchsize_to_split)
 
       logging.info('normalized and updated batch-sizes to be used in model are: ' + str(normalized_updated_batch_sizes))
       return normalized_updated_batch_sizes
