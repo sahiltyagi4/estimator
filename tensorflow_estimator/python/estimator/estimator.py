@@ -2342,6 +2342,7 @@ class Estimator(object):
       :return:
       '''
       partial_node_scale = []
+      adjacent_node_resources_val = []
       node_resources = []
       overall_resources = []
       resource_alloc = os.environ['RESOURCE_ALLOC']
@@ -2358,13 +2359,18 @@ class Estimator(object):
 
       logging.info('@sahiltyagi4 remove_index_ps_negativebs queue values ' + str(remove_index_ps_negativebs))
 
-      for negative_index in indices_negative_batchsizes:
-          node_resources.pop(negative_index-1)
+      #for negative_index in indices_negative_batchsizes:
+          #node_resources.pop(negative_index-1)
+
+      for ix in range(0, len(node_resources)):
+          if (ix+1) not in indices_negative_batchsizes:
+              adjacent_node_resources_val.append(node_resources[ix])
 
       logging.info('@sahiltyagi4 post adjustment length of node_resources ' + str(node_resources))
+      logging.info('@sahiltyagi4 value of adjacent node resources value is ' + str(adjacent_node_resources_val))
       logging.info('@sahiltyagi4 post adjustment length of overall_resources ' + str(overall_resources))
 
-      total_resources = np.sum(node_resources)
+      total_resources = np.sum(adjacent_node_resources_val)
       logging.info('total resources is ' + str(total_resources))
       for ix in range(0, len(overall_resources)):
           if ix in remove_index_ps_negativebs:
