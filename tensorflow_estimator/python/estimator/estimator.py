@@ -2304,8 +2304,8 @@ class Estimator(object):
       indices_negative_batchsizes = []
       node_scale = self.get_node_scale()
 
-      logging.info('gr' + str(delta))
-      logging.info('updatedbatchsizes being used ' + str(updated_batchsizes))
+      logging.info('delta value used ' + str(delta))
+      logging.info('updated-batchsizes being used ' + str(updated_batchsizes))
       for index in range(0, len(updated_batchsizes)):
         worker_batch_size_adjustment.append(node_scale[index] * delta)
 
@@ -2313,7 +2313,7 @@ class Estimator(object):
 
       for ix in range(0, len(updated_batchsizes)):
           worker_batch_size = updated_batchsizes[ix] + worker_batch_size_adjustment[ix]
-          if worker_batch_size < 0:
+          if worker_batch_size <= 0:
               indices_negative_batchsizes.append(int(ix))
           else:
               normalized_updated_batch_sizes.append(worker_batch_size)
@@ -2376,7 +2376,6 @@ class Estimator(object):
 
       logging.info('@sahiltyagi4 partial node scale now is ' + str(partial_node_scale))
       return partial_node_scale
-
 
   def get_node_scale(self):
       '''
