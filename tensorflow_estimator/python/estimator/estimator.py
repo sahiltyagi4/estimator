@@ -2304,7 +2304,7 @@ class Estimator(object):
       indices_negative_batchsizes = []
       node_scale = self.get_node_scale()
 
-      logging.info('value of delta is ' + str(delta))
+      logging.info('gr' + str(delta))
       logging.info('updatedbatchsizes being used ' + str(updated_batchsizes))
       for index in range(0, len(updated_batchsizes)):
         worker_batch_size_adjustment.append(node_scale[index] * delta)
@@ -2343,22 +2343,29 @@ class Estimator(object):
       '''
       partial_node_scale = []
       node_resources = []
+      overall_resources = []
       resource_alloc = os.environ['RESOURCE_ALLOC']
       for resource in resource_alloc.split(','):
           node_resources.append(float(resource))
+          overall_resources.append(float(resource))
 
-      logging.info('@sahiltyagi4 initial length of node_resources ' + str(node_resources))
+      logging.info('@sahiltyagi4 pre-adjustment length of node_resources ' + str(node_resources))
+      logging.info('@sahiltyagi4 pre-adjustment length of overall_resources ' + str(overall_resources))
 
       for negative_index in indices_negative_batchsizes:
           node_resources.pop(negative_index-1)
 
       logging.info('@sahiltyagi4 post adjustment length of node_resources ' + str(node_resources))
+      logging.info('@sahiltyagi4 post adjustment length of overall_resources ' + str(overall_resources))
 
       total_resources = np.sum(node_resources)
-      for resource in node_resources:
-          partial_node_scale.append(resource/total_resources)
+      for ix in range(0, len(overall_resources)):
+          if ix in indices_negative_batchsizes:
+              partial_node_scale.append(1)
+          else:
+              partial_node_scale.append(overall_resources[ix]/total_resources)
 
-      logging.info('@sahiltyagi4 partial node scale now is ' + str(len(partial_node_scale)))
+      logging.info('@sahiltyagi4 partial node scale now is ' + str(partial_node_scale))
       return partial_node_scale
 
 
