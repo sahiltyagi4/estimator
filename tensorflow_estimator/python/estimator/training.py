@@ -864,11 +864,10 @@ class _TrainingExecutor(object):
         logging.info('@sahiltyagi4 going to use workload ' + workload)
         new_input_fn = functools.partial(switched_input_fn, batchsize=new_batch_size)
         logging.info('@sahiltyagi4 value set for new batch-size on switched input fn is {}'.format(new_batch_size))
-        loss, should_switch_input_fn = self._estimator.train(
-            input_fn=new_input_fn,
-            max_steps=self._train_spec.max_steps,
-            hooks=list(self._train_spec.hooks) + list(self._train_hooks),
-            saving_listeners=saving_listeners)
+        loss, should_switch_input_fn = self._estimator.train(input_fn=new_input_fn,
+                                                             max_steps=self._train_spec.max_steps,
+                                                             hooks=list(self._train_spec.hooks) + list(self._train_hooks),
+                                                             saving_listeners=saving_listeners)
 
       elif 'mnist_cnn' in workload:
         logging.info('@sahiltyagi4 going to use workload ' + workload)
