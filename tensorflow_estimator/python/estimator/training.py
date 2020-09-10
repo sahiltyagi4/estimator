@@ -878,8 +878,9 @@ class _TrainingExecutor(object):
                                                              hooks=list(self._train_spec.hooks) + list(self._train_hooks),
                                                              saving_listeners=saving_listeners)
       elif 'transformers' in workload:
-        new_input_fn = functools.partial(switched_input_fn, train_batch_size=new_batch_size)
-        loss, should_switch_input_fn = self._estimator.train(input_fn=new_input_fn,
+        # new_input_fn = functools.partial(switched_input_fn, train_batch_size=new_batch_size)
+        loss, should_switch_input_fn = self._estimator.train(input_fn=self._train_spec.input_fn,
+                                                             #input_fn=new_input_fn,
                                                              max_steps=self._train_spec.max_steps,
                                                              hooks=list(self._train_spec.hooks) + list(self._train_hooks),
                                                              saving_listeners=saving_listeners)
