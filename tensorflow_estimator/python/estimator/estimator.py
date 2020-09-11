@@ -1860,6 +1860,51 @@ class Estimator(object):
 
     return workers_window_computed
 
+  # def check_async_workers_status(self, model_dir, worker_batchsizes_filenames, num_workers):
+  #     logging.info('@sahiltyagi4 old_worker steps in ASP are ' + str(self.old_worker_steps))
+  #     worker_progress = False
+  #     while True:
+  #         ctr = 0
+  #         new_worker_steps = {}
+  #         worker_computation_times = []
+  #         for worker_file in worker_batchsizes_filenames:
+  #             f = os.path.join(model_dir, worker_file)
+  #             if os.path.isfile(f):
+  #                 file = open(f, 'r')
+  #                 line = file.readline()
+  #                 file.close()
+  #                 w_type = worker_file.split('.')[0].split('-')[1]
+  #                 w_index = worker_file.split('.')[0].split('-')[2]
+  #                 if len(line.split(',')) == 2:
+  #                     ctr = ctr + 1
+  #                     new_worker_steps[w_type + str(w_index)] = int(line.split(',')[1])
+  #                     worker_computation_times.append(float(line.split(',')[0]))
+  #
+  #         if ctr == num_workers:
+  #             break
+  #
+  #     ctr = 0
+  #     logging.info('@sahiltyagi4 in NEW ASP status method ' + str(worker_computation_times))
+  #     logging.info('@sahiltyagi4 new worker steps dictionary ' + str(new_worker_steps))
+  #     logging.info('@sahiltyagi4 registered the steps from logs for each worker in cluster and shared iteration'
+  #                  ' times of other workers....')
+  #     for k,v in new_worker_steps.items():
+  #         if k not in self.old_worker_steps.keys():
+  #             self.old_worker_steps[k] = v
+  #
+  #         else:
+  #             if self.old_worker_steps.get(k) == v:
+  #                 ctr = ctr + 1
+  #             else:
+  #                 self.old_worker_steps[k] = v
+  #
+  #     if ctr > 0:
+  #         worker_progress = False
+  #     else:
+  #         worker_progress = True
+  #
+  #     return worker_computation_times, worker_progress
+
   def check_async_workers_status(self, model_dir, worker_batchsizes_filenames, num_workers):
       logging.info('@sahiltyagi4 old_worker steps in ASP are ' + str(self.old_worker_steps))
       worker_progress = False
