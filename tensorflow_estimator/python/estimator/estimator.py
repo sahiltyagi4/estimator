@@ -1494,7 +1494,12 @@ class Estimator(object):
     b_static = int(os.environ['UNIFORM_CLUSTER_BATCH_SIZE'])
     logging.info('@sahiltyagi4 training global batch-size is ' + str(b_static))
     window_computation_time = []
+
+    # to keep async track among workers. keeps value of last window step value for every worker-name key
+    self.global_worker_windowtracker = {}
+
     worker_batchsizes_filenames = self.get_worker_batchsize_filenames(num_workers)
+    self.write_init_worker_computation_step(self._model_dir, worker_batchsizes_filenames)
     gradient_files = self.get_gradient_filenames(num_workers)
     nonetype_filenames = self.getnonetypefilenames(num_workers)
     training_status_logs = self.training_status_loglist(num_workers)
@@ -1687,12 +1692,17 @@ class Estimator(object):
                           window_avg_time = self.average_computation_time_in_window(window_computation_time)
                           self.write_computation_time_to_file(self._model_dir, str(window_avg_time), curr_global_step,
                                                               w_type, w_index)
-                          worker_computation_times, worker_progress = self.check_async_workers_status(self._model_dir,
-                                                                                                      worker_batchsizes_filenames,
-                                                                                                      num_workers)
+                          # worker_computation_times, worker_progress = self.check_async_workers_status(self._model_dir,
+                          #                                                                             worker_batchsizes_filenames,
+                          #                                                                             num_workers)
+
+                          worker_progress = self.check_new_ASP_windows(self._model_dir, worker_batchsizes_filenames,
+                                                                       num_workers)
+
                           if worker_progress:
-                              logging.info('@sahiltyagi4 gradient computation time in ASP is '
-                                           + str(worker_computation_times))
+                              worker_computation_times = self.fetch_ASP_gradient_computationtime(self._model_dir,
+                                                                                                 worker_batchsizes_filenames)
+                              logging.info('@sahiltyagi4 gradient computation time in ASP is ' + str(worker_computation_times))
                               if w_type == 'master':
                                   should_master_stop = self.compute_cluster_delta_fn(worker_computation_times,
                                                                                      w_type,
@@ -1737,6 +1747,29 @@ class Estimator(object):
           # pylint: disable=W0212
           session = session._sess
       return
+
+  def write_init_worker_computation_step(self, model_dir, worker_batchsizes_filenames):
+      for workerfile in worker_batchsizes_filenames:
+          f = os.path.join(model_dir, workerfile)
+          file = open(f, 'w')
+          file.write('0,0')
+          w_type = workerfile.split('.')[0].split('-')[1]
+          w_index = workerfile.split('.')[0].split('-')[2]
+          self.global_worker_windowtracker[w_type + '_' + w_index] = int(0)
+          logging.info('@sahiltyagi4 wrote init for the workers computation time and step!')
+          file.close()
+
+  def fetch_ASP_gradient_computationtime(self, model_dir, worker_batchsizes_filenames):
+      gradient_computation_time = []
+      for workerfile in worker_batchsizes_filenames:
+          f = os.path.join(model_dir, workerfile)
+          file = open(f , 'r')
+          line = file.readline()
+          file.close()
+          gradient_computation_time.append(float(line.split(',')[0]))
+
+      return  gradient_computation_time
+
 
   def log_previous_stop_step(self, model_dir):
       did_previous_stopstep_change = False
@@ -1905,50 +1938,35 @@ class Estimator(object):
   #
   #     return worker_computation_times, worker_progress
 
-  def check_async_workers_status(self, model_dir, worker_batchsizes_filenames, num_workers):
-      logging.info('@sahiltyagi4 old_worker steps in ASP are ' + str(self.old_worker_steps))
-      worker_progress = False
-      while True:
-          ctr = 0
-          new_worker_steps = {}
-          worker_computation_times = []
-          for worker_file in worker_batchsizes_filenames:
-              f = os.path.join(model_dir, worker_file)
-              if os.path.isfile(f):
-                  file = open(f, 'r')
-                  line = file.readline()
-                  file.close()
-                  w_type = worker_file.split('.')[0].split('-')[1]
-                  w_index = worker_file.split('.')[0].split('-')[2]
-                  if len(line.split(',')) == 2:
-                      ctr = ctr + 1
-                      new_worker_steps[w_type + str(w_index)] = int(line.split(',')[1])
-                      worker_computation_times.append(float(line.split(',')[0]))
+  def check_new_ASP_windows(self, model_dir, worker_batchsizes_filenames, num_workers):
+      local_worker_windowtracker = {}
+      new_windows_counter = 0
+      for worker_file in worker_batchsizes_filenames:
+          f = os.path.join(model_dir, worker_file)
+          if os.path.isfile(f):
+              file = open(f, 'r')
+              line = file.readline()
+              file.close()
+              w_type = worker_file.split('.')[0].split('-')[1]
+              w_index = worker_file.split('.')[0].split('-')[2]
+              if len(line.split(',')) == 2:
+                  local_worker_windowtracker[w_type + '_' + w_index] = int(line.split(',')[1])
 
-          if ctr == num_workers:
-              break
-
-      ctr = 0
-      logging.info('@sahiltyagi4 in NEW ASP status method ' + str(worker_computation_times))
-      logging.info('@sahiltyagi4 new worker steps dictionary ' + str(new_worker_steps))
-      logging.info('@sahiltyagi4 registered the steps from logs for each worker in cluster and shared iteration'
-                   ' times of other workers....')
-      for k,v in new_worker_steps.items():
-          if k not in self.old_worker_steps.keys():
-              self.old_worker_steps[k] = v
-
+      logging.info('@sahiltyagi4 local worker window tracking dictionary is ' + str(local_worker_windowtracker))
+      logging.info('@sahiltyagi4 corresponding global window tracker values are ' + str(self.global_worker_windowtracker))
+      for worker, step in self.global_worker_windowtracker.items():
+          if worker in local_worker_windowtracker.keys():
+              if step != local_worker_windowtracker[worker]:
+                  new_windows_counter = new_windows_counter + 1
           else:
-              if self.old_worker_steps.get(k) == v:
-                  ctr = ctr + 1
-              else:
-                  self.old_worker_steps[k] = v
+              logging.info('@sahiltyagi4 keys missing between global and local window tracker....something is wrong :(')
 
-      if ctr > 0:
-          worker_progress = False
+      if new_windows_counter == num_workers:
+          # update global dictionary to be used for comparison in next window
+          self.global_worker_windowtracker = local_worker_windowtracker
+          return True
       else:
-          worker_progress = True
-
-      return worker_computation_times, worker_progress
+          return False
 
   #just meta, or index and data files too?
   def wait_till_checkpointing_completes(self, model_dir, checkpoint_meta_file):
