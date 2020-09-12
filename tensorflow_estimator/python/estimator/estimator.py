@@ -1699,6 +1699,8 @@ class Estimator(object):
                       if len(window_computation_time) == estimator_spec.window_size:
                           logging.info('@sahiltyagi4 filled a window on a worker....')
                           window_avg_time = self.average_computation_time_in_window(window_computation_time)
+                          logging.info('@sahiltyagi4 window avg time value is on global step ' + str(curr_global_step)
+                                       + ' is ' + str(window_avg_time))
                           self.write_computation_time_to_file(self._model_dir, str(window_avg_time), curr_global_step,
                                                               w_type, w_index)
                           # worker_computation_times, worker_progress = self.check_async_workers_status(self._model_dir,
@@ -1768,17 +1770,21 @@ class Estimator(object):
           logging.info('@sahiltyagi4 wrote init for the workers computation time and step!')
           file.close()
 
-  def fetch_ASP_gradient_computationtime(self, model_dir, worker_batchsizes_filenames):
+  def fetch_ASP_gradient_computationtime(self, model_dir, worker_batchsizes_filenames, num_workers):
       gradient_computation_time = []
-      for workerfile in worker_batchsizes_filenames:
-          f = os.path.join(model_dir, workerfile)
-          file = open(f , 'r')
-          line = file.readline()
-          file.close()
-          gradient_computation_time.append(float(line.split(',')[0]))
+      while True:
+          for workerfile in worker_batchsizes_filenames:
+              f = os.path.join(model_dir, workerfile)
+              file = open(f, 'r')
+              line = file.readline()
+              file.close()
+              if len(line.split(',')) == 2:
+                  gradient_computation_time.append(float(line.split(',')[0]))
+
+          if len(gradient_computation_time) == num_workers and 0.0 not in gradient_computation_time:
+              break
 
       return  gradient_computation_time
-
 
   def log_previous_stop_step(self, model_dir):
       did_previous_stopstep_change = False
