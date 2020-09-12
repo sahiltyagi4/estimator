@@ -1708,7 +1708,7 @@ class Estimator(object):
                           #                                                                             num_workers)
 
                           worker_progress = self.check_new_ASP_windows(self._model_dir, worker_batchsizes_filenames,
-                                                                       num_workers)
+                                                                       num_workers, curr_global_step)
 
                           if worker_progress:
                               worker_computation_times = self.fetch_ASP_gradient_computationtime(self._model_dir,
@@ -1762,14 +1762,25 @@ class Estimator(object):
 
   def write_init_worker_computation_step(self, model_dir, worker_batchsizes_filenames):
       for workerfile in worker_batchsizes_filenames:
-          f = os.path.join(model_dir, workerfile)
-          file = open(f, 'w')
-          file.write('0,0')
           w_type = workerfile.split('.')[0].split('-')[1]
           w_index = workerfile.split('.')[0].split('-')[2]
-          self.global_worker_windowtracker[w_type + '_' + w_index] = int(0)
-          logging.info('@sahiltyagi4 wrote init for the workers computation time and step!')
+          f = os.path.join(model_dir, workerfile)
+
+          if os.path.isfile(f):
+              file = open(f, 'r')
+              data = file.readline()
+              if len(data.split(',')) == 2:
+                  self.global_worker_windowtracker[w_type + '_' + w_index] = data.split(',')[1]
+              else:
+                  logging.info('@sahiltyagi4 fetching global window tracker for step in previous run not working!!!!')
+          else:
+              file = open(f, 'w')
+              file.write('0,0')
+              self.global_worker_windowtracker[w_type + '_' + w_index] = int(0)
+              logging.info('@sahiltyagi4 wrote init for the workers computation time and step!')
+
           file.close()
+
 
   def fetch_ASP_gradient_computationtime(self, model_dir, worker_batchsizes_filenames, num_workers):
       gradient_computation_time = []
@@ -1954,7 +1965,7 @@ class Estimator(object):
   #
   #     return worker_computation_times, worker_progress
 
-  def check_new_ASP_windows(self, model_dir, worker_batchsizes_filenames, num_workers):
+  def check_new_ASP_windows(self, model_dir, worker_batchsizes_filenames, num_workers, global_step):
       local_worker_windowtracker = {}
       new_windows_counter = 0
       for worker_file in worker_batchsizes_filenames:
@@ -1979,6 +1990,7 @@ class Estimator(object):
 
       if new_windows_counter == num_workers:
           # update global dictionary to be used for comparison in next window
+          logging.info('@sahiltyagi4 assigning values between global-local maps for global step ' + str(global_step))
           self.global_worker_windowtracker = local_worker_windowtracker
           return True
       else:
@@ -2423,7 +2435,13 @@ class Estimator(object):
       adjacent_node_resources_val = []
       node_resources = []
       overall_resources = []
-      resource_alloc = os.environ['RESOURCE_ALLOC']
+
+      #resource_alloc = os.environ['RESOURCE_ALLOC']
+      f = os.path.join(self._model_dir, 'node_scale.conf')
+      file = open(f, 'r')
+      resource_alloc = file.readline()
+      file.close()
+
       for resource in resource_alloc.split(','):
           node_resources.append(float(resource))
           overall_resources.append(float(resource))
@@ -2470,7 +2488,14 @@ class Estimator(object):
       node_scale = []
       total_resources = 0
       node_scale.append(0)
-      resource_alloc = os.environ['RESOURCE_ALLOC']
+
+      #resource_alloc = os.environ['RESOURCE_ALLOC']
+
+      f = os.path.join(self._model_dir, 'node_scale.conf')
+      file = open(f, 'r')
+      resource_alloc = file.readline()
+      file.close()
+
       for resource in resource_alloc.split(','):
           total_resources = total_resources + float(resource)
 
