@@ -1711,11 +1711,12 @@ class Estimator(object):
                                                                        num_workers, curr_global_step)
 
                           if worker_progress:
-                              worker_computation_times = self.fetch_ASP_gradient_computationtime(self._model_dir,
-                                                                                                 worker_batchsizes_filenames,
-                                                                                                 num_workers)
-                              logging.info('@sahiltyagi4 gradient computation time in ASP is ' + str(worker_computation_times))
                               if w_type == 'master':
+                                  worker_computation_times = self.fetch_ASP_gradient_computationtime(self._model_dir,
+                                                                                                     worker_batchsizes_filenames,
+                                                                                                     num_workers)
+                                  logging.info('@sahiltyagi4 gradient computation time in ASP is '
+                                               + str(worker_computation_times))
                                   should_master_stop = self.compute_cluster_delta_fn(worker_computation_times,
                                                                                      w_type,
                                                                                      estimator_spec.reactive_adjustment_threshold,
@@ -1793,6 +1794,7 @@ class Estimator(object):
               if len(line.split(',')) == 2:
                   gradient_computation_time.append(float(line.split(',')[0]))
 
+          logging.info('@sahiltyagi4 in loop value of gradient computation time list is ' + str(gradient_computation_time))
           if len(gradient_computation_time) == num_workers and 0.0 not in gradient_computation_time:
               break
 
