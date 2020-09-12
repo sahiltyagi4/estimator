@@ -1712,7 +1712,8 @@ class Estimator(object):
 
                           if worker_progress:
                               worker_computation_times = self.fetch_ASP_gradient_computationtime(self._model_dir,
-                                                                                                 worker_batchsizes_filenames)
+                                                                                                 worker_batchsizes_filenames,
+                                                                                                 num_workers)
                               logging.info('@sahiltyagi4 gradient computation time in ASP is ' + str(worker_computation_times))
                               if w_type == 'master':
                                   should_master_stop = self.compute_cluster_delta_fn(worker_computation_times,
