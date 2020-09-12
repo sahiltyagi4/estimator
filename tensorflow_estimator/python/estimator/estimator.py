@@ -1535,6 +1535,7 @@ class Estimator(object):
       step_file = os.path.join(self._model_dir, 'localstep-'+w_type+str(w_index)+'.log')
       self.old_worker_steps = {}
       self.previous_asp_stop_step = 0
+      self.minimum_batchsize_threshold = int(estimator_spec.mini_batchsize_threshold)
       if os.path.exists(step_file):
           file = open(step_file, 'r')
           local_current_step = int(file.readline())
@@ -1545,6 +1546,8 @@ class Estimator(object):
           global_current_step = mon_sess.run(tf.train.get_or_create_global_step())
           logging.info('@sahiltyagi4 logged global step is ' + str(global_current_step) + ' and logged local step is '
                        + str(local_current_step))
+
+          staleness = global_current_step - local_current_step
 
           if True:
           #if (global_current_step - local_current_step) <= int(estimator_spec.staleness):
@@ -1680,7 +1683,13 @@ class Estimator(object):
 
               elif estimator_spec.sync_mode == 'ASP':
                   if estimator_spec.window_size is not None:
-                      window_computation_time.append(float((max(op_ts) - min(op_ts)) / 1000))
+
+                      if estimator_spec.asp_adjust_strategy == 'iteration_time':
+                          window_computation_time.append(float((max(op_ts) - min(op_ts)) / 1000))
+
+                      elif estimator_spec.asp_adjust_strategy == 'staleness':
+                          window_computation_time.append(staleness)
+
                       if len(window_computation_time) > estimator_spec.window_size:
                           # worker completed a window before others completed their window AND logged it, so ignore the
                           # oldest record and update with iteration times for newer iterations!
@@ -2361,7 +2370,6 @@ class Estimator(object):
                 the heterogeneity level and the sync mode being used.
       :return: a list of the two-level normalized batch-sizes to be used to restart the model with kill-restart technique.
       '''
-      minimum_batch_size_threshold = 16
       normalized_updated_batch_sizes = []
       worker_batch_size_adjustment = []
       indices_negative_batchsizes = []
@@ -2384,13 +2392,13 @@ class Estimator(object):
       if len(indices_negative_batchsizes) > 0:
           logging.info('@sahiltyagi4 total entries with negative batch-sizes registered ' + str(indices_negative_batchsizes))
 
-          batchsize_to_split = global_batch_size - (minimum_batch_size_threshold*len(indices_negative_batchsizes))
+          batchsize_to_split = global_batch_size - (self.minimum_batchsize_threshold*len(indices_negative_batchsizes))
           logging.info('@sahiltyagi4 batch-size to split among positive batch-size workers ' + str(batchsize_to_split))
           normalized_updated_batch_sizes = []
           partial_node_scale = self.get_partial_node_scale(indices_negative_batchsizes)
           for ix in range(0, len(updated_batchsizes)):
               if ix in indices_negative_batchsizes:
-                  normalized_updated_batch_sizes.append(minimum_batch_size_threshold)
+                  normalized_updated_batch_sizes.append(self.minimum_batchsize_threshold)
               elif ix == 0:
                   normalized_updated_batch_sizes.append(global_batch_size/num_workers)
               else:
