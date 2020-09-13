@@ -1644,9 +1644,12 @@ class Estimator(object):
                           logging.info(
                               '@sahiltyagi4 value of gradient_computation_time is ' + str(gradient_computation_time))
                           if w_type == 'master':
+                              logging.info('@sahiltyagi4 value of b_simple previous ' + str(previous_b_simple))
                               b_static = self.control_global_batchsize(b_simple_list, previous_b_simple, b_static)
                               self.write_current_global_batch_size(self._model_dir, b_static)
+                              # current window b_simple used from b_simple_list.
                               previous_b_simple = np.mean(b_simple_list)
+                              logging.info('@sahiltyagi4 value of b_simple current ' + str(previous_b_simple))
                               self.write_previous_window_bsimple(self._model_dir, previous_b_simple)
 
                               should_master_stop = self.compute_cluster_delta_fn(gradient_computation_time, w_type,
@@ -1727,6 +1730,7 @@ class Estimator(object):
 
                           if worker_progress:
                               if w_type == 'master':
+                                  logging.info('@sahiltyagi4 value of b_simple previous ' + str(previous_b_simple))
                                   worker_computation_times = self.fetch_ASP_gradient_computationtime(self._model_dir,
                                                                                                      worker_batchsizes_filenames,
                                                                                                      num_workers)
@@ -1736,6 +1740,7 @@ class Estimator(object):
                                   b_static = self.control_global_batchsize(b_simple_list, previous_b_simple, b_static)
                                   self.write_current_global_batch_size(self._model_dir, b_static)
                                   previous_b_simple = np.mean(b_simple_list)
+                                  logging.info('@sahiltyagi4 value of b_simple current ' + str(previous_b_simple))
                                   self.write_previous_window_bsimple(self._model_dir, previous_b_simple)
 
                                   should_master_stop = self.compute_cluster_delta_fn(worker_computation_times,
