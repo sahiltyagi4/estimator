@@ -1754,6 +1754,7 @@ class Estimator(object):
 
                               if should_training_stop and did_previous_stopstep_change:
                                   window_computation_time = []
+                                  b_simple_list = []
                                   current_batchsizes = self.fetch_current_batchisizes(self._model_dir)
                                   self.set_worker_batchsize(w_type, w_index, num_ps, current_batchsizes)
                                   self.log_local_step(self._model_dir, local_current_step, w_type, w_index)
@@ -1795,7 +1796,7 @@ class Estimator(object):
       updated_global_batch_size = global_batch_size + global_batch_size*proportional_adjustment
       logging.info('@sahiltyagi4 updated global-batch-size adjustment value is ' + str(updated_global_batch_size))
 
-      updated_global_batch_size = math.round(updated_global_batch_size)
+      updated_global_batch_size = round(updated_global_batch_size)
 
       return updated_global_batch_size
 
