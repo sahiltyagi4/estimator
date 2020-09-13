@@ -1796,7 +1796,7 @@ class Estimator(object):
       updated_global_batch_size = global_batch_size + global_batch_size*proportional_adjustment
       logging.info('@sahiltyagi4 updated global-batch-size adjustment value is ' + str(updated_global_batch_size))
 
-      updated_global_batch_size = round(updated_global_batch_size)
+      updated_global_batch_size = int(round(updated_global_batch_size))
 
       return updated_global_batch_size
 
@@ -1817,7 +1817,7 @@ class Estimator(object):
       global_batch_size = 0
       f = os.path.join(model_dir, 'global_batch_size.conf')
       file = open(f, 'w')
-      file.write(str(global_batch_size_value))
+      file.write(str(int(global_batch_size_value)))
       file.close()
       logging.info('@sahiltyagi4 value of ADJUSTED global-batch-size is ' + str(global_batch_size))
 
