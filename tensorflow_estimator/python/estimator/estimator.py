@@ -1790,6 +1790,8 @@ class Estimator(object):
       else:
           proportional_adjustment = (previous_b_simple - avg_bsimple)/avg_bsimple
 
+      logging.info('@sahiltyagi4 previous window b_simple is ' + str(previous_b_simple)
+                   + ' and current window b_simple is ' + str(avg_bsimple))
       logging.info('@sahiltyagi4 proportional adjustment value is ' + str(proportional_adjustment)
                    + ' with initial global-batch-size ' + str(global_batch_size))
 
@@ -1814,12 +1816,11 @@ class Estimator(object):
       return global_batch_size
 
   def write_current_global_batch_size(self, model_dir, global_batch_size_value):
-      global_batch_size = 0
       f = os.path.join(model_dir, 'global_batch_size.conf')
       file = open(f, 'w')
       file.write(str(int(global_batch_size_value)))
       file.close()
-      logging.info('@sahiltyagi4 value of ADJUSTED global-batch-size is ' + str(global_batch_size))
+      logging.info('@sahiltyagi4 value of ADJUSTED global-batch-size is ' + str(global_batch_size_value))
 
 
   def get_previous_window_bsimple(self, model_dir):
