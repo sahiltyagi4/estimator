@@ -27,6 +27,7 @@ import time
 import json
 import subprocess
 import uuid
+import math
 
 import numpy as np
 import six
@@ -1491,9 +1492,14 @@ class Estimator(object):
         num_workers = 1
 
     num_ps = int(len(tf_config['cluster']['ps']))
-    b_static = int(os.environ['UNIFORM_CLUSTER_BATCH_SIZE'])
+
+    # b_static = int(os.environ['UNIFORM_CLUSTER_BATCH_SIZE'])
+    b_static = self.init_current_global_batch_size(self._model_dir, estimator_spec.global_batch_size_value)
+
     logging.info('@sahiltyagi4 training global batch-size is ' + str(b_static))
     window_computation_time = []
+    b_simple_list = []
+    previous_b_simple = self.get_previous_window_bsimple(self._model_dir)
 
     # to keep async track among workers. keeps value of last window step value for every worker-name key
     self.global_worker_windowtracker = {}
@@ -1572,6 +1578,9 @@ class Estimator(object):
               logging.info('@sahiltyagi4 b_simple noise scale is ' + str(b_simple) + ' for global step '
                            + str(curr_global_step))
 
+              # gradient variance added here
+              b_simple_list.append(b_simple)
+
               tl = timeline.Timeline(run_metadata.step_stats)
               ctf = tl.generate_chrome_trace_format()
               op_ts = []
@@ -1635,6 +1644,11 @@ class Estimator(object):
                           logging.info(
                               '@sahiltyagi4 value of gradient_computation_time is ' + str(gradient_computation_time))
                           if w_type == 'master':
+                              b_static = self.control_global_batchsize(b_simple_list, previous_b_simple, b_static)
+                              self.write_current_global_batch_size(self._model_dir, b_static)
+                              previous_b_simple = np.mean(b_simple_list)
+                              self.write_previous_window_bsimple(self._model_dir, previous_b_simple)
+
                               should_master_stop = self.compute_cluster_delta_fn(gradient_computation_time, w_type,
                                                                                  estimator_spec.reactive_adjustment_threshold,
                                                                                  curr_global_step, b_static,
@@ -1660,6 +1674,7 @@ class Estimator(object):
                           # self.remove_window_logs(self._model_dir, w_type, w_index)
 
                           window_computation_time = []
+                          b_simple_list = []
                           if should_training_stop:
                               # save local step to be picked later when switching input fn with new batch-size
                               self.log_local_step(self._model_dir, curr_global_step, w_type, w_index)
@@ -1717,6 +1732,12 @@ class Estimator(object):
                                                                                                      num_workers)
                                   logging.info('@sahiltyagi4 gradient computation time in ASP is '
                                                + str(worker_computation_times))
+
+                                  b_static = self.control_global_batchsize(b_simple_list, previous_b_simple, b_static)
+                                  self.write_current_global_batch_size(self._model_dir, b_static)
+                                  previous_b_simple = np.mean(b_simple_list)
+                                  self.write_previous_window_bsimple(self._model_dir, previous_b_simple)
+
                                   should_master_stop = self.compute_cluster_delta_fn(worker_computation_times,
                                                                                      w_type,
                                                                                      estimator_spec.reactive_adjustment_threshold,
@@ -1760,6 +1781,63 @@ class Estimator(object):
           # pylint: disable=W0212
           session = session._sess
       return
+
+  def control_global_batchsize(self, b_simple_list, previous_b_simple, global_batch_size):
+      avg_bsimple = np.mean(b_simple_list)
+      if previous_b_simple == 0.0:
+          proportional_adjustment = 0.0
+      else:
+          proportional_adjustment = (previous_b_simple - avg_bsimple)/avg_bsimple
+
+      logging.info('@sahiltyagi4 proportional adjustment value is ' + str(proportional_adjustment)
+                   + ' with initial global-batch-size ' + str(global_batch_size))
+
+      updated_global_batch_size = global_batch_size + global_batch_size*proportional_adjustment
+      logging.info('@sahiltyagi4 updated global-batch-size adjustment value is ' + str(updated_global_batch_size))
+
+      updated_global_batch_size = math.round(updated_global_batch_size)
+
+      return updated_global_batch_size
+
+  def init_current_global_batch_size(self, model_dir, global_batch_size_value):
+      global_batch_size = 0
+      f = os.path.join(model_dir, 'global_batch_size.conf')
+      if os.path.isfile(f):
+          file = open(f, 'r')
+          global_batch_size = int(file.readline().strip())
+          file.close()
+      else:
+          global_batch_size = global_batch_size_value
+
+      logging.info('@sahiltyagi4 value of global-batch-size INIT at start/restart is ' + str(global_batch_size))
+      return global_batch_size
+
+  def write_current_global_batch_size(self, model_dir, global_batch_size_value):
+      global_batch_size = 0
+      f = os.path.join(model_dir, 'global_batch_size.conf')
+      file = open(f, 'w')
+      file.write(global_batch_size_value)
+      file.close()
+      logging.info('@sahiltyagi4 value of ADJUSTED global-batch-size is ' + str(global_batch_size))
+
+
+  def get_previous_window_bsimple(self, model_dir):
+      f = os.path.join(model_dir, 'previous_window_bsimple.conf')
+      if os.path.isfile(f):
+          file = open(f, 'r')
+          previous_window_bsimple = float(file.readline().strip())
+          file.close()
+      else:
+          previous_window_bsimple = 0.0
+
+      return  previous_window_bsimple
+
+  def write_previous_window_bsimple(self, model_dir, b_simple):
+      f = os.path.join(model_dir, 'previous_window_bsimple.conf')
+      file = open(f, 'w')
+      logging.info('@sahiltyagi4 going to write previous window b_simple as ' + str(b_simple))
+      file.write(b_simple)
+      file.close()
 
   def write_init_worker_computation_step(self, model_dir, worker_batchsizes_filenames):
       for workerfile in worker_batchsizes_filenames:
@@ -2286,7 +2364,7 @@ class Estimator(object):
       if index != 0:
         cumulative_batch_size = cumulative_batch_size + worker_batch_size
 
-    delta = (b_static*num_workers) - cumulative_batch_size
+    delta = b_static - cumulative_batch_size
     logging.info('@sahiltyagi debug mode delta ' + str(delta))
     logging.info('@sahiltyagi debug mode updated bs ' + str(updated_batchsizes))
     logging.info('@sahiltyagi debug mode cumulative bs ' + str(cumulative_batch_size))
@@ -2334,8 +2412,8 @@ class Estimator(object):
           if index != 0:
               cumulative_batch_size = cumulative_batch_size + worker_batch_size
 
-      delta = (b_static*num_workers) - cumulative_batch_size
-      normalized_updated_batch_sizes = self.normalize_batch_sizes(delta, b_static*num_workers, num_workers, updated_batchsizes)
+      delta = b_static - cumulative_batch_size
+      normalized_updated_batch_sizes = self.normalize_batch_sizes(delta, b_static, num_workers, updated_batchsizes)
       logging.info('@sahiltyagi4 normalized updated batch-sizes after two-level normalization are ' + str(normalized_updated_batch_sizes))
 
       if w_type == 'master':
@@ -2387,7 +2465,7 @@ class Estimator(object):
   def normalize_batch_sizes(self, delta, global_batch_size, num_workers, updated_batchsizes):
       '''
       :argument: normalizes the delta between the cumulative batch-size across the cluster to its static batching
-                equilvalent (which is b_static times the number of workers). delta can be positive or negative given
+                equilvalent (now in scavenger, b_static = global batch size). delta can be positive or negative given
                 the heterogeneity level and the sync mode being used.
       :return: a list of the two-level normalized batch-sizes to be used to restart the model with kill-restart technique.
       '''
