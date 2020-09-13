@@ -1817,7 +1817,7 @@ class Estimator(object):
       global_batch_size = 0
       f = os.path.join(model_dir, 'global_batch_size.conf')
       file = open(f, 'w')
-      file.write(global_batch_size_value)
+      file.write(str(global_batch_size_value))
       file.close()
       logging.info('@sahiltyagi4 value of ADJUSTED global-batch-size is ' + str(global_batch_size))
 
@@ -1837,7 +1837,7 @@ class Estimator(object):
       f = os.path.join(model_dir, 'previous_window_bsimple.conf')
       file = open(f, 'w')
       logging.info('@sahiltyagi4 going to write previous window b_simple as ' + str(b_simple))
-      file.write(b_simple)
+      file.write(str(b_simple))
       file.close()
 
   def write_init_worker_computation_step(self, model_dir, worker_batchsizes_filenames):
