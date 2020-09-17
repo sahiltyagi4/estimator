@@ -1690,37 +1690,37 @@ class Estimator(object):
                           worker_computation_times, worker_progress = self.check_async_workers_status(self._model_dir,
                                                                                                       worker_batchsizes_filenames,
                                                                                                       num_workers)
-                          if worker_progress:
-                              logging.info('@sahiltyagi4 gradient computation time in ASP is '
-                                           + str(worker_computation_times))
-                              if w_type == 'master':
-                                  should_master_stop = self.compute_cluster_delta_fn(worker_computation_times,
-                                                                                     w_type,
-                                                                                     estimator_spec.reactive_adjustment_threshold,
-                                                                                     curr_global_step, b_static,
-                                                                                     num_workers,
-                                                                                     estimator_spec.adjustment_mode,
-                                                                                     w_index, num_ps)
-                                  logging.info('DEBUG ASP LOGGING FOR SHOULD_MASTER_STOP ' + str(should_master_stop))
-                                  self.log_should_training_stop(self._model_dir, should_master_stop, curr_global_step)
-
-                              should_training_stop, did_previous_stopstep_change = self.log_previous_stop_step(self._model_dir)
-                              logging.info('@sahiltyagi4 ASP should training stop ' + str(should_training_stop)
-                                           + ' and did_previous_stopstep_change ' + str(did_previous_stopstep_change))
-
-                              if should_training_stop and did_previous_stopstep_change:
-                                  window_computation_time = []
-                                  current_batchsizes = self.fetch_current_batchisizes(self._model_dir)
-                                  self.set_worker_batchsize(w_type, w_index, num_ps, current_batchsizes)
-                                  self.log_local_step(self._model_dir, local_current_step, w_type, w_index)
-                                  if not mon_sess._is_closed():
-                                      logging.info('@sahiltyagi4 gonna make session Nonetype since adjustment needs '
-                                                   'to be made....')
-                                      switch_input_fn = True
-                                      mon_sess = None
-                                      # break
-                                      logging.info('@sahiltyagi4 going to return asynchronous window loss now....')
-                                      return loss, switch_input_fn
+                          # if worker_progress:
+                          #     logging.info('@sahiltyagi4 gradient computation time in ASP is '
+                          #                  + str(worker_computation_times))
+                          #     if w_type == 'master':
+                          #         should_master_stop = self.compute_cluster_delta_fn(worker_computation_times,
+                          #                                                            w_type,
+                          #                                                            estimator_spec.reactive_adjustment_threshold,
+                          #                                                            curr_global_step, b_static,
+                          #                                                            num_workers,
+                          #                                                            estimator_spec.adjustment_mode,
+                          #                                                            w_index, num_ps)
+                          #         logging.info('DEBUG ASP LOGGING FOR SHOULD_MASTER_STOP ' + str(should_master_stop))
+                          #         self.log_should_training_stop(self._model_dir, should_master_stop, curr_global_step)
+                          #
+                          #     should_training_stop, did_previous_stopstep_change = self.log_previous_stop_step(self._model_dir)
+                          #     logging.info('@sahiltyagi4 ASP should training stop ' + str(should_training_stop)
+                          #                  + ' and did_previous_stopstep_change ' + str(did_previous_stopstep_change))
+                          #
+                          #     if should_training_stop and did_previous_stopstep_change:
+                          #         window_computation_time = []
+                          #         current_batchsizes = self.fetch_current_batchisizes(self._model_dir)
+                          #         self.set_worker_batchsize(w_type, w_index, num_ps, current_batchsizes)
+                          #         self.log_local_step(self._model_dir, local_current_step, w_type, w_index)
+                          #         if not mon_sess._is_closed():
+                          #             logging.info('@sahiltyagi4 gonna make session Nonetype since adjustment needs '
+                          #                          'to be made....')
+                          #             switch_input_fn = True
+                          #             mon_sess = None
+                          #             # break
+                          #             logging.info('@sahiltyagi4 going to return asynchronous window loss now....')
+                          #             return loss, switch_input_fn
           else:
               logging.info('@sahiltyagi4 ignored update due to staleness bound for local step '
                            + str(local_current_step) + ' and current global step ' + str(global_current_step))
@@ -1730,6 +1730,7 @@ class Estimator(object):
                       'Perhaps input is empty or misspecified.')
           # logging.info('@sahiltyagi4 going to return final loss now....')
           # return loss, switch_input_fn
+      return loss, False
 
   def get_session(self,sess):
       session = sess
