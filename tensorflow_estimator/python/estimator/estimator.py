@@ -1801,8 +1801,7 @@ class Estimator(object):
       if previous_b_simple == 0.0:
           proportional_adjustment = 0.0
       else:
-          proportional_adjustment = (current_b_simple - previous_b_simple)/previous_b_simple
-          proportional_adjustment = abs(proportional_adjustment)
+          proportional_adjustment = (previous_b_simple - current_b_simple)/previous_b_simple
 
       logging.info('@sahiltyagi4 previous window b_simple is ' + str(previous_b_simple)
                    + ' and current window b_simple is ' + str(current_b_simple))
