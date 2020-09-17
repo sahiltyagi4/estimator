@@ -1646,9 +1646,9 @@ class Estimator(object):
                           if w_type == 'master':
                               logging.info('@sahiltyagi4 value of b_simple previous ' + str(previous_b_simple))
                               # current window b_simple used from b_simple_list.
-                              previous_b_simple = np.mean(b_simple_list)
+                              current_b_simple = np.mean(b_simple_list)
                               b_static = global_batch_size
-                              logging.info('@sahiltyagi4 value of b_simple current ' + str(previous_b_simple))
+                              logging.info('@sahiltyagi4 value of b_simple current ' + str(current_b_simple))
                               should_master_stop = self.compute_cluster_delta_fn(gradient_computation_time, w_type,
                                                                                  estimator_spec.reactive_adjustment_threshold,
                                                                                  curr_global_step, b_static,
@@ -1657,9 +1657,10 @@ class Estimator(object):
                                                                                  w_index, num_ps)
                               logging.info('DEBUG LOGGING FOR SHOULD_MASTER_STOP ' + str(should_master_stop))
                               if should_master_stop:
-                                  self.write_previous_window_bsimple(self._model_dir, previous_b_simple)
-                                  b_static = self.control_global_batchsize(b_simple_list, previous_b_simple,
+                                  b_static = self.control_global_batchsize(current_b_simple, previous_b_simple,
                                                                            global_batch_size)
+                                  # writes current value of b_simple to be used in the next window...
+                                  self.write_previous_window_bsimple(self._model_dir, current_b_simple)
                                   self.write_current_global_batch_size(self._model_dir, b_static)
 
                               self.log_should_training_stop(self._model_dir, should_master_stop, curr_global_step)
@@ -1740,8 +1741,8 @@ class Estimator(object):
                                   logging.info('@sahiltyagi4 gradient computation time in ASP is '
                                                + str(worker_computation_times))
 
-                                  previous_b_simple = np.mean(b_simple_list)
-                                  logging.info('@sahiltyagi4 value of b_simple current ' + str(previous_b_simple))
+                                  current_b_simple = np.mean(b_simple_list)
+                                  logging.info('@sahiltyagi4 value of b_simple current ' + str(current_b_simple))
 
                                   b_static = global_batch_size
                                   should_master_stop = self.compute_cluster_delta_fn(worker_computation_times,
@@ -1753,9 +1754,9 @@ class Estimator(object):
                                                                                      w_index, num_ps)
                                   logging.info('DEBUG ASP LOGGING FOR SHOULD_MASTER_STOP ' + str(should_master_stop))
                                   if should_master_stop:
-                                      self.write_previous_window_bsimple(self._model_dir, previous_b_simple)
-                                      b_static = self.control_global_batchsize(b_simple_list, previous_b_simple,
+                                      b_static = self.control_global_batchsize(current_b_simple, previous_b_simple,
                                                                                b_static)
+                                      self.write_previous_window_bsimple(self._model_dir, current_b_simple)
                                       self.write_current_global_batch_size(self._model_dir, b_static)
 
                                   self.log_should_training_stop(self._model_dir, should_master_stop, curr_global_step)
@@ -1795,15 +1796,15 @@ class Estimator(object):
           session = session._sess
       return
 
-  def control_global_batchsize(self, b_simple_list, previous_b_simple, global_batch_size):
-      avg_bsimple = np.mean(b_simple_list)
+  def control_global_batchsize(self, current_b_simple, previous_b_simple, global_batch_size):
+      # for the first time when there was no previous window. refers to the beginning of the training process
       if previous_b_simple == 0.0:
           proportional_adjustment = 0.0
       else:
-          proportional_adjustment = (previous_b_simple - avg_bsimple)/avg_bsimple
+          proportional_adjustment = (previous_b_simple - current_b_simple)/current_b_simple
 
       logging.info('@sahiltyagi4 previous window b_simple is ' + str(previous_b_simple)
-                   + ' and current window b_simple is ' + str(avg_bsimple))
+                   + ' and current window b_simple is ' + str(current_b_simple))
       logging.info('@sahiltyagi4 proportional adjustment value is ' + str(proportional_adjustment)
                    + ' with initial global-batch-size ' + str(global_batch_size))
 
