@@ -1575,11 +1575,12 @@ class Estimator(object):
               #              + ' for global step ' + str(curr_global_step))
 
               b_simple = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['tensor_for_b_simple']))
-              b_noise = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['tensor_for_b_noise']))
+              expected_gradient_norm = mon_sess.run(tf.get_default_graph().get_tensor_by_name(
+                                                                    os.environ['tensor_for_expected_gradient_norm']))
 
               logging.info('@sahiltyagi4 b_simple noise scale is ' + str(b_simple) + ' for global step '
                            + str(curr_global_step))
-              logging.info('@sahiltyagi4 b_noise noise scale is ' + str(b_noise) + ' for global step '
+              logging.info('@sahiltyagi4 expected_gradient_norm is ' + str(expected_gradient_norm) + ' for global step '
                            + str(curr_global_step))
 
               # gradient variance added here
