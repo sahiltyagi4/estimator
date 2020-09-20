@@ -1569,18 +1569,20 @@ class Estimator(object):
                            + ' with starttime ' + str(step_start) + ' and endtime ' + str(step_end)
                            + ' and global step ' + str(curr_global_step))
 
-              # gradient_variance2 = mon_sess.run(
-              #     tf.get_default_graph().get_tensor_by_name(os.environ['tensor_for_variance']))
-              # logging.info('@sahiltyagi4 aggregated gradient variance2 is ' + str(gradient_variance2)
-              #              + ' for global step ' + str(curr_global_step))
-
               b_simple = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['tensor_for_b_simple']))
-              expected_gradient_norm = mon_sess.run(tf.get_default_graph().get_tensor_by_name(
-                                                                    os.environ['tensor_for_expected_gradient_norm']))
+              expected_gradient_norm = mon_sess.run(tf.get_default_graph().get_tensor_by_name
+                                                    (os.environ['tensor_for_expected_gradient_norm']))
+              b_simple2 = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['tensor_for_b_simple2']))
+              expected_gradient_norm2 = mon_sess.run(tf.get_default_graph().get_tensor_by_name
+                                                    (os.environ['tensor_for_expected_gradient_norm2']))
 
               logging.info('@sahiltyagi4 b_simple noise scale is ' + str(b_simple) + ' for global step '
                            + str(curr_global_step))
               logging.info('@sahiltyagi4 expected_gradient_norm is ' + str(expected_gradient_norm) + ' for global step '
+                           + str(curr_global_step))
+              logging.info('@sahiltyagi4 b_simple2 noise scale is ' + str(b_simple2) + ' for global step '
+                           + str(curr_global_step))
+              logging.info('@sahiltyagi4 expected_gradient_norm2 is ' + str(expected_gradient_norm2) + ' for global step '
                            + str(curr_global_step))
 
               # gradient variance added here
