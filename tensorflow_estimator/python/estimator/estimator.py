@@ -1560,7 +1560,7 @@ class Estimator(object):
               step_start = time.time()
               should_training_stop = False
 
-              lr = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['learning_rate_tensor1']))
+              # lr = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['learning_rate_tensor1']))
 
               _, loss, curr_global_step = mon_sess.run([estimator_spec.train_op, estimator_spec.loss,
                                                         tf.train.get_or_create_global_step()], options=run_options,
