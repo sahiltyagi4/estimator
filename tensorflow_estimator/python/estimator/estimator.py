@@ -1581,9 +1581,9 @@ class Estimator(object):
               expected_gradient_norm2 = mon_sess.run(tf.get_default_graph().get_tensor_by_name
                                                     (os.environ['tensor_for_expected_gradient_norm2']))
 
-              b_simple_opt = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['tensor_for_b_simple_opt']))
-              expected_gradient_opt_norm = mon_sess.run(tf.get_default_graph().get_tensor_by_name
-                                                (os.environ['tensor_for_expected_gradient_opt_norm']))
+              # b_simple_opt = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['tensor_for_b_simple_opt']))
+              # expected_gradient_opt_norm = mon_sess.run(tf.get_default_graph().get_tensor_by_name
+              #                                   (os.environ['tensor_for_expected_gradient_opt_norm']))
 
               logging.info('@sahiltyagi4 b_simple noise scale is ' + str(b_simple) + ' for global step '
                            + str(curr_global_step))
@@ -1594,10 +1594,10 @@ class Estimator(object):
               logging.info('@sahiltyagi4 expected_gradient_norm2 is ' + str(expected_gradient_norm2) + ' for global step '
                            + str(curr_global_step))
 
-              logging.info('@sahiltyagi4 b_simple_opt noise scale is ' + str(b_simple_opt) + ' for global step '
-                           + str(curr_global_step))
-              logging.info('@sahiltyagi4 expected_gradient_opt_norm is ' + str(expected_gradient_opt_norm) + ' for global step '
-                           + str(curr_global_step))
+              # logging.info('@sahiltyagi4 b_simple_opt noise scale is ' + str(b_simple_opt) + ' for global step '
+              #              + str(curr_global_step))
+              # logging.info('@sahiltyagi4 expected_gradient_opt_norm is ' + str(expected_gradient_opt_norm) + ' for global step '
+              #              + str(curr_global_step))
 
               # gradient variance added here
               b_simple_list.append(b_simple)
