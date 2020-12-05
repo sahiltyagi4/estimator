@@ -48,7 +48,7 @@ class EstimatorSpec(
         'mode', 'predictions', 'loss', 'train_op', 'eval_metric_ops', 'reactive_adjustment_threshold',
         'export_outputs', 'training_chief_hooks', 'training_hooks', 'scaffold', 'window_size',
         'evaluation_hooks', 'namescope', 'adjustment_mode', 'mini_batchsize_threshold', 'sync_mode', 'staleness',
-        'asp_adjust_strategy', 'global_batch_size', 'global_batch_size_value', 'prediction_hooks'
+        'asp_adjust_strategy', 'prediction_hooks'
     ])):
   """Ops and objects returned from a `model_fn` and passed to an `Estimator`.
 
@@ -71,8 +71,8 @@ class EstimatorSpec(
               mini_batchsize_threshold=16,
               asp_adjust_strategy=None,
               staleness=0,
-              global_batch_size=False,
-              global_batch_size_value=0,
+              #global_batch_size=False,
+              #global_batch_size_value=0,
               scaffold=None,
               window_size=None,
               evaluation_hooks=None,
@@ -199,8 +199,8 @@ class EstimatorSpec(
         sync_mode=sync_mode,
         mini_batchsize_threshold=mini_batchsize_threshold,
         asp_adjust_strategy=asp_adjust_strategy,
-        global_batch_size=global_batch_size,
-        global_batch_size_value=global_batch_size_value,
+        #global_batch_size=global_batch_size,
+        #global_batch_size_value=global_batch_size_value,
         staleness=staleness,
         scaffold=scaffold,
         window_size=window_size,

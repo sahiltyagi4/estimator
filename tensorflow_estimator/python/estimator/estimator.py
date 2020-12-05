@@ -198,6 +198,7 @@ class Estimator(object):
       ValueError: if this is called via a subclass and if that class overrides
         a member of `Estimator`.
     """
+
     _estimator_api_gauge.get_cell('init').set(True)
     # We do not endorse Estimator child classes to override methods in
     # Estimator, other than a select few. You're on your own if you cleverly
@@ -1494,7 +1495,8 @@ class Estimator(object):
     num_ps = int(len(tf_config['cluster']['ps']))
 
     # b_static = int(os.environ['UNIFORM_CLUSTER_BATCH_SIZE'])
-    global_batch_size = self.init_current_global_batch_size(self._model_dir, estimator_spec.global_batch_size_value)
+    #global_batch_size = self.init_current_global_batch_size(self._model_dir, estimator_spec.global_batch_size_value)
+    global_batch_size = int(os.environ.get('GLOBAL_CLUSTER_BATCH_SIZE'))
 
     logging.info('@sahiltyagi4 training global batch-size is ' + str(global_batch_size))
     window_computation_time = []
@@ -1547,8 +1549,11 @@ class Estimator(object):
           local_current_step = int(file.readline())
           file.close()
 
+      # commented out switch_input_fn from the condition for training but still setting the appropriate values for it
+      # to be used in future when using soft restart
       #while not mon_sess.should_stop():
-      while mon_sess is not None and not switch_input_fn:
+      while mon_sess is not None:
+      #while mon_sess is not None and not switch_input_fn:
           global_current_step = mon_sess.run(tf.train.get_or_create_global_step())
           logging.info('@sahiltyagi4 logged global step is ' + str(global_current_step) + ' and logged local step is '
                        + str(local_current_step))
@@ -1572,8 +1577,6 @@ class Estimator(object):
                            + ' with starttime ' + str(step_start) + ' and endtime ' + str(step_end)
                            + ' and global step ' + str(curr_global_step))
 
-
-
               b_simple = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['tensor_for_b_simple']))
               expected_gradient_norm = mon_sess.run(tf.get_default_graph().get_tensor_by_name
                                                     (os.environ['tensor_for_expected_gradient_norm']))
@@ -1594,6 +1597,13 @@ class Estimator(object):
                            + str(curr_global_step))
               logging.info('@sahiltyagi4 global_grad_norm is ' + str(global_grad_norm) + ' for global step '
                            + str(curr_global_step))
+
+              # new add-on in november 2020
+              # log gradient variance once every 20 steps
+              if (curr_global_step % 20) == 0:
+                  variance_log = open(os.path.join(self._model_dir, 'avg_grad_variance.conf'), 'w')
+                  variance_log.write(str(global_grad_norm))
+                  variance_log.close()
 
               # logging.info('@sahiltyagi4 b_simple2 noise scale is ' + str(b_simple2) + ' for global step '
               #              + str(curr_global_step))
@@ -1684,8 +1694,9 @@ class Estimator(object):
                                                                                  w_index, num_ps)
                               logging.info('DEBUG LOGGING FOR SHOULD_MASTER_STOP ' + str(should_master_stop))
                               if should_master_stop:
-                                  b_static = self.control_global_batchsize(current_b_simple, previous_b_simple,
-                                                                           global_batch_size)
+                                  # b_static = self.control_global_batchsize(current_b_simple, previous_b_simple,
+                                  #                                          global_batch_size)
+                                  b_static = global_batch_size
                                   # writes current value of b_simple to be used in the next window...
                                   self.write_previous_window_bsimple(self._model_dir, current_b_simple)
                                   self.write_current_global_batch_size(self._model_dir, b_static)
@@ -1781,8 +1792,9 @@ class Estimator(object):
                                                                                      w_index, num_ps)
                                   logging.info('DEBUG ASP LOGGING FOR SHOULD_MASTER_STOP ' + str(should_master_stop))
                                   if should_master_stop:
-                                      b_static = self.control_global_batchsize(current_b_simple, previous_b_simple,
-                                                                               b_static)
+                                      # b_static = self.control_global_batchsize(current_b_simple, previous_b_simple,
+                                      #                                          b_static)
+                                      b_static = global_batch_size
                                       self.write_previous_window_bsimple(self._model_dir, current_b_simple)
                                       self.write_current_global_batch_size(self._model_dir, b_static)
 
@@ -1823,37 +1835,37 @@ class Estimator(object):
           session = session._sess
       return
 
-  def control_global_batchsize(self, current_b_simple, previous_b_simple, global_batch_size):
-      # for the first time when there was no previous window. refers to the beginning of the training process
-      if previous_b_simple == 0.0:
-          proportional_adjustment = 0.0
-      else:
-          proportional_adjustment = (previous_b_simple - current_b_simple)/previous_b_simple
+  # def control_global_batchsize(self, current_b_simple, previous_b_simple, global_batch_size):
+  #     # for the first time when there was no previous window. refers to the beginning of the training process
+  #     if previous_b_simple == 0.0:
+  #         proportional_adjustment = 0.0
+  #     else:
+  #         proportional_adjustment = (previous_b_simple - current_b_simple)/previous_b_simple
+  #
+  #     logging.info('@sahiltyagi4 previous window b_simple is ' + str(previous_b_simple)
+  #                  + ' and current window b_simple is ' + str(current_b_simple))
+  #     logging.info('@sahiltyagi4 proportional adjustment value is ' + str(proportional_adjustment)
+  #                  + ' with initial global-batch-size ' + str(global_batch_size))
+  #
+  #     updated_global_batch_size = global_batch_size + global_batch_size*proportional_adjustment
+  #     logging.info('@sahiltyagi4 updated global-batch-size adjustment value is ' + str(updated_global_batch_size))
+  #
+  #     updated_global_batch_size = int(round(updated_global_batch_size))
+  #
+  #     return updated_global_batch_size
 
-      logging.info('@sahiltyagi4 previous window b_simple is ' + str(previous_b_simple)
-                   + ' and current window b_simple is ' + str(current_b_simple))
-      logging.info('@sahiltyagi4 proportional adjustment value is ' + str(proportional_adjustment)
-                   + ' with initial global-batch-size ' + str(global_batch_size))
-
-      updated_global_batch_size = global_batch_size + global_batch_size*proportional_adjustment
-      logging.info('@sahiltyagi4 updated global-batch-size adjustment value is ' + str(updated_global_batch_size))
-
-      updated_global_batch_size = int(round(updated_global_batch_size))
-
-      return updated_global_batch_size
-
-  def init_current_global_batch_size(self, model_dir, global_batch_size_value):
-      global_batch_size = 0
-      f = os.path.join(model_dir, 'global_batch_size.conf')
-      if os.path.isfile(f):
-          file = open(f, 'r')
-          global_batch_size = int(file.readline().strip())
-          file.close()
-      else:
-          global_batch_size = global_batch_size_value
-
-      logging.info('@sahiltyagi4 value of global-batch-size INIT at start/restart is ' + str(global_batch_size))
-      return global_batch_size
+  # def init_current_global_batch_size(self, model_dir, global_batch_size_value):
+  #     global_batch_size = 0
+  #     f = os.path.join(model_dir, 'global_batch_size.conf')
+  #     if os.path.isfile(f):
+  #         file = open(f, 'r')
+  #         global_batch_size = int(file.readline().strip())
+  #         file.close()
+  #     else:
+  #         global_batch_size = global_batch_size_value
+  #
+  #     logging.info('@sahiltyagi4 value of global-batch-size INIT at start/restart is ' + str(global_batch_size))
+  #     return global_batch_size
 
   def write_current_global_batch_size(self, model_dir, global_batch_size_value):
       f = os.path.join(model_dir, 'global_batch_size.conf')
@@ -1861,7 +1873,6 @@ class Estimator(object):
       file.write(str(int(global_batch_size_value)))
       file.close()
       logging.info('@sahiltyagi4 value of ADJUSTED global-batch-size is ' + str(global_batch_size_value))
-
 
   def get_previous_window_bsimple(self, model_dir):
       f = os.path.join(model_dir, 'previous_window_bsimple.conf')
