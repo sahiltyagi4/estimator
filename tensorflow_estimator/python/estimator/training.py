@@ -851,9 +851,9 @@ class _TrainingExecutor(object):
     gbs_file = open(os.path.join(config.model_dir, 'global_batch_size.conf'), 'r')
     os.environ['GLOBAL_CLUSTER_BATCH_SIZE'] = gbs_file.readline().strip()
     gbs_file.close()
-    global_batch_size = int(os.environ.get('GLOBAL_CLUSTER_BATCH_SIZE'))
-    global_batch_size = self.regressed_global_batchsize(config.model_dir, global_batch_size)
-    os.environ['GLOBAL_CLUSTER_BATCH_SIZE'] = str(global_batch_size)
+    # global_batch_size = int(os.environ.get('GLOBAL_CLUSTER_BATCH_SIZE'))
+    # global_batch_size = self.regressed_global_batchsize(config.model_dir, global_batch_size)
+    # os.environ['GLOBAL_CLUSTER_BATCH_SIZE'] = str(global_batch_size)
 
     while True:
       # @sahiltyagi4: call input fn here instead of the initial input fn defined with Estimator object.
