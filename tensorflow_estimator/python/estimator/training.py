@@ -931,9 +931,11 @@ class _TrainingExecutor(object):
                         0.047615035808713256, 0.07062160756120592]
       elif workload == 'transformers':
           batch_size = [50, 100, 200, 300, 400, 517, 600, 800, 1000, 1200]
-          #fill with the data for transformer LR noise fitting
-          grad_variance = []
-          noise_list = []
+          grad_variance = [2.171801, 2.3048299, 2.504374, 2.8670947, 3.535124076, 5.4246854, 4.258887, 5.6065331,
+                           9.843214616, 16.4145020]
+          noise_list = [2.7679483416220467, 1.0893327368067214, 0.161234228972274, 0.10686728524858148,
+                        0.17087142817703263, 0.01302333470050401, 0.3314858338803829, 0.3386720348400401,
+                        0.07005283640884824, 0.293324010948577]
 
       gradvariance_batchsize_fit = LinearRegression()
       batchsize_noise_fit = LinearRegression()
@@ -972,6 +974,11 @@ class _TrainingExecutor(object):
       if workload == 'resnet' and SGratio > 3.63:
           new_global_batch_size = 128
       elif workload == 'resnet' and SGratio < 3.63:
+          new_global_batch_size = batchsize_noise_fit.predict(SGratio)
+
+      if workload == 'transformers' and SGratio > 2.75:
+          new_global_batch_size = 128
+      elif workload == 'transformers' and SGratio < 2.75:
           new_global_batch_size = batchsize_noise_fit.predict(SGratio)
 
       new_global_batch_size = int(round(new_global_batch_size))

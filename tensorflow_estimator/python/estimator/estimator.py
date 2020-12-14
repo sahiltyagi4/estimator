@@ -1577,26 +1577,33 @@ class Estimator(object):
                            + ' with starttime ' + str(step_start) + ' and endtime ' + str(step_end)
                            + ' and global step ' + str(curr_global_step))
 
-              b_simple = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['tensor_for_b_simple']))
-              expected_gradient_norm = mon_sess.run(tf.get_default_graph().get_tensor_by_name
-                                                    (os.environ['tensor_for_expected_gradient_norm']))
+              # b_simple = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['tensor_for_b_simple']))
+              # expected_gradient_norm = mon_sess.run(tf.get_default_graph().get_tensor_by_name
+              #                                       (os.environ['tensor_for_expected_gradient_norm']))
 
               global_grad_norm = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ
                                                                                         ['tensor_for_global_grad_norm']))
+              logging.info('@sahiltyagi4 global_grad_norm is ' + str(global_grad_norm) + ' for global step '
+                           + str(curr_global_step))
+
+              #temporary add-on to print actual gradient values
+              actual_gradients = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ
+                                                                                        ['actual_gradients']))
+              logging.info('@sahiltyagi4 actual gradients for step ' + str(curr_global_step) + ' are '
+                           + str(actual_gradients))
+
               # b_simple2 = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['tensor_for_b_simple2']))
               # expected_gradient_norm2 = mon_sess.run(tf.get_default_graph().get_tensor_by_name
               #                                       (os.environ['tensor_for_expected_gradient_norm2']))
 
-              b_simple_opt = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['tensor_for_b_simple_opt']))
-              expected_gradient_opt_norm = mon_sess.run(tf.get_default_graph().get_tensor_by_name
-                                                (os.environ['tensor_for_expected_gradient_opt_norm']))
+              # b_simple_opt = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['tensor_for_b_simple_opt']))
+              # expected_gradient_opt_norm = mon_sess.run(tf.get_default_graph().get_tensor_by_name
+              #                                   (os.environ['tensor_for_expected_gradient_opt_norm']))
 
-              logging.info('@sahiltyagi4 b_simple noise scale is ' + str(b_simple) + ' for global step '
-                           + str(curr_global_step))
-              logging.info('@sahiltyagi4 expected_gradient_norm is ' + str(expected_gradient_norm) + ' for global step '
-                           + str(curr_global_step))
-              logging.info('@sahiltyagi4 global_grad_norm is ' + str(global_grad_norm) + ' for global step '
-                           + str(curr_global_step))
+              # logging.info('@sahiltyagi4 b_simple noise scale is ' + str(b_simple) + ' for global step '
+              #              + str(curr_global_step))
+              # logging.info('@sahiltyagi4 expected_gradient_norm is ' + str(expected_gradient_norm) + ' for global step '
+              #              + str(curr_global_step))
 
               # new add-on in november 2020
               # log gradient variance once every 20 steps
