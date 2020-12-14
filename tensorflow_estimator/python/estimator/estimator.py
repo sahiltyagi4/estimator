@@ -1577,9 +1577,9 @@ class Estimator(object):
                            + ' with starttime ' + str(step_start) + ' and endtime ' + str(step_end)
                            + ' and global step ' + str(curr_global_step))
 
-              # b_simple = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['tensor_for_b_simple']))
-              # expected_gradient_norm = mon_sess.run(tf.get_default_graph().get_tensor_by_name
-              #                                       (os.environ['tensor_for_expected_gradient_norm']))
+              b_simple = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['tensor_for_b_simple']))
+              expected_gradient_norm = mon_sess.run(tf.get_default_graph().get_tensor_by_name
+                                                     (os.environ['tensor_for_expected_gradient_norm']))
 
               global_grad_norm = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ
                                                                                         ['tensor_for_global_grad_norm']))
@@ -1589,8 +1589,9 @@ class Estimator(object):
               #temporary add-on to print actual gradient values
               actual_gradients = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ
                                                                                         ['actual_gradients']))
+              flat_grads = mon_sess.run([x1 for x1 in actual_gradients])
               logging.info('@sahiltyagi4 actual gradients for step ' + str(curr_global_step) + ' are '
-                           + str(actual_gradients))
+                           + str(flat_grads))
 
               # b_simple2 = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['tensor_for_b_simple2']))
               # expected_gradient_norm2 = mon_sess.run(tf.get_default_graph().get_tensor_by_name
@@ -1617,10 +1618,10 @@ class Estimator(object):
               # logging.info('@sahiltyagi4 expected_gradient_norm2 is ' + str(expected_gradient_norm2) + ' for global step '
               #              + str(curr_global_step))
 
-              logging.info('@sahiltyagi4 b_simple_opt noise scale is ' + str(b_simple_opt) + ' for global step '
-                           + str(curr_global_step))
-              logging.info('@sahiltyagi4 expected_gradient_opt_norm is ' + str(expected_gradient_opt_norm) + ' for global step '
-                           + str(curr_global_step))
+              # logging.info('@sahiltyagi4 b_simple_opt noise scale is ' + str(b_simple_opt) + ' for global step '
+              #              + str(curr_global_step))
+              # logging.info('@sahiltyagi4 expected_gradient_opt_norm is ' + str(expected_gradient_opt_norm) + ' for global step '
+              #              + str(curr_global_step))
 
               # gradient variance added here
               b_simple_list.append(b_simple)
