@@ -1589,7 +1589,7 @@ class Estimator(object):
               #temporary add-on to print actual gradient values
               actual_gradients = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ
                                                                                         ['actual_gradients']))
-              flat_grads = mon_sess.run([x1 for x1 in actual_gradients])
+              flat_grads = [x1 for x1 in actual_gradients]
               logging.info('@sahiltyagi4 actual gradients for step ' + str(curr_global_step) + ' are '
                            + str(flat_grads))
 
