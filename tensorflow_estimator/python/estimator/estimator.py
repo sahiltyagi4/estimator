@@ -1500,8 +1500,8 @@ class Estimator(object):
 
     logging.info('@sahiltyagi4 training global batch-size is ' + str(global_batch_size))
     window_computation_time = []
-    b_simple_list = []
-    previous_b_simple = self.get_previous_window_bsimple(self._model_dir)
+    grad_norm_window = {}
+    # previous_b_simple = self.get_previous_window_bsimple(self._model_dir)
 
     # to keep async track among workers. keeps value of last window step value for every worker-name key
     self.global_worker_windowtracker = {}
@@ -1564,9 +1564,6 @@ class Estimator(object):
           #if (global_current_step - local_current_step) <= int(estimator_spec.staleness):
               step_start = time.time()
               should_training_stop = False
-
-              # lr = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['learning_rate_tensor1']))
-
               _, loss, curr_global_step = mon_sess.run([estimator_spec.train_op, estimator_spec.loss,
                                                         tf.train.get_or_create_global_step()], options=run_options,
                                                        run_metadata=run_metadata)
@@ -1577,55 +1574,20 @@ class Estimator(object):
                            + ' with starttime ' + str(step_start) + ' and endtime ' + str(step_end)
                            + ' and global step ' + str(curr_global_step))
 
-              b_simple = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['tensor_for_b_simple']))
-              expected_gradient_norm = mon_sess.run(tf.get_default_graph().get_tensor_by_name
-                                                     (os.environ['tensor_for_expected_gradient_norm']))
-
               global_grad_norm = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ
                                                                                         ['tensor_for_global_grad_norm']))
               logging.info('@sahiltyagi4 global_grad_norm is ' + str(global_grad_norm) + ' for global step '
                            + str(curr_global_step))
 
-              #temporary add-on to print actual gradient values
-              actual_gradients = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ
-                                                                                        ['actual_gradients']))
-              flat_grads = [x1 for x1 in actual_gradients]
-              if curr_global_step % 20 == 0:
-                  logging.info('@sahiltyagi4 actual gradients for step ' + str(curr_global_step) + ' are '
-                               + str(flat_grads))
-
-              # b_simple2 = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['tensor_for_b_simple2']))
-              # expected_gradient_norm2 = mon_sess.run(tf.get_default_graph().get_tensor_by_name
-              #                                       (os.environ['tensor_for_expected_gradient_norm2']))
-
-              # b_simple_opt = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['tensor_for_b_simple_opt']))
-              # expected_gradient_opt_norm = mon_sess.run(tf.get_default_graph().get_tensor_by_name
-              #                                   (os.environ['tensor_for_expected_gradient_opt_norm']))
-
-              # logging.info('@sahiltyagi4 b_simple noise scale is ' + str(b_simple) + ' for global step '
-              #              + str(curr_global_step))
-              # logging.info('@sahiltyagi4 expected_gradient_norm is ' + str(expected_gradient_norm) + ' for global step '
-              #              + str(curr_global_step))
-
-              # new add-on in november 2020
-              # log gradient variance once every 20 steps
-              if (curr_global_step % 20) == 0:
-                  variance_log = open(os.path.join(self._model_dir, 'avg_grad_variance.conf'), 'w')
-                  variance_log.write(str(global_grad_norm))
-                  variance_log.close()
-
-              # logging.info('@sahiltyagi4 b_simple2 noise scale is ' + str(b_simple2) + ' for global step '
-              #              + str(curr_global_step))
-              # logging.info('@sahiltyagi4 expected_gradient_norm2 is ' + str(expected_gradient_norm2) + ' for global step '
-              #              + str(curr_global_step))
-
-              # logging.info('@sahiltyagi4 b_simple_opt noise scale is ' + str(b_simple_opt) + ' for global step '
-              #              + str(curr_global_step))
-              # logging.info('@sahiltyagi4 expected_gradient_opt_norm is ' + str(expected_gradient_opt_norm) + ' for global step '
-              #              + str(curr_global_step))
-
-              # gradient variance added here
-              b_simple_list.append(b_simple)
+              grad_norm_window[int(curr_global_step)] = float(global_grad_norm)
+              if w_type == 'master':
+                # only master computes the norm of the aggregated gradients after they're returned by the PS
+                # keep a dict of {training steps, gradient norm} to compute a per-step noise. the window is written to
+                # a conf file later used to compute noise and fit the line via external script.
+                if len(grad_norm_window) == estimator_spec.gradnorm_window:
+                  logging.info('@sahiltyagi4 filled a window with aggregated gradient norms')
+                  self.log_global_gradient_norm(grad_norm_window, self._model_dir)
+                  grad_norm_window = {}
 
               tl = timeline.Timeline(run_metadata.step_stats)
               ctf = tl.generate_chrome_trace_format()
@@ -1679,22 +1641,10 @@ class Estimator(object):
                                                                                 self._model_dir, curr_global_step,
                                                                                 num_workers)
 
-                          # only when a window is full, fetch docker container info and write to its corresponding
-                          # worker cpu conf file
-                          # self.getCPUallocinfo(self._model_dir, 'tf-' + str(w_type) + '-' + str(w_index))
-                          # wait till all CPU alloc files are written.
-                          # read all cpu files here to compute RESOURCE_ALLOC and write that to resource_alloc.conf
-                          # cpu_alloc = self.readCPUallocfiles(self._model_dir, cpualloc_files, curr_step, num_workers)
-                          # self.write_cpualloc_nodescale(self._model_dir, cpu_alloc)
-
                           logging.info(
                               '@sahiltyagi4 value of gradient_computation_time is ' + str(gradient_computation_time))
                           if w_type == 'master':
-                              logging.info('@sahiltyagi4 value of b_simple previous ' + str(previous_b_simple))
-                              # current window b_simple used from b_simple_list.
-                              current_b_simple = np.mean(b_simple_list)
                               b_static = global_batch_size
-                              logging.info('@sahiltyagi4 value of b_simple current ' + str(current_b_simple))
                               should_master_stop = self.compute_cluster_delta_fn(gradient_computation_time, w_type,
                                                                                  estimator_spec.reactive_adjustment_threshold,
                                                                                  curr_global_step, b_static,
@@ -1706,8 +1656,6 @@ class Estimator(object):
                                   # b_static = self.control_global_batchsize(current_b_simple, previous_b_simple,
                                   #                                          global_batch_size)
                                   b_static = global_batch_size
-                                  # writes current value of b_simple to be used in the next window...
-                                  self.write_previous_window_bsimple(self._model_dir, current_b_simple)
                                   self.write_current_global_batch_size(self._model_dir, b_static)
 
                               self.log_should_training_stop(self._model_dir, should_master_stop, curr_global_step)
@@ -1728,7 +1676,7 @@ class Estimator(object):
                           # self.remove_window_logs(self._model_dir, w_type, w_index)
 
                           window_computation_time = []
-                          b_simple_list = []
+                          grad_norm_window = {}
                           if should_training_stop:
                               # save local step to be picked later when switching input fn with new batch-size
                               self.log_local_step(self._model_dir, curr_global_step, w_type, w_index)
@@ -1781,15 +1729,15 @@ class Estimator(object):
 
                           if worker_progress:
                               if w_type == 'master':
-                                  logging.info('@sahiltyagi4 value of b_simple previous ' + str(previous_b_simple))
+                                  # logging.info('@sahiltyagi4 value of b_simple previous ' + str(previous_b_simple))
                                   worker_computation_times = self.fetch_ASP_gradient_computationtime(self._model_dir,
                                                                                                      worker_batchsizes_filenames,
                                                                                                      num_workers)
                                   logging.info('@sahiltyagi4 gradient computation time in ASP is '
                                                + str(worker_computation_times))
 
-                                  current_b_simple = np.mean(b_simple_list)
-                                  logging.info('@sahiltyagi4 value of b_simple current ' + str(current_b_simple))
+                                  # current_gradnorm = np.mean(grad_norm_window)
+                                  # logging.info('@sahiltyagi4 value of global gradnorm current ' + str(current_gradnorm))
 
                                   b_static = global_batch_size
                                   should_master_stop = self.compute_cluster_delta_fn(worker_computation_times,
@@ -1804,7 +1752,7 @@ class Estimator(object):
                                       # b_static = self.control_global_batchsize(current_b_simple, previous_b_simple,
                                       #                                          b_static)
                                       b_static = global_batch_size
-                                      self.write_previous_window_bsimple(self._model_dir, current_b_simple)
+                                      #self.write_previous_window_bsimple(self._model_dir, current_gradnorm)
                                       self.write_current_global_batch_size(self._model_dir, b_static)
 
                                   self.log_should_training_stop(self._model_dir, should_master_stop, curr_global_step)
@@ -1815,7 +1763,7 @@ class Estimator(object):
 
                               if should_training_stop and did_previous_stopstep_change:
                                   window_computation_time = []
-                                  b_simple_list = []
+                                  grad_norm_window = {}
                                   current_batchsizes = self.fetch_current_batchisizes(self._model_dir)
                                   self.set_worker_batchsize(w_type, w_index, num_ps, current_batchsizes)
                                   self.log_local_step(self._model_dir, local_current_step, w_type, w_index)
@@ -1843,6 +1791,14 @@ class Estimator(object):
           # pylint: disable=W0212
           session = session._sess
       return
+
+  def log_global_gradient_norm(self, grad_norm_window, model_dir):
+      logfile = os.path.join(model_dir, 'aggregated_gradient_norm.conf')
+      f = open(logfile, 'w')
+      for step, grad_norm in grad_norm_window.items():
+          f.write(str(step) + ',' + str(grad_norm) + '\n')
+
+      f.close()
 
   # def control_global_batchsize(self, current_b_simple, previous_b_simple, global_batch_size):
   #     # for the first time when there was no previous window. refers to the beginning of the training process
@@ -1883,23 +1839,23 @@ class Estimator(object):
       file.close()
       logging.info('@sahiltyagi4 value of ADJUSTED global-batch-size is ' + str(global_batch_size_value))
 
-  def get_previous_window_bsimple(self, model_dir):
-      f = os.path.join(model_dir, 'previous_window_bsimple.conf')
-      if os.path.isfile(f):
-          file = open(f, 'r')
-          previous_window_bsimple = float(file.readline().strip())
-          file.close()
-      else:
-          previous_window_bsimple = 0.0
+  # def get_previous_window_bsimple(self, model_dir):
+  #     f = os.path.join(model_dir, 'previous_window_bsimple.conf')
+  #     if os.path.isfile(f):
+  #         file = open(f, 'r')
+  #         previous_window_bsimple = float(file.readline().strip())
+  #         file.close()
+  #     else:
+  #         previous_window_bsimple = 0.0
+  #
+  #     return  previous_window_bsimple
 
-      return  previous_window_bsimple
-
-  def write_previous_window_bsimple(self, model_dir, b_simple):
-      f = os.path.join(model_dir, 'previous_window_bsimple.conf')
-      file = open(f, 'w')
-      logging.info('@sahiltyagi4 going to write previous window b_simple as ' + str(b_simple))
-      file.write(str(b_simple))
-      file.close()
+  # def write_previous_window_bsimple(self, model_dir, b_simple):
+  #     f = os.path.join(model_dir, 'previous_window_bsimple.conf')
+  #     file = open(f, 'w')
+  #     logging.info('@sahiltyagi4 going to write previous window b_simple as ' + str(b_simple))
+  #     file.write(str(b_simple))
+  #     file.close()
 
   def write_init_worker_computation_step(self, model_dir, worker_batchsizes_filenames):
       for workerfile in worker_batchsizes_filenames:

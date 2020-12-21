@@ -46,7 +46,7 @@ AVERAGE_LOSS_METRIC_KEY = 'average_loss'
 class EstimatorSpec(
     collections.namedtuple('EstimatorSpec', [
         'mode', 'predictions', 'loss', 'train_op', 'eval_metric_ops', 'reactive_adjustment_threshold',
-        'export_outputs', 'training_chief_hooks', 'training_hooks', 'scaffold', 'window_size',
+        'export_outputs', 'training_chief_hooks', 'training_hooks', 'scaffold', 'window_size', 'gradnorm_window',
         'evaluation_hooks', 'namescope', 'adjustment_mode', 'mini_batchsize_threshold', 'sync_mode', 'staleness',
         'asp_adjust_strategy', 'prediction_hooks'
     ])):
@@ -75,6 +75,7 @@ class EstimatorSpec(
               #global_batch_size_value=0,
               scaffold=None,
               window_size=None,
+              gradnorm_window=None,
               evaluation_hooks=None,
               prediction_hooks=None):
     """Creates a validated `EstimatorSpec` instance.
@@ -204,6 +205,7 @@ class EstimatorSpec(
         staleness=staleness,
         scaffold=scaffold,
         window_size=window_size,
+        gradnorm_window=gradnorm_window,
         evaluation_hooks=evaluation_hooks,
         prediction_hooks=prediction_hooks)
 
