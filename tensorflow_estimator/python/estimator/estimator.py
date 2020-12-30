@@ -1579,8 +1579,8 @@ class Estimator(object):
               logging.info('@sahiltyagi4 global_grad_norm is ' + str(global_grad_norm) + ' for global step '
                            + str(curr_global_step))
 
-              grad_norm_window[int(curr_global_step)] = float(global_grad_norm)
               if w_type == 'master':
+                grad_norm_window[int(curr_global_step)] = float(global_grad_norm)
                 # only master computes the norm of the aggregated gradients after they're returned by the PS
                 # keep a dict of {training steps, gradient norm} to compute a per-step noise. the window is written to
                 # a conf file later used to compute noise and fit the line via external script.
