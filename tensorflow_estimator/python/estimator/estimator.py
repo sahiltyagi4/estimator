@@ -1576,7 +1576,12 @@ class Estimator(object):
 
               global_grad_norm = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ
                                                                                         ['tensor_for_global_grad_norm']))
+
+              grad_variance = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['tensor_grad_variance']))
+
               logging.info('@sahiltyagi4 global_grad_norm is ' + str(global_grad_norm) + ' for global step '
+                           + str(curr_global_step))
+              logging.info('@sahiltyagi4 grad variance value is ' + str(grad_variance) + ' for global step '
                            + str(curr_global_step))
 
               if w_type == 'master':
