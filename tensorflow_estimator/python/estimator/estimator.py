@@ -1576,6 +1576,14 @@ class Estimator(object):
 
               global_grad_norm = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ
                                                                                         ['tensor_for_global_grad_norm']))
+
+              # TEST FOR LOGGING HOOK ISSUE
+              if w_type == 'master':
+                  worker_grad_norm = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ
+                                                                                        ['tensor_local_worker_test']))
+                  logging.info('@sahiltyagi4 local worker grad norm value is ' + str(worker_grad_norm)
+                               + ' for step value of ' + str(curr_global_step))
+
               logging.info('@sahiltyagi4 global_grad_norm is ' + str(global_grad_norm) + ' for global step '
                            + str(curr_global_step))
 
