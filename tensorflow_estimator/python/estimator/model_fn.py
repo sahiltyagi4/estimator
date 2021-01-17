@@ -45,9 +45,10 @@ AVERAGE_LOSS_METRIC_KEY = 'average_loss'
 @estimator_export('estimator.EstimatorSpec')
 class EstimatorSpec(
     collections.namedtuple('EstimatorSpec', [
-        'mode', 'predictions', 'loss', 'train_op', 'eval_metric_ops',
-        'export_outputs', 'training_chief_hooks', 'training_hooks', 'scaffold',
-        'evaluation_hooks', 'prediction_hooks'
+        'mode', 'predictions', 'loss', 'train_op', 'eval_metric_ops', 'reactive_adjustment_threshold',
+        'export_outputs', 'training_chief_hooks', 'training_hooks', 'scaffold', 'window_size',
+        'evaluation_hooks', 'namescope', 'adjustment_mode', 'mini_batchsize_threshold', 'sync_mode', 'staleness',
+        'asp_adjust_strategy', 'prediction_hooks'
     ])):
   """Ops and objects returned from a `model_fn` and passed to an `Estimator`.
 
@@ -59,11 +60,21 @@ class EstimatorSpec(
               predictions=None,
               loss=None,
               train_op=None,
+              namescope=None,
               eval_metric_ops=None,
               export_outputs=None,
               training_chief_hooks=None,
               training_hooks=None,
+              reactive_adjustment_threshold=None,
+              adjustment_mode=None,
+              sync_mode=None,
+              mini_batchsize_threshold=16,
+              asp_adjust_strategy=None,
+              staleness=0,
+              #global_batch_size=False,
+              #global_batch_size_value=0,
               scaffold=None,
+              window_size=None,
               evaluation_hooks=None,
               prediction_hooks=None):
     """Creates a validated `EstimatorSpec` instance.
@@ -178,11 +189,21 @@ class EstimatorSpec(
         predictions=predictions,
         loss=loss,
         train_op=train_op,
+        namescope=namescope,
         eval_metric_ops=eval_metric_ops,
         export_outputs=export_outputs,
         training_chief_hooks=training_chief_hooks,
         training_hooks=training_hooks,
+        reactive_adjustment_threshold=reactive_adjustment_threshold,
+        adjustment_mode=adjustment_mode,
+        sync_mode=sync_mode,
+        mini_batchsize_threshold=mini_batchsize_threshold,
+        asp_adjust_strategy=asp_adjust_strategy,
+        #global_batch_size=global_batch_size,
+        #global_batch_size_value=global_batch_size_value,
+        staleness=staleness,
         scaffold=scaffold,
+        window_size=window_size,
         evaluation_hooks=evaluation_hooks,
         prediction_hooks=prediction_hooks)
 
@@ -334,7 +355,7 @@ def _validate_estimator_spec_loss(loss, mode):
     loss_shape = loss.get_shape()
     if loss_shape.num_elements() not in (None, 1):
       raise ValueError('Loss must be scalar, given: {}'.format(loss))
-    if not loss_shape.is_compatible_with(tensor_shape.TensorShape([])):
+    if not loss_shape.is_compatible_with(tensor_shape.scalar()):
       loss = array_ops.reshape(loss, [])
     if not (context.executing_eagerly() or loss.graph is default_graph):
       raise ValueError(

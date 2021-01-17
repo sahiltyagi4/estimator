@@ -48,13 +48,16 @@ _DEFAULT_REPLACEABLE_LIST = [
     'keep_checkpoint_max',
     'keep_checkpoint_every_n_hours',
     'log_step_count_steps',
+    'node_batch_size',
+    'data_dir',
+    'switched_input_fn',
+    'workload',
     'train_distribute',
     'device_fn',
     'protocol',
     'eval_distribute',
     'experimental_distribute',
     'experimental_max_worker_delay_secs',
-    'session_creation_timeout_secs',
 ]
 
 _SAVE_CKPT_ERR = (
@@ -122,6 +125,10 @@ def _get_eval_session_master(task_type, tf_config):
   if task_type == TaskType.EVALUATOR:
     return tf_config.get(_EVAL_SESSION_MASTER_KEY, _LOCAL_MASTER)
 
+  if _EVAL_SESSION_MASTER_KEY in tf_config:
+    raise ValueError('Key ({}) should not be set for task type other than {}. '
+                     'Task type: {}'.format(_EVAL_SESSION_MASTER_KEY,
+                                            TaskType.EVALUATOR, task_type))
   return _LOCAL_MASTER
 
 
@@ -279,6 +286,9 @@ def _validate_properties(run_config):
   _validate('save_summary_steps', lambda steps: steps >= 0,
             message='save_summary_steps should be >= 0')
 
+  _validate('node_batch_size', lambda node_batch_size: node_batch_size > 0,
+            message='node_batch_size should be > 0')
+
   _validate('save_checkpoints_steps', lambda steps: steps >= 0,
             message='save_checkpoints_steps should be >= 0')
   _validate('save_checkpoints_secs', lambda secs: secs >= 0,
@@ -301,10 +311,6 @@ def _validate_properties(run_config):
   _validate('experimental_max_worker_delay_secs', _validate_delay,
             message='experimental_max_worker_delay_secs must be an integer if'
             ' set.')
-  _validate(
-      'session_creation_timeout_secs',
-      lambda timeout_secs: timeout_secs > 0,
-      message='session_creation_timeout_secs should be > 0')
 
   _validate('device_fn', lambda device_fn: six.callable(device_fn) and
             set(function_utils.fn_args(device_fn)) == _VALID_DEVICE_FN_ARGS,
@@ -349,13 +355,16 @@ class RunConfig(object):
                keep_checkpoint_max=5,
                keep_checkpoint_every_n_hours=10000,
                log_step_count_steps=100,
+               node_batch_size=128,
+               switched_input_fn=None,
+               workload=None,
+               data_dir=None,
                train_distribute=None,
                device_fn=None,
                protocol=None,
                eval_distribute=None,
                experimental_distribute=None,
-               experimental_max_worker_delay_secs=None,
-               session_creation_timeout_secs=7200):
+               experimental_max_worker_delay_secs=None):
     """Constructs a RunConfig.
 
     All distributed training related properties `cluster_spec`, `is_chief`,
@@ -508,11 +517,6 @@ class RunConfig(object):
         the weights of a randomly initialized model. Users who warm-start their
         models and train them for short durations (a few minutes or less) should
         consider reducing this default to improve training times.
-      session_creation_timeout_secs: Max time workers should wait for a session
-        to become available (on initialization or when recovering a session)
-        with MonitoredTrainingSession. Defaults to 7200 seconds, but users may
-        want to set a lower value to detect problems with variable / session
-        (re)-initialization more quickly.
 
     Raises:
       ValueError: If both `save_checkpoints_steps` and `save_checkpoints_secs`
@@ -537,6 +541,13 @@ class RunConfig(object):
     model_dir = _get_model_dir(tf_config,
                                compat_internal.path_to_str(model_dir))
 
+    # @sahiltyagi ..variable to be returned by get_node_batch_size()
+    self.node_batch_size = node_batch_size
+    self.switched_input_fn = switched_input_fn
+    self.data_dir = data_dir
+    self.workload = workload
+    logging.info('@sahiltyagi4 RunConfig object per-node batch-size: %d', self.get_node_batch_size)
+
     RunConfig._replace(
         self,
         allowed_properties_list=_DEFAULT_REPLACEABLE_LIST,
@@ -549,13 +560,16 @@ class RunConfig(object):
         keep_checkpoint_max=keep_checkpoint_max,
         keep_checkpoint_every_n_hours=keep_checkpoint_every_n_hours,
         log_step_count_steps=log_step_count_steps,
+        node_batch_size=node_batch_size,
+        switched_input_fn=switched_input_fn,
+        workload=workload,
+        data_dir=data_dir,
         train_distribute=train_distribute,
         device_fn=device_fn,
         protocol=protocol,
         eval_distribute=eval_distribute,
         experimental_distribute=experimental_distribute,
-        experimental_max_worker_delay_secs=experimental_max_worker_delay_secs,
-        session_creation_timeout_secs=session_creation_timeout_secs)
+        experimental_max_worker_delay_secs=experimental_max_worker_delay_secs)
 
     # TODO(frankchn,priyag): Eventually use distributed coordinator for TPUs.
     if ((train_distribute and
@@ -563,9 +577,11 @@ class RunConfig(object):
         (eval_distribute and
          not eval_distribute.__class__.__name__.startswith('TPUStrategy')) or
         experimental_distribute):
+      logging.info('sahiltyagi4 train_distribute condition satisfied')
       logging.info('Initializing RunConfig with distribution strategies.')
       distribute_coordinator_training.init_run_config(self, tf_config)
     else:
+      logging.info('sahiltyagi4 checking distributed setting from TF_CONFIG')
       self._init_distributed_setting_from_environment_var(tf_config)
       self._maybe_overwrite_session_config_for_distributed_training()
 
@@ -615,7 +631,8 @@ class RunConfig(object):
 
   def _init_distributed_setting_from_environment_var(self, tf_config):
     """Initialize distributed properties based on `tf_config`."""
-
+    #THIS FUNCTION DOES GET CALLED...
+    #logging.info('@sahiltyagi4 check _init_distributed_setting_from_environment_var function call!!!!!')
     self._service = _validate_service(tf_config.get(_SERVICE_KEY))
     self._cluster_spec = server_lib.ClusterSpec(tf_config.get(_CLUSTER_KEY, {}))
     task_env = tf_config.get(_TASK_ENV_KEY, {})
@@ -725,6 +742,25 @@ class RunConfig(object):
   def evaluation_master(self):
     return self._evaluation_master
 
+  # @sahiltyagi4 ....to retrieve the node_batch_size. This value is fed to the batch_size parameter of the input function
+  @property
+  def get_node_batch_size(self):
+    return self.node_batch_size
+
+  # @sahiltyagi4... for the switched input fn with the updated batch-size after readjustment
+  @property
+  def get_switched_input_fn(self):
+    return self.switched_input_fn
+
+  @property
+  def get_workload(self):
+    return self.workload
+
+  # @sahiltyagi4: to get directory to load data for input fn
+  @property
+  def get_datadir(self):
+    return self.data_dir
+
   @property
   def is_chief(self):
     return self._is_chief
@@ -816,10 +852,6 @@ class RunConfig(object):
   @property
   def keep_checkpoint_max(self):
     return self._keep_checkpoint_max
-
-  @property
-  def session_creation_timeout_secs(self):
-    return self._session_creation_timeout_secs
 
   @property
   def keep_checkpoint_every_n_hours(self):
@@ -958,3 +990,4 @@ def _get_model_dir(tf_config, model_dir):
     logging.info('Using model_dir in TF_CONFIG: %s', model_dir_in_tf_config)
 
   return model_dir or model_dir_in_tf_config
+
