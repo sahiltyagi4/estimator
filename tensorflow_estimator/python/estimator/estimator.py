@@ -1190,7 +1190,7 @@ class Estimator(object):
       # Skip creating a read variable if _create_and_assert_global_step
       # returns None (e.g. tf.contrib.estimator.SavedModelEstimator).
       if global_step_tensor is not None:
-        training_util._get_or_create_global_step_read(g)  # pylint: disable=protected-access
+        training_util._get_global_step_read(g)  # pylint: disable=protected-access
 
       features, labels, input_hooks = (
           self._get_features_and_labels_from_input_fn(
@@ -1554,7 +1554,7 @@ class Estimator(object):
       #while not mon_sess.should_stop():
       while mon_sess is not None:
       #while mon_sess is not None and not switch_input_fn:
-          global_current_step = mon_sess.run(tf.train.get_or_create_global_step())
+          global_current_step = mon_sess.run(tf.train.get_global_step())
           logging.info('@sahiltyagi4 logged global step is ' + str(global_current_step) + ' and logged local step is '
                        + str(local_current_step))
 
@@ -1565,7 +1565,7 @@ class Estimator(object):
               step_start = time.time()
               should_training_stop = False
               _, loss, curr_global_step = mon_sess.run([estimator_spec.train_op, estimator_spec.loss,
-                                                        tf.train.get_or_create_global_step()], options=run_options,
+                                                        tf.train.get_global_step()], options=run_options,
                                                        run_metadata=run_metadata)
               local_current_step = curr_global_step
               step_end = time.time()
