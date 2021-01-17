@@ -1586,7 +1586,7 @@ class Estimator(object):
 
               test_w_norm = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ
                                                                                         ['tensor_local_worker_test']))
-              logging.info('@sahiltyagi4 test_worker norm ' + str(worker_grad_norm)
+              logging.info('@sahiltyagi4 test_worker norm ' + str(test_w_norm)
                            + ' on step val of ' + str(curr_global_step))
               test_flattened_grad = mon_sess.run(tf.get_default_graph().get_tensor_by_name('sahil_test_flattened:0'))
               if curr_global_step == 2:
