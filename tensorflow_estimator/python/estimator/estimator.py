@@ -1584,6 +1584,13 @@ class Estimator(object):
                   logging.info('@sahiltyagi4 local worker grad norm value is ' + str(worker_grad_norm)
                                + ' for step value of ' + str(curr_global_step))
 
+              test_flattened_grad = tf.get_default_graph().get_tensor_by_name('sahil_test_flattened:0')
+              test_norm = tf.math.square(tf.norm(test_flattened_grad, ord=2))
+              test_norm_val = mon_sess.run(test_norm)
+              logging.info('@sahiltyagi4 test_norm of the gradient is ' + str(test_norm_val)
+                           + ' for the  stepval of ' + str(curr_global_step))
+
+
               logging.info('@sahiltyagi4 global_grad_norm is ' + str(global_grad_norm) + ' for global step '
                            + str(curr_global_step))
 
