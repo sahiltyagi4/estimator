@@ -1594,8 +1594,9 @@ class Estimator(object):
               logging.info('@sahiltyagi4 doing 1...')
               test_flattened_grad = mon_sess.run(tf.get_default_graph().get_tensor_by_name('sahil_test_flattened:0'))
               if curr_global_step == 3:
+                  flat_grads = [x1 for x1 in test_flattened_grad]
                   f = open(os.path.join(self._model_dir, worker_name + '-grad1.txt'), 'w')
-                  f.write(str(test_flattened_grad))
+                  f.write(str(flat_grads))
                   f.close()
 
               global_grad_norm = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ
@@ -1610,8 +1611,9 @@ class Estimator(object):
               logging.info('@sahiltyagi4 doing 2...')
               test_flattened_grad = mon_sess.run(tf.get_default_graph().get_tensor_by_name('sahil_test_flattened:0'))
               if curr_global_step == 3:
+                  flat_grads = [x1 for x1 in test_flattened_grad]
                   f = open(os.path.join(self._model_dir, worker_name + '-grad2.txt'), 'w')
-                  f.write(str(test_flattened_grad))
+                  f.write(str(flat_grads))
                   f.close()
 
               global_grad_norm = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ
@@ -1626,8 +1628,9 @@ class Estimator(object):
               logging.info('@sahiltyagi4 doing 3...')
               test_flattened_grad = mon_sess.run(tf.get_default_graph().get_tensor_by_name('sahil_test_flattened:0'))
               if curr_global_step == 3:
+                  flat_grads = [x1 for x1 in test_flattened_grad]
                   f = open(os.path.join(self._model_dir, worker_name + '-grad3.txt'), 'w')
-                  f.write(str(test_flattened_grad))
+                  f.write(str(flat_grads))
                   f.close()
 
               global_grad_norm = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ
@@ -1641,8 +1644,9 @@ class Estimator(object):
               logging.info('@sahiltyagi4 doing 4...')
               test_flattened_grad = mon_sess.run(tf.get_default_graph().get_tensor_by_name('sahil_test_flattened:0'))
               if curr_global_step == 3:
+                  flat_grads = [x1 for x1 in test_flattened_grad]
                   f = open(os.path.join(self._model_dir, worker_name + '-grad4.txt'), 'w')
-                  f.write(str(test_flattened_grad))
+                  f.write(str(flat_grads))
                   f.close()
 
               global_grad_norm = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ
@@ -1655,8 +1659,9 @@ class Estimator(object):
                            + ' on step val of ' + str(curr_global_step))
               test_flattened_grad = mon_sess.run(tf.get_default_graph().get_tensor_by_name('sahil_test_flattened:0'))
               if curr_global_step == 3:
+                  flat_grads = [x1 for x1 in test_flattened_grad]
                   f = open(os.path.join(self._model_dir, worker_name + '-grad5.txt'), 'w')
-                  f.write(str(test_flattened_grad))
+                  f.write(str(flat_grads))
                   f.close()
 
               global_grad_norm = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ
@@ -1669,8 +1674,9 @@ class Estimator(object):
                            + ' on step val of ' + str(curr_global_step))
               test_flattened_grad = mon_sess.run(tf.get_default_graph().get_tensor_by_name('sahil_test_flattened:0'))
               if curr_global_step == 3:
+                  flat_grads = [x1 for x1 in test_flattened_grad]
                   f = open(os.path.join(self._model_dir, worker_name + '-grad6.txt'), 'w')
-                  f.write(str(test_flattened_grad))
+                  f.write(str(flat_grads))
                   f.close()
                   time.sleep(10000000)
 
