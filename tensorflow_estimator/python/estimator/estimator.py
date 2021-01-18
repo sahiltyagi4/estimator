@@ -1595,7 +1595,10 @@ class Estimator(object):
 
               if curr_global_step == 2:
                   logging.info('@sahiltyagi4 start printing flattened tensor')
-                  tf.print(test_flattened_grad, summarize=-1)
+
+                  flat_grads = [x1 for x1 in test_flattened_grad]
+                  logging.info(str(flat_grads))
+
                   logging.info('@sahiltyagi4 stop printing flattened tensor')
                   time.sleep(10000000)
 
