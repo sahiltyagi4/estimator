@@ -1574,6 +1574,9 @@ class Estimator(object):
                            + ' with starttime ' + str(step_start) + ' and endtime ' + str(step_end)
                            + ' and global step ' + str(curr_global_step))
 
+              cg_norm = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['cg_tensor']))
+              logging.info('@sahiltyagi4 cg_norm value ' + str(cg_norm) + ' on_global_train_step ' + str(curr_global_step))
+
               global_grad_norm = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ
                                                                                         ['tensor_for_global_grad_norm']))
 
