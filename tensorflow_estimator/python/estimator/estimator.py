@@ -1493,15 +1493,12 @@ class Estimator(object):
         num_workers = 1
 
     num_ps = int(len(tf_config['cluster']['ps']))
-
-    # b_static = int(os.environ['UNIFORM_CLUSTER_BATCH_SIZE'])
-    #global_batch_size = self.init_current_global_batch_size(self._model_dir, estimator_spec.global_batch_size_value)
+    # this env variable contains the 'B'. The noise signal computed on worker addition/removal updates this variable
     global_batch_size = int(os.environ.get('GLOBAL_CLUSTER_BATCH_SIZE'))
 
     logging.info('@sahiltyagi4 training global batch-size is ' + str(global_batch_size))
     window_computation_time = []
     grad_norm_window = {}
-    # previous_b_simple = self.get_previous_window_bsimple(self._model_dir)
 
     # to keep async track among workers. keeps value of last window step value for every worker-name key
     self.global_worker_windowtracker = {}
@@ -1513,7 +1510,6 @@ class Estimator(object):
     training_status_logs = self.training_status_loglist(num_workers)
     logging.info('@sahiltyagi4 no. of workers is ' + str(num_workers))
     logging.info('@sahiltyagi4 worker batchsize filenames ' + str(worker_batchsizes_filenames))
-    #cpualloc_files = self.getworker_cpualloc_files(num_workers)
     onetimeflag = True
     anotheronetimeflag = True
 
@@ -1579,127 +1575,8 @@ class Estimator(object):
 
               global_grad_norm = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ
                                                                                         ['tensor_for_global_grad_norm']))
-
-              # TEST FOR LOGGING HOOK ISSUE
-              worker_name = str(w_type) + '-' + str(w_index)
-              # if w_type == 'master':
-              #     worker_grad_norm = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ
-              #                                                                           ['tensor_local_worker_test']))
-              #     logging.info('@sahiltyagi4 local worker grad norm value is ' + str(worker_grad_norm)
-              #                  + ' for step value of ' + str(curr_global_step))
-
               logging.info('@sahiltyagi4 global_grad_norm is ' + str(global_grad_norm) + ' for global step '
                            + str(curr_global_step))
-              test_w_norm = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ
-                                                                                        ['tensor_local_worker_test']))
-              logging.info('@sahiltyagi4 test_worker norm ' + str(test_w_norm)
-                           + ' on step val of ' + str(curr_global_step))
-              logging.info('@sahiltyagi4 doing 1...')
-              test_flattened_grad = mon_sess.run(tf.get_default_graph().get_tensor_by_name('sahil_test_flattened:0'))
-              if curr_global_step == 3:
-                  flat_grads = [x1 for x1 in test_flattened_grad]
-                  f = open(os.path.join(self._model_dir, worker_name + '-grad1.txt'), 'w')
-                  f.write(str(flat_grads))
-                  f.close()
-
-              global_grad_norm = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ
-                                                                                        ['tensor_for_global_grad_norm']))
-              logging.info('@sahiltyagi4 global_grad_norm is ' + str(global_grad_norm) + ' for global step '
-                            + str(curr_global_step))
-
-              test_w_norm = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ
-                                                                           ['tensor_local_worker_test']))
-              logging.info('@sahiltyagi4 test_worker norm ' + str(test_w_norm)
-                           + ' on step val of ' + str(curr_global_step))
-              logging.info('@sahiltyagi4 doing 2...')
-              test_flattened_grad = mon_sess.run(tf.get_default_graph().get_tensor_by_name('sahil_test_flattened:0'))
-              if curr_global_step == 3:
-                  flat_grads = [x1 for x1 in test_flattened_grad]
-                  f = open(os.path.join(self._model_dir, worker_name + '-grad2.txt'), 'w')
-                  f.write(str(flat_grads))
-                  f.close()
-
-              global_grad_norm = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ
-                                                                                        ['tensor_for_global_grad_norm']))
-              logging.info('@sahiltyagi4 global_grad_norm is ' + str(global_grad_norm) + ' for global step '
-                           + str(curr_global_step))
-
-              test_w_norm = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ
-                                                                           ['tensor_local_worker_test']))
-              logging.info('@sahiltyagi4 test_worker norm ' + str(test_w_norm)
-                           + ' on step val of ' + str(curr_global_step))
-              logging.info('@sahiltyagi4 doing 3...')
-              test_flattened_grad = mon_sess.run(tf.get_default_graph().get_tensor_by_name('sahil_test_flattened:0'))
-              if curr_global_step == 3:
-                  flat_grads = [x1 for x1 in test_flattened_grad]
-                  f = open(os.path.join(self._model_dir, worker_name + '-grad3.txt'), 'w')
-                  f.write(str(flat_grads))
-                  f.close()
-
-              global_grad_norm = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ
-                                                                                        ['tensor_for_global_grad_norm']))
-              logging.info('@sahiltyagi4 global_grad_norm is ' + str(global_grad_norm) + ' for global step '
-                           + str(curr_global_step))
-              test_w_norm = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ
-                                                                                   ['tensor_local_worker_test']))
-              logging.info('@sahiltyagi4 test_worker norm ' + str(test_w_norm)
-                           + ' on step val of ' + str(curr_global_step))
-              logging.info('@sahiltyagi4 doing 4...')
-              test_flattened_grad = mon_sess.run(tf.get_default_graph().get_tensor_by_name('sahil_test_flattened:0'))
-              if curr_global_step == 3:
-                  flat_grads = [x1 for x1 in test_flattened_grad]
-                  f = open(os.path.join(self._model_dir, worker_name + '-grad4.txt'), 'w')
-                  f.write(str(flat_grads))
-                  f.close()
-
-              global_grad_norm = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ
-                                                                                        ['tensor_for_global_grad_norm']))
-              logging.info('@sahiltyagi4 global_grad_norm is ' + str(global_grad_norm) + ' for global step '
-                           + str(curr_global_step))
-              test_w_norm = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ
-                                                                                   ['tensor_local_worker_test']))
-              logging.info('@sahiltyagi4 test_worker norm ' + str(test_w_norm)
-                           + ' on step val of ' + str(curr_global_step))
-              test_flattened_grad = mon_sess.run(tf.get_default_graph().get_tensor_by_name('sahil_test_flattened:0'))
-              if curr_global_step == 3:
-                  flat_grads = [x1 for x1 in test_flattened_grad]
-                  f = open(os.path.join(self._model_dir, worker_name + '-grad5.txt'), 'w')
-                  f.write(str(flat_grads))
-                  f.close()
-
-              global_grad_norm = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ
-                                                                                        ['tensor_for_global_grad_norm']))
-              logging.info('@sahiltyagi4 global_grad_norm is ' + str(global_grad_norm) + ' for global step '
-                           + str(curr_global_step))
-              test_w_norm = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ
-                                                                                   ['tensor_local_worker_test']))
-              logging.info('@sahiltyagi4 test_worker norm ' + str(test_w_norm)
-                           + ' on step val of ' + str(curr_global_step))
-              test_flattened_grad = mon_sess.run(tf.get_default_graph().get_tensor_by_name('sahil_test_flattened:0'))
-              if curr_global_step == 3:
-                  flat_grads = [x1 for x1 in test_flattened_grad]
-                  f = open(os.path.join(self._model_dir, worker_name + '-grad6.txt'), 'w')
-                  f.write(str(flat_grads))
-                  f.close()
-                  time.sleep(10000000)
-
-              # if curr_global_step == 2:
-              #     logging.info('@sahiltyagi4 start printing flattened tensor')
-              #
-              #     flat_grads = [x1 for x1 in test_flattened_grad]
-              #     logging.info(str(flat_grads))
-              #
-              #     logging.info('@sahiltyagi4 stop printing flattened tensor')
-
-              if w_type == 'master':
-                grad_norm_window[int(curr_global_step)] = float(global_grad_norm)
-                # only master computes the norm of the aggregated gradients after they're returned by the PS
-                # keep a dict of {training steps, gradient norm} to compute a per-step noise. the window is written to
-                # a conf file later used to compute noise and fit the line via external script.
-                if len(grad_norm_window) == estimator_spec.gradnorm_window:
-                  logging.info('@sahiltyagi4 filled a window with aggregated gradient norms')
-                  self.log_global_gradient_norm(grad_norm_window, self._model_dir)
-                  grad_norm_window = {}
 
               tl = timeline.Timeline(run_metadata.step_stats)
               ctf = tl.generate_chrome_trace_format()
@@ -1753,8 +1630,7 @@ class Estimator(object):
                                                                                 self._model_dir, curr_global_step,
                                                                                 num_workers)
 
-                          logging.info(
-                              '@sahiltyagi4 value of gradient_computation_time is ' + str(gradient_computation_time))
+                          logging.info('@sahiltyagi4 value of gradient_computation_time is ' + str(gradient_computation_time))
                           if w_type == 'master':
                               b_static = global_batch_size
                               should_master_stop = self.compute_cluster_delta_fn(gradient_computation_time, w_type,
@@ -1765,27 +1641,19 @@ class Estimator(object):
                                                                                  w_index, num_ps)
                               logging.info('DEBUG LOGGING FOR SHOULD_MASTER_STOP ' + str(should_master_stop))
                               if should_master_stop:
-                                  # b_static = self.control_global_batchsize(current_b_simple, previous_b_simple,
-                                  #                                          global_batch_size)
                                   b_static = global_batch_size
                                   self.write_current_global_batch_size(self._model_dir, b_static)
 
                               self.log_should_training_stop(self._model_dir, should_master_stop, curr_global_step)
 
-                          # here all workers wait for master to tell them about the training status
-                          # should_training_stop = self.read_should_training_stop(self._model_dir, w_type, w_index,
-                          # curr_global_step)
                           logging.info('@sahiltyagi4 global step being fed is ' + str(curr_global_step))
                           should_training_stop = self.sync_workers_should_training_stop(self._model_dir, w_type, w_index,
                                                                                curr_global_step)
                           logging.info('@sahiltyagi4 value returned  for training status is ' + str(should_training_stop))
-                          # self.check_workers_training_status_bsp(self._model_dir, training_status_logs, num_workers,
-                          #                                        curr_global_step, w_type)
                           self.sync_check_training_stop(self._model_dir, training_status_logs, num_workers,
                                                         curr_global_step)
                           current_batchsizes = self.fetch_current_batchisizes(self._model_dir)
                           self.set_worker_batchsize(w_type, w_index, num_ps, current_batchsizes)
-                          # self.remove_window_logs(self._model_dir, w_type, w_index)
 
                           window_computation_time = []
                           grad_norm_window = {}
@@ -1799,16 +1667,6 @@ class Estimator(object):
                                   # break
                                   logging.info('@sahiltyagi4 going to return synchronous window loss now....')
                                   return loss, switch_input_fn
-
-                                  # if w_type == 'master':
-                                  #   logging.info('@sahiltyagi4 looking to save checkpoint file for step ' + str(curr_step))
-                                  #   # saver.save(self.get_session(mon_sess), os.path.join(self._model_dir, 'mymodel-'
-                                  #   + str(curr_step)))
-                                  #   #self.wait_till_checkpointing_completes(self._model_dir, 'mymodel-' + str(curr_step) + '.meta')
-                                  #   ##mon_sess.close()
-                                  #   mon_sess = None
-                                  #   logging.info('@sahiltyagi4 made monitored session Nonetype')
-                                  #   break
 
               elif estimator_spec.sync_mode == 'ASP':
                   if estimator_spec.window_size is not None:
@@ -2646,7 +2504,7 @@ class Estimator(object):
       node_resources = []
       overall_resources = []
 
-      #resource_alloc = os.environ['RESOURCE_ALLOC']
+      # conf file stores comma separated values of per-worker resource allocations
       f = os.path.join(self._model_dir, 'node_scale.conf')
       file = open(f, 'r')
       resource_alloc = file.readline()
@@ -2664,9 +2522,6 @@ class Estimator(object):
           remove_index_ps_negativebs.append(int(index) -1)
 
       logging.info('@sahiltyagi4 remove_index_ps_negativebs queue values ' + str(remove_index_ps_negativebs))
-
-      #for negative_index in indices_negative_batchsizes:
-          #node_resources.pop(negative_index-1)
 
       for ix in range(0, len(node_resources)):
           if (ix+1) not in indices_negative_batchsizes:
@@ -2699,8 +2554,7 @@ class Estimator(object):
       total_resources = 0
       node_scale.append(0)
 
-      #resource_alloc = os.environ['RESOURCE_ALLOC']
-
+      # conf file stores comma separated values of per-worker resource allocations
       f = os.path.join(self._model_dir, 'node_scale.conf')
       file = open(f, 'r')
       resource_alloc = file.readline()
