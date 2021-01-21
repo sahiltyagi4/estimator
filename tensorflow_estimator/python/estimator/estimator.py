@@ -1566,17 +1566,27 @@ class Estimator(object):
               local_current_step = curr_global_step
               step_end = time.time()
               any_step_done = True
+
+              local_worker_norm = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ
+                                                                                        ['per_worker_norm_test']))
+              logging.info('@sahiltyagi4 local_worker_norm ' + str(local_worker_norm) + ' viz-a-iz global step '
+                           + str(curr_global_step))
+
+              local_worker_norm = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ
+                                                                                        ['per_worker_norm_test']))
+              logging.info('@sahiltyagi4 local_worker_norm ' + str(local_worker_norm) + ' viz-a-iz global step '
+                           + str(curr_global_step))
+
               logging.info('@sahiltyagi train_op iteration time given worker is ' + str(step_end - step_start)
                            + ' with starttime ' + str(step_start) + ' and endtime ' + str(step_end)
                            + ' and global step ' + str(curr_global_step))
-
-              cg_norm = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['cg_tensor']))
-              logging.info('@sahiltyagi4 cg_norm value ' + str(cg_norm) + ' on_global_train_step ' + str(curr_global_step))
 
               global_grad_norm = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ
                                                                                         ['tensor_for_global_grad_norm']))
               logging.info('@sahiltyagi4 global_grad_norm is ' + str(global_grad_norm) + ' for global step '
                            + str(curr_global_step))
+
+
 
               tl = timeline.Timeline(run_metadata.step_stats)
               ctf = tl.generate_chrome_trace_format()
@@ -1606,6 +1616,12 @@ class Estimator(object):
                   logging.info('@sahiltyagi4 ONLY RUNMETEDATA stats and parsing is ' + str(final_endtime - step_end)
                                + ' with finaltime ' + str(final_endtime) + ' and step_end ' + str(step_end)
                                + ' and global step ' + str(curr_global_step))
+
+                  local_worker_norm = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ
+                                                                                             ['per_worker_norm_test']))
+                  logging.info('@sahiltyagi4 local_worker_norm ' + str(local_worker_norm) + ' viz-a-iz global step '
+                               + str(curr_global_step))
+
               else:
                   if onetimeflag:
                       f = open(self.model_dir + '/incorrectGPUctf.json', 'w')
