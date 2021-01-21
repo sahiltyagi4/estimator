@@ -1559,6 +1559,9 @@ class Estimator(object):
           per_worker_norm = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['tensor_local_worker_test']))
           logging.info('@tyagi per-worker gradnorm ' + str(per_worker_norm) + ' asdfg global_step ' + str(global_current_step))
 
+          clip_norm1 = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['clip_norm_function']))
+          logging.info('@sahiltyagi4 clip_norm ' + str(clip_norm1) + ' poise global step ' + str(global_current_step))
+
           if True:
           #if (global_current_step - local_current_step) <= int(estimator_spec.staleness):
               step_start = time.time()
@@ -1576,6 +1579,9 @@ class Estimator(object):
 
               per_worker_norm = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['tensor_local_worker_test']))
               logging.info('@tyagi per-worker gradnorm ' + str(per_worker_norm) + ' asdfg global_step ' + str(curr_global_step))
+
+              clip_norm1 = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['clip_norm_function']))
+              logging.info('@sahiltyagi4 clip_norm ' + str(clip_norm1) + ' poise global step ' + str(global_current_step))
 
               logging.info('@sahiltyagi train_op iteration time given worker is ' + str(step_end - step_start)
                            + ' with starttime ' + str(step_start) + ' and endtime ' + str(step_end)
