@@ -1569,7 +1569,7 @@ class Estimator(object):
 
               vars_concat_shape = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ
                                                                                         ['vars_concat_sahil']))
-              logging.info('@sahiltyagi4 vars_concat sahil shape ' + str(vars_concat_shape.get_shape()[0].value)
+              logging.info('@sahiltyagi4 vars_concat sahil shape ' + str(vars_concat_shape.shape)
                            + ' qwerty step ' + str(curr_global_step))
 
               flat_grad_shape = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['flatten_grad']))
