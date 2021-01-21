@@ -1573,7 +1573,7 @@ class Estimator(object):
                            + ' qwerty step ' + str(curr_global_step))
 
               flat_grad_shape = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['flatten_grad']))
-              logging.info('@sahiltyagi4 flat_grad_shape ' + str(flat_grad_shape.get_shape()[0].value)
+              logging.info('@sahiltyagi4 flat_grad_shape ' + str(flat_grad_shape.shape)
                            + ' viz-a-viz global step ' + str(curr_global_step))
 
               logging.info('@sahiltyagi train_op iteration time given worker is ' + str(step_end - step_start)
@@ -1586,7 +1586,7 @@ class Estimator(object):
                            + str(curr_global_step))
 
               flat_grad_shape = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['flatten_grad']))
-              logging.info('@sahiltyagi4 flat_grad_shape ' + str(flat_grad_shape.get_shape()[0].value)
+              logging.info('@sahiltyagi4 flat_grad_shape ' + str(flat_grad_shape.shape)
                            + ' viz-a-viz global step ' + str(curr_global_step))
 
               tl = timeline.Timeline(run_metadata.step_stats)
@@ -1619,7 +1619,7 @@ class Estimator(object):
                                + ' and global step ' + str(curr_global_step))
 
                   flat_grad_shape = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ
-                                                                                           ['flatten_grad']).get_shape()[0].value)
+                                                                                           ['flatten_grad']).shape)
                   logging.info('@sahiltyagi4 flat_grad_shape ' + str(flat_grad_shape) + ' viz-a-viz global step ' + curr_global_step)
 
               else:
