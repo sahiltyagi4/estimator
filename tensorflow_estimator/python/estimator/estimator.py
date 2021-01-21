@@ -1618,9 +1618,8 @@ class Estimator(object):
                                + ' with finaltime ' + str(final_endtime) + ' and step_end ' + str(step_end)
                                + ' and global step ' + str(curr_global_step))
 
-                  flat_grad_shape = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ
-                                                                                           ['flatten_grad']).shape)
-                  logging.info('@sahiltyagi4 flat_grad_shape ' + str(flat_grad_shape) + ' viz-a-viz global step ' + curr_global_step)
+                  flat_grad_shape = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['flatten_grad']))
+                  logging.info('@sahiltyagi4 flat_grad_shape ' + str(flat_grad_shape.shape) + ' viz-a-viz global step ' + curr_global_step)
 
               else:
                   if onetimeflag:
