@@ -1567,38 +1567,44 @@ class Estimator(object):
               #                                           tf.train.get_global_step()], options=run_options,
               #                                          run_metadata=run_metadata)
 
-              _, loss, curr_global_step, wrkr_norm, agg_norm = mon_sess.run([estimator_spec.train_op, estimator_spec.loss, tf.train.get_global_step(),
+              _, loss, curr_global_step, clip_wrkrnorm, clip_aggnorm, wrkr_norm, agg_norm = mon_sess.run([estimator_spec.train_op, estimator_spec.loss,
+                                                                             tf.train.get_global_step(),
+                                                                             tf.get_default_graph().get_tensor_by_name(os.environ['worker_clipnorm']),
+                                                                             tf.get_default_graph().get_tensor_by_name(os.environ['clip_norm_function']),
                                                                              tf.get_default_graph().get_tensor_by_name(os.environ['tensor_local_worker_test']),
                                                                              tf.get_default_graph().get_tensor_by_name(os.environ['tensor_for_global_grad_norm'])],
                                                                              options=run_options, run_metadata=run_metadata)
 
-              logging.info('@tyagi abcd agg norm ' + str(agg_norm) + ' zxcv step ' + str(curr_global_step))
-              logging.info('@tyagi abcd wrker norm ' + str(wrkr_norm) + ' zxcv step ' + str(curr_global_step))
-
               local_current_step = curr_global_step
               step_end = time.time()
               any_step_done = True
+              logging.info('@sahiltyagi train_op iteration time given worker is ' + str(step_end - step_start)
+                           + ' with starttime ' + str(step_start) + ' and endtime ' + str(step_end)
+                           + ' and global step ' + str(curr_global_step))
 
-              clip_global_norm = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['clip_norm_function']))
-              logging.info('@tyagi clip fn aggregated norm ' + str(clip_global_norm) + ' 1234 global step ' + str(curr_global_step))
+              logging.info('@tyagi abcd agg norm ' + str(agg_norm) + ' zxcv step ' + str(curr_global_step))
+              logging.info('@tyagi abcd wrker norm ' + str(wrkr_norm) + ' zxcv step ' + str(curr_global_step))
+              logging.info('@sahil clipper worker_norm VALUE ' + str(clip_wrkrnorm) + ' using GLOBAL STEP VAL ' + str(curr_global_step))
+              logging.info('@sahil clipper agg_norm VALUE ' + str(clip_aggnorm) + ' using GLOBAL STEP VAL ' + str(curr_global_step))
+
+              # clip_global_norm = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['clip_norm_function']))
+              # logging.info('@tyagi clip fn aggregated norm ' + str(clip_global_norm) + ' 1234 global step ' + str(curr_global_step))
 
               # flat_grad_shape = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['flatten_grad']))
               # logging.info('@sahiltyagi4 flat_grad_shape ' + str(flat_grad_shape.shape)
               #              + ' viz-a-viz global step ' + str(curr_global_step))
 
-              logging.info('@sahiltyagi train_op iteration time given worker is ' + str(step_end - step_start)
-                           + ' with starttime ' + str(step_start) + ' and endtime ' + str(step_end)
-                           + ' and global step ' + str(curr_global_step))
 
-              global_grad_norm = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ
-                                                                                        ['tensor_for_global_grad_norm']))
-              logging.info('@sahiltyagi4 global_grad_norm is ' + str(global_grad_norm) + ' for global step '
-                           + str(curr_global_step))
 
-              for ix1 in range(0, 69):
-                  per_worker_norm = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['tensor_local_worker_test']))
-                  logging.info('@tyagi per-worker gradnorm ' + str(per_worker_norm) + ' asdfg global_step ' + str(curr_global_step))
-              time.sleep(1000000)
+              # global_grad_norm = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ
+              #                                                                           ['tensor_for_global_grad_norm']))
+              # logging.info('@sahiltyagi4 global_grad_norm is ' + str(global_grad_norm) + ' for global step '
+              #              + str(curr_global_step))
+
+              # for ix1 in range(0, 69):
+              #     per_worker_norm = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['tensor_local_worker_test']))
+              #     logging.info('@tyagi per-worker gradnorm ' + str(per_worker_norm) + ' asdfg global_step ' + str(curr_global_step))
+              # time.sleep(1000000)
 
               tl = timeline.Timeline(run_metadata.step_stats)
               ctf = tl.generate_chrome_trace_format()
