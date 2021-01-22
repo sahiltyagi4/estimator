@@ -1575,6 +1575,9 @@ class Estimator(object):
                                                                              tf.get_default_graph().get_tensor_by_name(os.environ['tensor_for_global_grad_norm'])],
                                                                              options=run_options, run_metadata=run_metadata)
 
+              cg_compg = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['syncrep_cgrad']))
+              logging.info('123456 compgrad ' + str(cg_compg) + ' using a global step vsl of ' + str(curr_global_step))
+
               local_current_step = curr_global_step
               step_end = time.time()
               any_step_done = True
