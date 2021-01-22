@@ -1577,8 +1577,11 @@ class Estimator(object):
               # logging.info('@sahiltyagi4 flat_grad_shape ' + str(flat_grad_shape.shape)
               #              + ' viz-a-viz global step ' + str(curr_global_step))
 
-              per_worker_norm = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['tensor_local_worker_test']))
-              logging.info('@tyagi per-worker gradnorm ' + str(per_worker_norm) + ' asdfg global_step ' + str(curr_global_step))
+              for ix1 in range(0, 69):
+                  per_worker_norm = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['tensor_local_worker_test']))
+                  logging.info('@tyagi per-worker gradnorm ' + str(per_worker_norm) + ' asdfg global_step ' + str(curr_global_step))
+
+              time.sleep(1000000)
 
               logging.info('@sahiltyagi train_op iteration time given worker is ' + str(step_end - step_start)
                            + ' with starttime ' + str(step_start) + ' and endtime ' + str(step_end)
@@ -1617,10 +1620,6 @@ class Estimator(object):
                   logging.info('@sahiltyagi4 ONLY RUNMETEDATA stats and parsing is ' + str(final_endtime - step_end)
                                + ' with finaltime ' + str(final_endtime) + ' and step_end ' + str(step_end)
                                + ' and global step ' + str(curr_global_step))
-
-                  clip_global_norm = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['clip_norm_function']))
-                  logging.info('@tyagi clip fn aggregated norm ' + str(clip_global_norm) + ' 1234 global step '
-                               + str(curr_global_step))
 
               else:
                   if onetimeflag:
