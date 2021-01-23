@@ -1578,6 +1578,9 @@ class Estimator(object):
               cg_compg = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['syncrep_cgrad']))
               logging.info('123456 compgrad ' + str(cg_compg) + ' using a global step vsl of ' + str(curr_global_step))
 
+              another_norm = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['abc_norm']))
+              logging.info('@sahiltyagi4 another_norm ' + str(another_norm) + ' using a global step dsl of ' + str(curr_global_step))
+
               local_current_step = curr_global_step
               step_end = time.time()
               any_step_done = True
@@ -1589,6 +1592,7 @@ class Estimator(object):
               logging.info('@tyagi abcd wrker norm ' + str(wrkr_norm) + ' zxcv step ' + str(curr_global_step))
               logging.info('@sahil clipper worker_norm VALUE ' + str(clip_wrkrnorm) + ' using GLOBAL STEP VAL ' + str(curr_global_step))
               logging.info('@sahil clipper agg_norm VALUE ' + str(clip_aggnorm) + ' using GLOBAL STEP VAL ' + str(curr_global_step))
+
 
               # clip_global_norm = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['clip_norm_function']))
               # logging.info('@tyagi clip fn aggregated norm ' + str(clip_global_norm) + ' 1234 global step ' + str(curr_global_step))
