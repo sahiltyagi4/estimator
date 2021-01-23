@@ -1555,10 +1555,6 @@ class Estimator(object):
                        + str(local_current_step))
 
           staleness = global_current_step - local_current_step
-
-          per_worker_norm = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['tensor_local_worker_test']))
-          logging.info('@tyagi per-worker gradnorm ' + str(per_worker_norm) + ' asdfg global_step ' + str(global_current_step))
-
           if True:
           #if (global_current_step - local_current_step) <= int(estimator_spec.staleness):
               step_start = time.time()
