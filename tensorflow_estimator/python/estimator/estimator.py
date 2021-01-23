@@ -1532,8 +1532,8 @@ class Estimator(object):
       any_step_done = False
       for op in tf.get_default_graph().get_operations():
           logging.info('***************************variables and op names are: ' + str(op.name))
-      run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
-      run_metadata = tf.RunMetadata()
+      # run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
+      # run_metadata = tf.RunMetadata()
       switch_input_fn = False
       local_current_step = 0
       step_file = os.path.join(self._model_dir, 'localstep-'+w_type+str(w_index)+'.log')
@@ -1567,18 +1567,24 @@ class Estimator(object):
               #                                           tf.train.get_global_step()], options=run_options,
               #                                          run_metadata=run_metadata)
 
-              _, loss, curr_global_step, clip_wrkrnorm, clip_aggnorm, wrkr_norm, agg_norm = mon_sess.run([estimator_spec.train_op, estimator_spec.loss,
-                                                                             tf.train.get_global_step(),
-                                                                             tf.get_default_graph().get_tensor_by_name(os.environ['worker_clipnorm']),
-                                                                             tf.get_default_graph().get_tensor_by_name(os.environ['clip_norm_function']),
-                                                                             tf.get_default_graph().get_tensor_by_name(os.environ['tensor_local_worker_test']),
-                                                                             tf.get_default_graph().get_tensor_by_name(os.environ['tensor_for_global_grad_norm'])],
-                                                                             options=run_options, run_metadata=run_metadata)
+              # _, loss, curr_global_step, clip_wrkrnorm, clip_aggnorm, wrkr_norm, agg_norm = mon_sess.run([estimator_spec.train_op, estimator_spec.loss,
+              #                                                                tf.train.get_global_step(),
+              #                                                                tf.get_default_graph().get_tensor_by_name(os.environ['worker_clipnorm']),
+              #                                                                tf.get_default_graph().get_tensor_by_name(os.environ['clip_norm_function']),
+              #                                                                tf.get_default_graph().get_tensor_by_name(os.environ['tensor_local_worker_test']),
+              #                                                                tf.get_default_graph().get_tensor_by_name(os.environ['tensor_for_global_grad_norm'])],
+              #                                                                options=run_options, run_metadata=run_metadata)
 
-              cg_compg = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['syncrep_cgrad']))
-              logging.info('123456 compgrad ' + str(cg_compg) + ' using a global step vsl of ' + str(curr_global_step))
+              _, loss, curr_global_step, agg_norm = mon_sess.run([estimator_spec.train_op, estimator_spec.loss,
+                                                                  tf.train.get_global_step(),
+                                                                  tf.get_default_graph().get_tensor_by_name(os.environ['abc_norm']),
+                                                                  tf.get_default_graph().get_tensor_by_name(os.environ['tensor_for_global_grad_norm'])],
+                                                                  options=run_options, run_metadata=run_metadata)
 
-              another_norm = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['abc_norm']))
+              # cg_compg = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['syncrep_cgrad']))
+              # logging.info('123456 compgrad ' + str(cg_compg) + ' using a global step vsl of ' + str(curr_global_step))
+
+              # another_norm = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['abc_norm']))
               logging.info('@sahiltyagi4 another_norm ' + str(another_norm) + ' using a global step dsl of ' + str(curr_global_step))
 
               local_current_step = curr_global_step
@@ -1589,68 +1595,53 @@ class Estimator(object):
                            + ' and global step ' + str(curr_global_step))
 
               logging.info('@tyagi abcd agg norm ' + str(agg_norm) + ' zxcv step ' + str(curr_global_step))
-              logging.info('@tyagi abcd wrker norm ' + str(wrkr_norm) + ' zxcv step ' + str(curr_global_step))
-              logging.info('@sahil clipper worker_norm VALUE ' + str(clip_wrkrnorm) + ' using GLOBAL STEP VAL ' + str(curr_global_step))
-              logging.info('@sahil clipper agg_norm VALUE ' + str(clip_aggnorm) + ' using GLOBAL STEP VAL ' + str(curr_global_step))
+              # logging.info('@tyagi abcd wrker norm ' + str(wrkr_norm) + ' zxcv step ' + str(curr_global_step))
+              # logging.info('@sahil clipper worker_norm VALUE ' + str(clip_wrkrnorm) + ' using GLOBAL STEP VAL ' + str(curr_global_step))
+              # logging.info('@sahil clipper agg_norm VALUE ' + str(clip_aggnorm) + ' using GLOBAL STEP VAL ' + str(curr_global_step))
 
 
               # clip_global_norm = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['clip_norm_function']))
               # logging.info('@tyagi clip fn aggregated norm ' + str(clip_global_norm) + ' 1234 global step ' + str(curr_global_step))
 
-              # flat_grad_shape = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['flatten_grad']))
-              # logging.info('@sahiltyagi4 flat_grad_shape ' + str(flat_grad_shape.shape)
-              #              + ' viz-a-viz global step ' + str(curr_global_step))
-
-
-
-              # global_grad_norm = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ
-              #                                                                           ['tensor_for_global_grad_norm']))
-              # logging.info('@sahiltyagi4 global_grad_norm is ' + str(global_grad_norm) + ' for global step '
-              #              + str(curr_global_step))
-
-              # for ix1 in range(0, 69):
-              #     per_worker_norm = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['tensor_local_worker_test']))
-              #     logging.info('@tyagi per-worker gradnorm ' + str(per_worker_norm) + ' asdfg global_step ' + str(curr_global_step))
-              # time.sleep(1000000)
-
-              tl = timeline.Timeline(run_metadata.step_stats)
-              ctf = tl.generate_chrome_trace_format()
-              op_ts = []
-              parser = json.loads(ctf)
-              for doc in parser['traceEvents']:
-                  if 'args' in doc and 'ts' in doc and estimator_spec.namescope in doc['args']['name']:
-                      op_ts.append(doc['ts'])
-
-                  if 'ts' in doc and estimator_spec.namescope in doc['name']:
-                      op_ts.append(doc['ts'])
-
-              if len(op_ts) > 0:
-                  final_endtime = time.time()
-                  if anotheronetimeflag:
-                      f = open(self._model_dir + '/correctGPUctf.json', 'w')
-                      f.write(str(ctf))
-                      f.close()
-                      anotheronetimeflag = False
-
-                  logging.info('@sahiltyagi upto COMPUTE GRADS call time is ' + str((max(op_ts) - min(op_ts)) / 1000)
-                               + 'ms with starttime ' + str(min(op_ts) / 1000000) + ' and endtime '
-                               + str(max(op_ts) / 1000000) + ' and global step ' + str(curr_global_step))
-                  logging.info('@sahiltyagi TOTAL_TIME including runmetadata stats and parsing '
-                               + str(final_endtime - step_start) + ' with finaltime ' + str(final_endtime)
-                               + ' and step_start ' + str(step_start) + ' and global step ' + str(curr_global_step))
-                  logging.info('@sahiltyagi4 ONLY RUNMETEDATA stats and parsing is ' + str(final_endtime - step_end)
-                               + ' with finaltime ' + str(final_endtime) + ' and step_end ' + str(step_end)
-                               + ' and global step ' + str(curr_global_step))
-
-              else:
-                  if onetimeflag:
-                      f = open(self.model_dir + '/incorrectGPUctf.json', 'w')
-                      f.write(str(ctf))
-                      f.close()
-                      onetimeflag = False
-                  logging.info('@sahiltyagi4 train_op computed but op_ts might be empty with length ' + str(len(op_ts)))
-                  logging.info(
-                      '@sahiltyagi4 train_op computed but compute_grads op not for step ' + str(curr_global_step))
+              # @sahiltyagi4 COMMENTED THIS OUT SO RUNMETA DOESN'T EXECUTE AND ACCELERATES TRAINING TRAJECTORY
+              # tl = timeline.Timeline(run_metadata.step_stats)
+              # ctf = tl.generate_chrome_trace_format()
+              # op_ts = []
+              # parser = json.loads(ctf)
+              # for doc in parser['traceEvents']:
+              #     if 'args' in doc and 'ts' in doc and estimator_spec.namescope in doc['args']['name']:
+              #         op_ts.append(doc['ts'])
+              #
+              #     if 'ts' in doc and estimator_spec.namescope in doc['name']:
+              #         op_ts.append(doc['ts'])
+              #
+              # if len(op_ts) > 0:
+              #     final_endtime = time.time()
+              #     if anotheronetimeflag:
+              #         f = open(self._model_dir + '/correctGPUctf.json', 'w')
+              #         f.write(str(ctf))
+              #         f.close()
+              #         anotheronetimeflag = False
+              #
+              #     logging.info('@sahiltyagi upto COMPUTE GRADS call time is ' + str((max(op_ts) - min(op_ts)) / 1000)
+              #                  + 'ms with starttime ' + str(min(op_ts) / 1000000) + ' and endtime '
+              #                  + str(max(op_ts) / 1000000) + ' and global step ' + str(curr_global_step))
+              #     logging.info('@sahiltyagi TOTAL_TIME including runmetadata stats and parsing '
+              #                  + str(final_endtime - step_start) + ' with finaltime ' + str(final_endtime)
+              #                  + ' and step_start ' + str(step_start) + ' and global step ' + str(curr_global_step))
+              #     logging.info('@sahiltyagi4 ONLY RUNMETEDATA stats and parsing is ' + str(final_endtime - step_end)
+              #                  + ' with finaltime ' + str(final_endtime) + ' and step_end ' + str(step_end)
+              #                  + ' and global step ' + str(curr_global_step))
+              #
+              # else:
+              #     if onetimeflag:
+              #         f = open(self.model_dir + '/incorrectGPUctf.json', 'w')
+              #         f.write(str(ctf))
+              #         f.close()
+              #         onetimeflag = False
+              #     logging.info('@sahiltyagi4 train_op computed but op_ts might be empty with length ' + str(len(op_ts)))
+              #     logging.info(
+              #         '@sahiltyagi4 train_op computed but compute_grads op not for step ' + str(curr_global_step))
 
               if estimator_spec.sync_mode == 'BSP':
                   # when using deadbanding, set window_size to 1.
