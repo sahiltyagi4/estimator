@@ -1574,8 +1574,7 @@ class Estimator(object):
               _, loss, curr_global_step, agg_norm = mon_sess.run([estimator_spec.train_op, estimator_spec.loss,
                                                                   tf.train.get_global_step(),
                                                                   tf.get_default_graph().get_tensor_by_name(os.environ['abc_norm']),
-                                                                  tf.get_default_graph().get_tensor_by_name(os.environ['tensor_for_global_grad_norm'])],
-                                                                  options=run_options, run_metadata=run_metadata)
+                                                                  tf.get_default_graph().get_tensor_by_name(os.environ['tensor_for_global_grad_norm'])])
 
               # cg_compg = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['syncrep_cgrad']))
               # logging.info('123456 compgrad ' + str(cg_compg) + ' using a global step vsl of ' + str(curr_global_step))
