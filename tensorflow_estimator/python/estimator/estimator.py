@@ -1571,7 +1571,7 @@ class Estimator(object):
               #                                                                tf.get_default_graph().get_tensor_by_name(os.environ['tensor_for_global_grad_norm'])],
               #                                                                options=run_options, run_metadata=run_metadata)
 
-              _, loss, curr_global_step, agg_norm = mon_sess.run([estimator_spec.train_op, estimator_spec.loss,
+              _, loss, curr_global_step, another_norm, agg_norm = mon_sess.run([estimator_spec.train_op, estimator_spec.loss,
                                                                   tf.train.get_global_step(),
                                                                   tf.get_default_graph().get_tensor_by_name(os.environ['abc_norm']),
                                                                   tf.get_default_graph().get_tensor_by_name(os.environ['tensor_for_global_grad_norm'])])
