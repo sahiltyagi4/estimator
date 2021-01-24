@@ -820,7 +820,6 @@ class _TrainingExecutor(object):
   def _start_distributed_training(self, saving_listeners=None):
     """Calls `Estimator` train in a distributed setting."""
     config = self._estimator.config
-    #logging.info('@sahiltyagi4 calling _start_distributed_training fn.')
 
     # Start in-process TensorFlow server if needed. It's important to start the
     # server before we (optionally) sleep. Otherwise, the servers will wait to
@@ -847,142 +846,53 @@ class _TrainingExecutor(object):
                    start_delay_secs)
       time.sleep(start_delay_secs)
 
-    workload = config.get_workload
     gbs_file = open(os.path.join(config.model_dir, 'global_batch_size.conf'), 'r')
     os.environ['GLOBAL_CLUSTER_BATCH_SIZE'] = gbs_file.readline().strip()
     gbs_file.close()
-    # global_batch_size = int(os.environ.get('GLOBAL_CLUSTER_BATCH_SIZE'))
-    # global_batch_size = self.regressed_global_batchsize(config.model_dir, global_batch_size)
-    # os.environ['GLOBAL_CLUSTER_BATCH_SIZE'] = str(global_batch_size)
 
     while True:
       # @sahiltyagi4: call input fn here instead of the initial input fn defined with Estimator object.
+      # the input fn MUST take ONLY 3 arguments: "subset" (for train or test data), the per-worker "batch-size"
+      # and the location of input data "data_dir"
       start_time = time.time()
-      logging.info('@sahiltyagi4 going to switch the input function with a batch-size!!!!')
       switched_input_fn = config.get_switched_input_fn
-      new_batch_size = int(os.environ['WORKER_BATCH_SIZE'])
-      logging.info('@sahiltyagi4 workload processed is ' + str(workload))
-      if 'resnet' in workload:
-        logging.info('@sahiltyagi4 going to use workload ' + workload)
-        new_input_fn = functools.partial(switched_input_fn,
-                                         config.get_datadir,
-                                         subset='train',
-                                         num_shards=0,
-                                         batch_size=new_batch_size,
-                                         run_config=config,
-                                         use_distortion_for_training=True)
-        loss, should_switch_input_fn = self._estimator.train(input_fn=new_input_fn,
-                                                             max_steps=self._train_spec.max_steps,
-                                                             hooks=list(self._train_spec.hooks) + list(self._train_hooks),
-                                                             saving_listeners=saving_listeners)
-      elif 'regression' in workload:
-        logging.info('@sahiltyagi4 going to use workload ' + workload)
-        new_input_fn = functools.partial(switched_input_fn, batchsize=new_batch_size)
-        logging.info('@sahiltyagi4 value set for new batch-size on switched input fn is {}'.format(new_batch_size))
-        loss, should_switch_input_fn = self._estimator.train(
-            input_fn=new_input_fn,
-            max_steps=self._train_spec.max_steps,
-            hooks=list(self._train_spec.hooks) + list(self._train_hooks),
-            saving_listeners=saving_listeners)
 
-      elif 'mnist_cnn' in workload:
-        logging.info('@sahiltyagi4 going to use workload ' + workload)
-        new_input_fn = functools.partial(switched_input_fn)
-        logging.info('@sahiltyagi4 value set for new batch-size on switched input fn is {}'.format(new_batch_size))
-        loss, should_switch_input_fn = self._estimator.train(input_fn=new_input_fn,
-                                                             max_steps=self._train_spec.max_steps,
-                                                             hooks=list(self._train_spec.hooks) + list(self._train_hooks),
-                                                             saving_listeners=saving_listeners)
-      elif 'transformers' in workload:
-        loss, should_switch_input_fn = self._estimator.train(input_fn=self._train_spec.input_fn,
-                                                             max_steps=self._train_spec.max_steps,
-                                                             hooks=list(self._train_spec.hooks) + list(self._train_hooks),
-                                                             saving_listeners=saving_listeners)
+      tf_config = json.loads(os.environ['TF_CONFIG'])
+      batchlist = tf_config['batch_size_list']
+      tasktype = tf_config['task']['type']
+      index = tf_config['task']['index']
+      if tasktype == 'ps':
+          node_batch_size = batchlist[0]
+      if tasktype == 'master':
+          node_batch_size = batchlist[1]
+      if tasktype == 'worker':
+          node_batch_size = batchlist[index + 2]
 
-      logging.info('@sahiltyagi4 start time on switch input fn ' + str(start_time) + ' and end time on switch input fn ' + str(time.time()))
+      updated_input_fn = functools.partial(switched_input_fn, config.get_datadir, subset='train',
+                                           batch_size=node_batch_size)
+      loss, should_switch_input_fn = self._estimator.train(input_fn=updated_input_fn,
+                                                           max_steps=self._train_spec.max_steps,
+                                                           hooks=list(self._train_spec.hooks) + list(self._train_hooks),
+                                                           saving_listeners=saving_listeners)
 
-      # loss = self._estimator.train(input_fn=self._train_spec.input_fn,
-      #                              max_steps=self._train_spec.max_steps,
-      #                              hooks=list(self._train_spec.hooks) + list(self._train_hooks),
-      #                              saving_listeners=saving_listeners)
-      #logging.info('@sahiltyagi4 start time in training.py ' + str(start_time) + ' and end time in training.py ' + str(time.time()))
+      logging.info('@sahiltyagi4 start time on switch input fn ' + str(start_time) +
+                   ' and end time on switch input fn ' + str(time.time()))
+
+      #update "batch_size_list" parameter of TF_CONFIG to accomodate new per-worker batchsizes.
+      #NOTE: global batchsize 'B' remains constant in this case as workers aren't added/removed
+      batchsize_conf = open(os.path.join(config.model_dir, 'clusterbatchsizes.conf'), 'r')
+      updated_batchsize_list = str(batchsize_conf.readline().strip())
+      parse_json = json.loads(os.environ['TF_CONFIG'])
+      parse_json['batch_size_list'] = updated_batchsize_list
+      os.environ['TF_CONFIG'] = json.dumps(parse_json)
 
       if not should_switch_input_fn:
         logging.info('Loss for final step: %s.', loss)
         break
 
-    logging.info('@sahiltyagi4 TRAINING TERMINATED FOR GOOD!')
+    logging.info('training terminated for good...either because steps/epochs specified are complete or '
+                 + 'objective threshold is reached')
 
-  def regressed_global_batchsize(self, model_dir, global_batch_size_value, workload):
-
-      if workload == 'mnist_cnn':
-          batch_size = [100, 200, 400, 500, 600, 700, 800, 1000, 1200, 1500]
-          grad_variance = [0.0116671, 0.025909, 0.062304, 0.087717, 0.1124581, 0.20597912, 0.1707517, 0.2467277,
-                           0.339376, 0.48848757]
-          noise_list = [1.44380834277976, 0.7500000000050658, 0.1628569923691857, 0.18777261522272845,
-                        0.20561739567653883, 0.1760979201911547, 0.18186623485605158, 0.10557587450321901,
-                        0.010545433564374901, 0.10092579961193682]
-      elif workload == 'resnet':
-          batch_size = [50, 100, 200, 300, 400, 517, 600, 800, 1000, 1200]
-          grad_variance = [0.56537, 0.9539479, 1.7765224, 2.626002, 3.5213438, 6.2093534268, 5.5780055, 7.7399302,
-                           10.2033267,12.671453488]
-          noise_list = [3.6107450558527754, 2.102755136836372, 0.3106361797968315, 0.09258345884407464,
-                        0.0202377354111056, 0.19694479867547454, 0.005495144518666887, 0.012609515965996812,
-                        0.047615035808713256, 0.07062160756120592]
-      elif workload == 'transformers':
-          batch_size = [50, 100, 200, 300, 400, 517, 600, 800, 1000, 1200]
-          grad_variance = [2.171801, 2.3048299, 2.504374, 2.8670947, 3.535124076, 5.4246854, 4.258887, 5.6065331,
-                           9.843214616, 16.4145020]
-          noise_list = [2.7679483416220467, 1.0893327368067214, 0.161234228972274, 0.10686728524858148,
-                        0.17087142817703263, 0.01302333470050401, 0.3314858338803829, 0.3386720348400401,
-                        0.07005283640884824, 0.293324010948577]
-
-      gradvariance_batchsize_fit = LinearRegression()
-      batchsize_noise_fit = LinearRegression()
-      X = DataFrame(batch_size)
-      y = DataFrame(grad_variance)
-      X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.0, random_state=0)
-      gradvariance_batchsize_fit.fit(X_train, y_train)
-
-      Noise_X = DataFrame(noise_list)
-      Batch_Y = DataFrame(batch_size)
-      X2_train, X2_test, y2_train, y2_test = train_test_split(Noise_X, Batch_Y, test_size=0.0, random_state=0)
-      # calculate the value of |G|^2 for the given global batch-size from gradvariance_batchsize_fit and use the
-      # actual |G|^2 logged from the run. Using these two, compute SG ratio, and finally use batchsize_noise_fit
-      # to predict the new global batch-size to be used on next adjustment.
-      batchsize_noise_fit.fit(X2_train, y2_train)
-
-      # not to be executed during a regular adjustment, but only when a node was added/removed and thus, the global
-      # batch size was adjusted
-      f = os.path.join(model_dir, 'avg_grad_variance.conf')
-      gradient_variance = float(open(f, 'r').readline().strip().close())
-      f = os.path.join(model_dir, 'global_batch_size.conf')
-      if os.path.isfile(f):
-          file = open(f, 'r')
-          global_batch_size = int(file.readline().strip())
-          file.close()
-      else:
-          global_batch_size = global_batch_size_value
-
-      regressed_variance = gradvariance_batchsize_fit.predict(global_batch_size)
-      SGratio = float(abs(regressed_variance - gradient_variance))/float(regressed_variance)
-      if workload == 'mnist_cnn' and SGratio > 1.44:
-          new_global_batch_size = 128
-      elif workload == 'mnist_cnn' and SGratio < 1.44:
-          new_global_batch_size = batchsize_noise_fit.predict(SGratio)
-
-      if workload == 'resnet' and SGratio > 3.63:
-          new_global_batch_size = 128
-      elif workload == 'resnet' and SGratio < 3.63:
-          new_global_batch_size = batchsize_noise_fit.predict(SGratio)
-
-      if workload == 'transformers' and SGratio > 2.75:
-          new_global_batch_size = 128
-      elif workload == 'transformers' and SGratio < 2.75:
-          new_global_batch_size = batchsize_noise_fit.predict(SGratio)
-
-      new_global_batch_size = int(round(new_global_batch_size))
-      return new_global_batch_size
 
   def _start_continuous_evaluation(self):
     """Repeatedly calls `Estimator` evaluate and export until training ends."""

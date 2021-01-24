@@ -48,10 +48,8 @@ _DEFAULT_REPLACEABLE_LIST = [
     'keep_checkpoint_max',
     'keep_checkpoint_every_n_hours',
     'log_step_count_steps',
-    'node_batch_size',
     'data_dir',
     'switched_input_fn',
-    'workload',
     'train_distribute',
     'device_fn',
     'protocol',
@@ -286,9 +284,6 @@ def _validate_properties(run_config):
   _validate('save_summary_steps', lambda steps: steps >= 0,
             message='save_summary_steps should be >= 0')
 
-  _validate('node_batch_size', lambda node_batch_size: node_batch_size > 0,
-            message='node_batch_size should be > 0')
-
   _validate('save_checkpoints_steps', lambda steps: steps >= 0,
             message='save_checkpoints_steps should be >= 0')
   _validate('save_checkpoints_secs', lambda secs: secs >= 0,
@@ -355,9 +350,7 @@ class RunConfig(object):
                keep_checkpoint_max=5,
                keep_checkpoint_every_n_hours=10000,
                log_step_count_steps=100,
-               node_batch_size=128,
                switched_input_fn=None,
-               workload=None,
                data_dir=None,
                train_distribute=None,
                device_fn=None,
@@ -541,12 +534,8 @@ class RunConfig(object):
     model_dir = _get_model_dir(tf_config,
                                compat_internal.path_to_str(model_dir))
 
-    # @sahiltyagi ..variable to be returned by get_node_batch_size()
-    self.node_batch_size = node_batch_size
     self.switched_input_fn = switched_input_fn
     self.data_dir = data_dir
-    self.workload = workload
-    logging.info('@sahiltyagi4 RunConfig object per-node batch-size: %d', self.get_node_batch_size)
 
     RunConfig._replace(
         self,
@@ -560,9 +549,7 @@ class RunConfig(object):
         keep_checkpoint_max=keep_checkpoint_max,
         keep_checkpoint_every_n_hours=keep_checkpoint_every_n_hours,
         log_step_count_steps=log_step_count_steps,
-        node_batch_size=node_batch_size,
         switched_input_fn=switched_input_fn,
-        workload=workload,
         data_dir=data_dir,
         train_distribute=train_distribute,
         device_fn=device_fn,
@@ -742,19 +729,10 @@ class RunConfig(object):
   def evaluation_master(self):
     return self._evaluation_master
 
-  # @sahiltyagi4 ....to retrieve the node_batch_size. This value is fed to the batch_size parameter of the input function
-  @property
-  def get_node_batch_size(self):
-    return self.node_batch_size
-
   # @sahiltyagi4... for the switched input fn with the updated batch-size after readjustment
   @property
   def get_switched_input_fn(self):
     return self.switched_input_fn
-
-  @property
-  def get_workload(self):
-    return self.workload
 
   # @sahiltyagi4: to get directory to load data for input fn
   @property

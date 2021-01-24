@@ -200,8 +200,6 @@ class EstimatorSpec(
         sync_mode=sync_mode,
         mini_batchsize_threshold=mini_batchsize_threshold,
         asp_adjust_strategy=asp_adjust_strategy,
-        #global_batch_size=global_batch_size,
-        #global_batch_size_value=global_batch_size_value,
         staleness=staleness,
         scaffold=scaffold,
         window_size=window_size,

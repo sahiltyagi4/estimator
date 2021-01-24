@@ -1513,8 +1513,6 @@ class Estimator(object):
     onetimeflag = True
     anotheronetimeflag = True
 
-    # if w_type == 'master':
-    #     saver = tf.train.Saver()
     with training.MonitoredTrainingSession(
         master=self._config.master,
         is_chief=self._config.is_chief,
@@ -1555,30 +1553,16 @@ class Estimator(object):
                        + str(local_current_step))
 
           staleness = global_current_step - local_current_step
-
-          per_worker_norm = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['tensor_local_worker_test']))
-          logging.info('@tyagi per-worker gradnorm ' + str(per_worker_norm) + ' asdfg global_step ' + str(global_current_step))
-
           if True:
-          #if (global_current_step - local_current_step) <= int(estimator_spec.staleness):
               step_start = time.time()
               should_training_stop = False
-              # _, loss, curr_global_step = mon_sess.run([estimator_spec.train_op, estimator_spec.loss,
-              #                                           tf.train.get_global_step()], options=run_options,
-              #                                          run_metadata=run_metadata)
 
-              _, loss, curr_global_step, clip_wrkrnorm, clip_aggnorm, wrkr_norm, agg_norm = mon_sess.run([estimator_spec.train_op, estimator_spec.loss,
+              _, loss, curr_global_step, another_norm, agg_norm = mon_sess.run([estimator_spec.train_op, estimator_spec.loss,
                                                                              tf.train.get_global_step(),
-                                                                             tf.get_default_graph().get_tensor_by_name(os.environ['worker_clipnorm']),
-                                                                             tf.get_default_graph().get_tensor_by_name(os.environ['clip_norm_function']),
-                                                                             tf.get_default_graph().get_tensor_by_name(os.environ['tensor_local_worker_test']),
+                                                                             tf.get_default_graph().get_tensor_by_name(os.environ['abc_norm']),
                                                                              tf.get_default_graph().get_tensor_by_name(os.environ['tensor_for_global_grad_norm'])],
                                                                              options=run_options, run_metadata=run_metadata)
 
-              cg_compg = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['syncrep_cgrad']))
-              logging.info('123456 compgrad ' + str(cg_compg) + ' using a global step vsl of ' + str(curr_global_step))
-
-              another_norm = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['abc_norm']))
               logging.info('@sahiltyagi4 another_norm ' + str(another_norm) + ' using a global step dsl of ' + str(curr_global_step))
 
               local_current_step = curr_global_step
@@ -1589,30 +1573,6 @@ class Estimator(object):
                            + ' and global step ' + str(curr_global_step))
 
               logging.info('@tyagi abcd agg norm ' + str(agg_norm) + ' zxcv step ' + str(curr_global_step))
-              logging.info('@tyagi abcd wrker norm ' + str(wrkr_norm) + ' zxcv step ' + str(curr_global_step))
-              logging.info('@sahil clipper worker_norm VALUE ' + str(clip_wrkrnorm) + ' using GLOBAL STEP VAL ' + str(curr_global_step))
-              logging.info('@sahil clipper agg_norm VALUE ' + str(clip_aggnorm) + ' using GLOBAL STEP VAL ' + str(curr_global_step))
-
-
-              # clip_global_norm = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['clip_norm_function']))
-              # logging.info('@tyagi clip fn aggregated norm ' + str(clip_global_norm) + ' 1234 global step ' + str(curr_global_step))
-
-              # flat_grad_shape = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['flatten_grad']))
-              # logging.info('@sahiltyagi4 flat_grad_shape ' + str(flat_grad_shape.shape)
-              #              + ' viz-a-viz global step ' + str(curr_global_step))
-
-
-
-              # global_grad_norm = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ
-              #                                                                           ['tensor_for_global_grad_norm']))
-              # logging.info('@sahiltyagi4 global_grad_norm is ' + str(global_grad_norm) + ' for global step '
-              #              + str(curr_global_step))
-
-              # for ix1 in range(0, 69):
-              #     per_worker_norm = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['tensor_local_worker_test']))
-              #     logging.info('@tyagi per-worker gradnorm ' + str(per_worker_norm) + ' asdfg global_step ' + str(curr_global_step))
-              # time.sleep(1000000)
-
               tl = timeline.Timeline(run_metadata.step_stats)
               ctf = tl.generate_chrome_trace_format()
               op_ts = []
@@ -1648,9 +1608,10 @@ class Estimator(object):
                       f.write(str(ctf))
                       f.close()
                       onetimeflag = False
-                  logging.info('@sahiltyagi4 train_op computed but op_ts might be empty with length ' + str(len(op_ts)))
-                  logging.info(
-                      '@sahiltyagi4 train_op computed but compute_grads op not for step ' + str(curr_global_step))
+                  logging.info('@sahiltyagi4 train_op computed but op_ts might be empty with length '
+                               + str(len(op_ts)))
+                  logging.info('@sahiltyagi4 train_op computed but compute_grads op not for step '
+                               + str(curr_global_step))
 
               if estimator_spec.sync_mode == 'BSP':
                   # when using deadbanding, set window_size to 1.
@@ -1682,10 +1643,8 @@ class Estimator(object):
 
                               self.log_should_training_stop(self._model_dir, should_master_stop, curr_global_step)
 
-                          logging.info('@sahiltyagi4 global step being fed is ' + str(curr_global_step))
-                          should_training_stop = self.sync_workers_should_training_stop(self._model_dir, w_type, w_index,
-                                                                               curr_global_step)
-                          logging.info('@sahiltyagi4 value returned  for training status is ' + str(should_training_stop))
+                          should_training_stop = self.sync_workers_should_training_stop(self._model_dir, w_type,
+                                                                                        w_index, curr_global_step)
                           self.sync_check_training_stop(self._model_dir, training_status_logs, num_workers,
                                                         curr_global_step)
                           current_batchsizes = self.fetch_current_batchisizes(self._model_dir)
@@ -1694,6 +1653,7 @@ class Estimator(object):
                           window_computation_time = []
                           grad_norm_window = {}
                           if should_training_stop:
+                              logging.info('@sahiltyagi4 global step being fed is ' + str(curr_global_step))
                               # save local step to be picked later when switching input fn with new batch-size
                               self.log_local_step(self._model_dir, curr_global_step, w_type, w_index)
                               if not mon_sess._is_closed():
