@@ -3,7 +3,9 @@
 |-----------------|
 | [![Documentation](https://img.shields.io/badge/api-reference-blue.svg)](https://www.tensorflow.org/api_docs/python/tf/estimator) |
 
-This branch 'dynamic_v2' aims to do variable and dynamic batching without the kill-restart technique used so far. Here, whenever the necessary condition
+Scavenger is a framework for running distributed machine learning models on low cost resources with fluctuating availability. This system is built on top of the **OmniLearn** framework published in *Autonomic Computing and Self Organizing Systems (ACSOS), 2020*. The OmniLearn paper is available [here](https://www.researchgate.net/publication/343054677_Taming_Resource_Heterogeneity_In_Distributed_ML_Training_With_Dynamic_Batching).
+
+This branch 'scaven' aims to do variable and dynamic batching without the kill-restart technique used so far. Here, whenever the necessary condition
 for readjustment is encountered, the training loop is terminated (and the model parameters checkpointed). But the TF server and and outer-loop isn't. They
 are re-run again with the new input fn. Here, the new input fn means the same initial input fn but with a different batch-size. Will add more details as
 progress is made. 
