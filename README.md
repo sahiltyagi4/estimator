@@ -3,23 +3,9 @@
 |-----------------|
 | [![Documentation](https://img.shields.io/badge/api-reference-blue.svg)](https://www.tensorflow.org/api_docs/python/tf/estimator) |
 
-Scavenger is a framework for running distributed machine learning models on low cost resources with fluctuating availability. This system is built on top of the **OmniLearn** framework published in *Autonomic Computing and Self Organizing Systems (ACSOS), 2020*. The OmniLearn paper is available [here](https://www.researchgate.net/publication/343054677_Taming_Resource_Heterogeneity_In_Distributed_ML_Training_With_Dynamic_Batching).
+Scavenger is a framework built on top of Tensorflow and Tensorflow-Estimator for running distributed machine learning models on low cost resources with fluctuating availability. This system extends the **OmniLearn** framework published in *Autonomic Computing and Self Organizing Systems (ACSOS), 2020*. The OmniLearn paper is available [here](https://www.researchgate.net/publication/343054677_Taming_Resource_Heterogeneity_In_Distributed_ML_Training_With_Dynamic_Batching).
 
-This branch 'scaven' aims to do variable and dynamic batching without the kill-restart technique used so far. Here, whenever the necessary condition
-for readjustment is encountered, the training loop is terminated (and the model parameters checkpointed). But the TF server and and outer-loop isn't. They
-are re-run again with the new input fn. Here, the new input fn means the same initial input fn but with a different batch-size. Will add more details as
-progress is made. 
 
-TensorFlow Estimator is a high-level TensorFlow API that greatly simplifies machine learning programming.
-Estimators encapsulate training, evaluation, prediction, and exporting for your model.
-
-## Getting Started
-
-See our Estimator [getting started guide](https://www.tensorflow.org/guide/estimators) for an introduction to the Estimator APIs.
-
-## Installation
-
-`tf.estimator` is installed when you install the TensorFlow pip package. See [Installing TensorFlow](https://www.tensorflow.org/get_started/os_setup.html) for instructions.
 
 ## Developing
 
@@ -45,11 +31,21 @@ replicas_hook = optimizer.make_session_run_hook(params.is_chief, num_tokens=0)
 train_hooks.append(replicas_hook)
 ```
 
-TF_CONFIG json has an additional ```batch_size_list``` argument which is a comma separated list of per-worker batch-sizes. This parameter is updated in subsequent batchsize adjustments. The final TF_CONFIG for master in a 3 worker cluster looks like:
+*TF_CONFIG* environment variable json has an additional ```batch_size_list``` argument which is a comma separated list of per-worker batch-sizes. This parameter is updated in subsequent batchsize adjustments. The format of the parameter starts with batchsize of master, then worker-0, worker-1 and so on. The final TF_CONFIG for master in a 3 worker cluster looks like:
 ```
 {"environment": "cloud", "batch_size_list": "[128,128,128]", "task": {"index": 0, "type": "master"}, "model_dir": "/data", "cluster": {"worker": ["172.17.0.4:8000", "172.17.0.5:8000", "172.17.0.6:8000"], "ps": ["172.17.0.2:8000"], "master": ["172.17.0.3:8000"]}
 ```
 
+In Scavenger, while defining the input fn, the user must specify *ONLY* 3 arguments in the input fn:
+* subset: either train or test input fn
+* data_dir: the location of the input data for training/testing/cross val.
+* node_batch_size: the per-worker batch-size specified initially. If this value is different from ```batch_size_list``` batch-sizes in TF_CONFIG, the value will be overwritten to the workers batch-size in the TF_CONFIG environment variable.
+```
+def input_fn(subset='train', data_dir='/data', node_batch_size=128):
+	...
+	...
+	return feature, labels
+```
 
 The model fn returns an EstimatorSpec object with the following arguments:
 ```
