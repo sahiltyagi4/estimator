@@ -32,21 +32,43 @@ bazel-bin/tensorflow_estimator/tools/pip_package/build_pip_package /tmp/estimato
 bazel test //tensorflow_estimator/...
 ```
 
-## Contribution guidelines
+To start training with Scavenger, please make the following additions:
 
-If you want to contribute to TensorFlow Estimator, be sure to review the [contribution
-guidelines](CONTRIBUTING.md).
+```
+run_config = tf.estimator.RunConfig(..., data_dir='*path to data dir*')
 
-**Note that this repository is included as a component of the main TensorFlow
-package, and any issues encountered while using Estimators should be filed under
-[TensorFlow GitHub Issues](https://github.com/tensorflow/tensorflow/issues),
-as we do not separately track issues in this repository. You can link this
-repository in any issues created as necessary.**
+optimizer = *any TF optimizer*
+optimizer = tf.train.ScavengerOptimizer(optimizer, replicas_to_aggregate=num_workers)
+replicas_hook = optimizer.make_session_run_hook(params.is_chief, num_tokens=0)
+train_hooks.append(replicas_hook)
+```
 
-Please see
-[TensorFlow Discuss](https://groups.google.com/a/tensorflow.org/forum/#!forum/discuss) for general questions
-and discussion and please direct specific questions to
-[Stack Overflow](https://stackoverflow.com/questions/tagged/tensorflow).
+TF_CONFIG json has an additional ```batch_size_list``` argument which is a comma separated list of per-worker batch-sizes. This parameter is updated in subsequent batchsize adjustments. The final TF_CONFIG for master in a 3 worker cluster looks like:
+```
+{"environment": "cloud", "batch_size_list": "[128,128,128]", "task": {"index": 0, "type": "master"}, "model_dir": "/data", "cluster": {"worker": ["172.17.0.4:8000", "172.17.0.5:8000", "172.17.0.6:8000"], "ps": ["172.17.0.2:8000"], "master": ["172.17.0.3:8000"]}
+```
+
+
+The model fn returns an EstimatorSpec object with the following arguments:
+```
+return tf.estimator.EstimatorSpec(
+        mode=mode,
+        predictions=predictions,
+        loss=loss,
+        train_op=train_op,
+        reactive_adjustment_threshold=None,
+        namescope='gradients',
+        window_size=None,
+        sync_mode=None,
+        staleness=50,
+        mini_batchsize_threshold=16,
+        global_batch_size_value=512,
+        asp_adjust_strategy=None,
+        adjustment_mode=None,
+        gradnorm_window=50,
+        training_hooks=train_hooks,
+        eval_metric_ops=metrics)
+```
 
 ## License
 
