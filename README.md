@@ -1,12 +1,12 @@
 # Scavenger #
 
-Scavenger is a framework built on top of Tensorflow and Tensorflow-Estimator for running distributed machine learning models on low cost resources with fluctuating availability. This system extends the **OmniLearn** framework published in *Autonomic Computing and Self Organizing Systems (ACSOS), 2020*. The OmniLearn paper is available [here](https://www.researchgate.net/publication/343054677_Taming_Resource_Heterogeneity_In_Distributed_ML_Training_With_Dynamic_Batching).
+__Scavenger__ is a framework built on top of Tensorflow and Tensorflow-Estimator for running distributed machine learning models on low cost resources with fluctuating availability. This system extends the **OmniLearn** framework published in *Autonomic Computing and Self Organizing Systems (ACSOS), 2020*. The OmniLearn paper is available [here](https://www.researchgate.net/publication/343054677_Taming_Resource_Heterogeneity_In_Distributed_ML_Training_With_Dynamic_Batching).
 
 
 
 ## Developing
 
-To build tensorflow, you need to [install Bazel](https://docs.bazel.build/versions/master/install.html) (v0.25.1) and run the following instructions (for CPU build):
+To build Tensorflow-Scavenger, you need to [install Bazel](https://docs.bazel.build/versions/master/install.html) (v0.25.1) and run the following instructions (for CPU build):
 ```
 git clone https://github.com/sahiltyagi4/tensorflow.git
 cd tensorflow
@@ -57,7 +57,7 @@ In the ```RunConfig``` object, ```data_dir``` refers to the location of the trai
 In Scavenger, while defining the input fn, the user must specify *ONLY* 3 arguments in the input fn:
 * ```subset```: either train or test input fn
 * ```data_dir```: the location of the input data for training/testing/cross val.
-* ```node_batch_size```: the per-worker batch-size specified initially. If this value is different from ```batch_size_list``` batch-sizes in *TF_CONFIG*, the value will be overwritten to the workers batch-size in the *TF_CONFIG* environment variable.
+* ```node_batch_size```: the per-worker batch-size specified initially. If this value is different from ```batch_size_list``` batch-sizes in *TF_CONFIG*, the value will be overwritten to the workers' batch-size in the *TF_CONFIG* environment variable.
 ```
 def input_fn(subset='train', data_dir='/data', node_batch_size=128):
 	...
@@ -85,6 +85,16 @@ return tf.estimator.EstimatorSpec(
         training_hooks=train_hooks,
         eval_metric_ops=metrics)
 ```
+
+The arguments used in the ```EstimatorSpec``` object are:
+* ```window_size```: the number of iterations to consider for per-worker batchsize adjustment. can be None.
+* ```sync_mode```: a string enum, either __BSP__ (for synchronous training) or __ASP__ (for asynchronous training).
+* ```staleness```: an integer value specifying how far behind a workers' local step can be behind the global training step. Per-worker batchsize adjustment is triggered when this threshold is crossed. can be None.
+* ```mini_batchsize_threshold```: an integer value for a user to explicitly specify the minimum batchsize for training/eval.  can be None.
+* ```global_batch_size_value```: an integer value specifying the global batchsize value for distributed training. if left None, Scavenger computes global batchsize from ```batch_size_list``` param of teh *TF_CONFIG* env variable and does efficient global batchsize adjustment based on *GRADIENT NOISE* when workers are added/removed in the cluster.
+* ```asp_adjust_strategy```: a string value used in __ASP__ sync_mode for per-worker batchsize adjustment, based on either *staleness* or *iteration times*. can be None.
+* ```adjustment_mode```: a string enum defining the per-worker batchsize adjustment strategy. can be either *exponential smoothing* or *deadbanding*. Read the OmniLearn [paper](https://www.researchgate.net/publication/343054677_Taming_Resource_Heterogeneity_In_Distributed_ML_Training_With_Dynamic_Batching) for more info.
+* ```gradnorm_window```: an integer value specifying the training steps/iterations based moving window computing the gradient noise. on workers' addition/removal, this window will help guide towards the optimal global batchsize.
 
 ## License
 
