@@ -1,6 +1,4 @@
------------------
-| **`Scavenger`** |
-|-----------------|
+# Scavenger #
 
 Scavenger is a framework built on top of Tensorflow and Tensorflow-Estimator for running distributed machine learning models on low cost resources with fluctuating availability. This system extends the **OmniLearn** framework published in *Autonomic Computing and Self Organizing Systems (ACSOS), 2020*. The OmniLearn paper is available [here](https://www.researchgate.net/publication/343054677_Taming_Resource_Heterogeneity_In_Distributed_ML_Training_With_Dynamic_Batching).
 
