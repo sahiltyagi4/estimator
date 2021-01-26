@@ -17,21 +17,24 @@ bazel-bin/tensorflow_estimator/tools/pip_package/build_pip_package /tmp/estimato
 bazel test //tensorflow_estimator/...
 ```
 
-To start training with Scavenger, please make the following additions:
+To start training with Scavenger, make the following additions:
 
 ```
 run_config = tf.estimator.RunConfig(..., data_dir='*path to data dir*', switched_input_fn=*your input_fn*)
 
 optimizer = *any TF optimizer*
 optimizer = tf.train.ScavengerOptimizer(optimizer, replicas_to_aggregate=*num of workers*)
-replicas_hook = optimizer.make_session_run_hook(params.is_chief, num_tokens=0)
+replicas_hook = optimizer.make_session_run_hook(is_chief, num_tokens=0)
 train_hooks.append(replicas_hook)
 loss = ...
 grad_vars = optimizer.compute_gradients(loss)
 train_op = optimizer.apply_gradients(grad_vars)
 ```
 
-*TF_CONFIG* environment variable json has an additional ```batch_size_list``` argument which is a comma separated list of per-worker batch-sizes. This parameter is updated in subsequent batchsize adjustments. The format of the parameter starts with batchsize of master, then worker-0, worker-1 and so on. The final TF_CONFIG for master in a 3 worker cluster looks like:
+In the ```RunConfig``` object, ```data_dir``` refers to the location of the train/test data and ```switched_input_fn``` refers to the training input fn. With ```ScavengerOptimizer```, user needs to define a hook on the master/chief worker as well and append to ```the train_hooks``` list, which is given to the ```training_hooks``` argument of the ```EstimatorSpec``` object.
+
+
+*TF_CONFIG* environment variable json has an additional ```batch_size_list``` argument which is a comma separated list of per-worker batch-sizes. This parameter is updated in subsequent batchsize adjustments. The format of the parameter starts with batchsize of master, then worker-0, worker-1 and so on. The final *TF_CONFIG* for master in a 3 worker cluster looks like:
 ```
 {"environment": "cloud", "batch_size_list": "[128,128,128]", "task": {"index": 0, "type": "master"}, "model_dir": "/data", "cluster": {"worker": ["172.17.0.4:8000", "172.17.0.5:8000", "172.17.0.6:8000"], "ps": ["172.17.0.2:8000"], "master": ["172.17.0.3:8000"]}
 ```
@@ -39,7 +42,7 @@ train_op = optimizer.apply_gradients(grad_vars)
 In Scavenger, while defining the input fn, the user must specify *ONLY* 3 arguments in the input fn:
 * ```subset```: either train or test input fn
 * ```data_dir```: the location of the input data for training/testing/cross val.
-* ```node_batch_size```: the per-worker batch-size specified initially. If this value is different from ```batch_size_list``` batch-sizes in TF_CONFIG, the value will be overwritten to the workers batch-size in the TF_CONFIG environment variable.
+* ```node_batch_size```: the per-worker batch-size specified initially. If this value is different from ```batch_size_list``` batch-sizes in *TF_CONFIG*, the value will be overwritten to the workers batch-size in the *TF_CONFIG* environment variable.
 ```
 def input_fn(subset='train', data_dir='/data', node_batch_size=128):
 	...
