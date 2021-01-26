@@ -6,6 +6,21 @@ Scavenger is a framework built on top of Tensorflow and Tensorflow-Estimator for
 
 ## Developing
 
+To build tensorflow, you need to install bazel (v0.25.1) and run the following instructions (for CPU build):
+```
+git clone https://github.com/sahiltyagi4/tensorflow.git
+cd tensorflow
+git checkout -b scavenger
+sudo apt install python3-dev python3-pip
+pip install -U --user pip numpy wheel
+pip install -U --user keras_preprocessing --no-deps
+./configure
+bazel build --config=opt //tensorflow/tools/pip_package:build_pip_package
+./bazel-bin/tensorflow/tools/pip_package/build_pip_package /tmp/tensorflow_pkg
+pip install /tmp/tensorflow_pkg/tensorflow-*version*-*tags*.whl
+
+```
+
 If you want to build TensorFlow Estimator locally, you will need to [install Bazel](https://docs.bazel.build/versions/master/install.html) and [install TensorFlow]((https://www.tensorflow.org/get_started/os_setup.html)).
 
 ```sh
