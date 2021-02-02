@@ -1591,9 +1591,9 @@ class Estimator(object):
                            + ' with starttime ' + str(step_start) + ' and endtime ' + str(step_end)
                            + ' and global step ' + str(curr_global_step))
 
-              logging.info('@sahiltyagi upto COMPUTE GRADS call time is ' + str((cg_time - step_start) / 1000)
-                           + 'ms with starttime ' + str(step_start/ 1000000) + ' and endtime '
-                           + str(cg_time/ 1000000) + ' and global step ' + str(curr_global_step))
+              logging.info('@sahiltyagi upto COMPUTE GRADS call time is ' + str((cg_time - step_start))
+                           + 'ms with starttime ' + str(step_start) + ' and endtime '
+                           + str(cg_time) + ' and global step ' + str(curr_global_step))
 
               logging.info('@sahiltyagi TOTAL_TIME including runmetadata stats and parsing '
                            + str(final_endtime - step_start) + ' with finaltime ' + str(final_endtime)
