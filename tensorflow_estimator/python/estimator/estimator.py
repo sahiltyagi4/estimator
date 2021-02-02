@@ -1571,10 +1571,12 @@ class Estimator(object):
               #                                                                tf.get_default_graph().get_tensor_by_name(os.environ['tensor_for_global_grad_norm'])],
               #                                                                options=run_options, run_metadata=run_metadata)
 
-              _, loss, curr_global_step, another_norm, agg_norm = mon_sess.run([estimator_spec.train_op, estimator_spec.loss,
+              _, loss, curr_global_step, another_norm, cg_time, agg_norm = mon_sess.run([estimator_spec.train_op, estimator_spec.loss,
                                                                   tf.train.get_global_step(),
                                                                   tf.get_default_graph().get_tensor_by_name(os.environ['abc_norm']),
+                                                                  tf.get_default_graph().get_tensor_by_name(os.environ['grad_compute_time']),
                                                                   tf.get_default_graph().get_tensor_by_name(os.environ['tensor_for_global_grad_norm'])])
+              final_endtime = time.time()
 
               # cg_compg = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['syncrep_cgrad']))
               # logging.info('123456 compgrad ' + str(cg_compg) + ' using a global step vsl of ' + str(curr_global_step))
@@ -1588,6 +1590,14 @@ class Estimator(object):
               logging.info('@sahiltyagi train_op iteration time given worker is ' + str(step_end - step_start)
                            + ' with starttime ' + str(step_start) + ' and endtime ' + str(step_end)
                            + ' and global step ' + str(curr_global_step))
+
+              logging.info('@sahiltyagi upto COMPUTE GRADS call time is ' + str((cg_time - step_start) / 1000)
+                           + 'ms with starttime ' + str(step_start/ 1000000) + ' and endtime '
+                           + str(cg_time/ 1000000) + ' and global step ' + str(curr_global_step))
+
+              logging.info('@sahiltyagi TOTAL_TIME including runmetadata stats and parsing '
+                           + str(final_endtime - step_start) + ' with finaltime ' + str(final_endtime)
+                           + ' and step_start ' + str(step_start) + ' and global step ' + str(curr_global_step))
 
               logging.info('@tyagi abcd agg norm ' + str(agg_norm) + ' zxcv step ' + str(curr_global_step))
               # logging.info('@tyagi abcd wrker norm ' + str(wrkr_norm) + ' zxcv step ' + str(curr_global_step))
