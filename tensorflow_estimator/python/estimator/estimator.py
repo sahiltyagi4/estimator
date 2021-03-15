@@ -1599,10 +1599,12 @@ class Estimator(object):
               logging.info('@tyagi abcd agg norm ' + str(agg_norm) + ' zxcv step ' + str(curr_global_step))
 
               while True and curr_global_step == 5:
-                  repeat_grad_norm = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['abc_norm']))
                   recomputed_step = mon_sess.run(tf.train.get_global_step())
-                  logging.info('@sahiltyagi4 repeat worker_grad_norm ' + str(repeat_grad_norm) + ' using a global step COUNT of ' + str(recomputed_step))
-
+                  repeat_grad_norm = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['abc_norm']))
+                  recomputed_step1 = mon_sess.run(tf.train.get_global_step())
+                  logging.info('@sahiltyagi4 repeat worker_grad_norm ' + str(repeat_grad_norm) +
+                               ' using recomputed_step1 ' + str(recomputed_step1) + ' and recomputed_step '
+                               + str(recomputed_step))
 
               # logging.info('@tyagi abcd wrker norm ' + str(wrkr_norm) + ' zxcv step ' + str(curr_global_step))
               # logging.info('@sahil clipper worker_norm VALUE ' + str(clip_wrkrnorm) + ' using GLOBAL STEP VAL ' + str(curr_global_step))
