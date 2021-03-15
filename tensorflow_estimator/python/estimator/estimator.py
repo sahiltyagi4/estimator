@@ -1580,6 +1580,7 @@ class Estimator(object):
 
               # another_norm = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['abc_norm']))
               logging.info('@sahiltyagi4 another_norm ' + str(another_norm) + ' using a global step dsl of ' + str(curr_global_step))
+              logging.info('@ELDIABLO step_run again ' + str(mon_sess.run(tf.train.get_global_step())))
 
               local_current_step = curr_global_step
               step_end = time.time()
