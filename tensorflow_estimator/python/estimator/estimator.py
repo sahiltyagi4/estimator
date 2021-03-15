@@ -1578,9 +1578,11 @@ class Estimator(object):
                                                                   tf.get_default_graph().get_tensor_by_name(os.environ['tensor_for_global_grad_norm'])])
               final_endtime = time.time()
 
+              # NOTE: the global step above does not increment there as train_op and global_step are executed concurrently
+              curr_global_step = mon_sess.run(tf.train.get_global_step())
+
               # another_norm = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['abc_norm']))
               logging.info('@sahiltyagi4 another_norm ' + str(another_norm) + ' using a global step dsl of ' + str(curr_global_step))
-              logging.info('@ELDIABLO step_run again ' + str(mon_sess.run(tf.train.get_global_step())))
 
               local_current_step = curr_global_step
               step_end = time.time()
