@@ -1602,13 +1602,31 @@ class Estimator(object):
               logging.info('@tyagi abcd agg norm ' + str(agg_norm) + ' zxcv step ' + str(curr_global_step))
               logging.info('@123456789 step running again ' + str(mon_sess.run(tf.train.get_global_step())))
 
-              while True and curr_global_step == 5:
+              ctr_checkpoint = 0
+              while True and curr_global_step == 4:
                   recomputed_step = mon_sess.run(tf.train.get_global_step())
+
+                  flat_norm0 = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['abc_flats']))
+                  f123 = open(os.path.join(self._model_dir, 'gradprintsal_'+str(ctr_checkpoint)+'.txt'), 'w')
+                  f123.write(flat_norm0)
+                  f123.close()
+
                   repeat_grad_norm = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['abc_norm']))
                   recomputed_step1 = mon_sess.run(tf.train.get_global_step())
                   logging.info('@sahiltyagi4 repeat worker_grad_norm ' + str(repeat_grad_norm) +
                                ' using recomputed_step1 ' + str(recomputed_step1) + ' and recomputed_step '
                                + str(recomputed_step) + ' and curr_global_step ' + str(curr_global_step))
+                  ctr_checkpoint += 1
+
+                  flat_norm1 = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['abc_flats']))
+                  f123 = open(os.path.join(self._model_dir, 'gradprintsal_' + str(ctr_checkpoint) + '.txt'), 'w')
+                  f123.write(flat_norm1)
+                  f123.close()
+
+                  if ctr_checkpoint == 1:
+                      while True:
+                          print('in the very long debug loop....')
+                          time.sleep(200)
 
               # logging.info('@tyagi abcd wrker norm ' + str(wrkr_norm) + ' zxcv step ' + str(curr_global_step))
               # logging.info('@sahil clipper worker_norm VALUE ' + str(clip_wrkrnorm) + ' using GLOBAL STEP VAL ' + str(curr_global_step))
