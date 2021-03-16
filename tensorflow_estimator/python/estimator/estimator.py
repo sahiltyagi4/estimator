@@ -1607,8 +1607,9 @@ class Estimator(object):
                   recomputed_step = mon_sess.run(tf.train.get_global_step())
 
                   flat_norm0 = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['abc_flats']))
+                  flat_grads = [x1 for x1 in flat_norm0]
                   f123 = open(os.path.join(self._model_dir, 'gradprintsal_'+str(ctr_checkpoint)+'.txt'), 'w')
-                  f123.write(str(flat_norm0)+'\n')
+                  f123.write(str(flat_grads))
                   f123.close()
 
                   repeat_grad_norm = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['abc_norm']))
@@ -1619,8 +1620,9 @@ class Estimator(object):
                   ctr_checkpoint += 1
 
                   flat_norm1 = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['abc_flats']))
+                  flat_grads1 = [x1 for x1 in flat_norm1]
                   f123 = open(os.path.join(self._model_dir, 'gradprintsal_' + str(ctr_checkpoint) + '.txt'), 'w')
-                  f123.write(str(flat_norm1)+'\n')
+                  f123.write(str(flat_grads1))
                   f123.close()
 
                   if ctr_checkpoint == 1:
