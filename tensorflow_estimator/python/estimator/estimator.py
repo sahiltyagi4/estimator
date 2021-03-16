@@ -1607,6 +1607,7 @@ class Estimator(object):
                   recomputed_step = mon_sess.run(tf.train.get_global_step())
 
                   flat_norm0 = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['abc_flats']))
+                  flat_norm0 = tf.make_ndarray(flat_norm0)
                   f123 = open(os.path.join(self._model_dir, 'gradprintsal_'+str(ctr_checkpoint)+'.txt'), 'w')
                   f123.write(flat_norm0)
                   f123.close()
@@ -1619,14 +1620,15 @@ class Estimator(object):
                   ctr_checkpoint += 1
 
                   flat_norm1 = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['abc_flats']))
+                  flat_norm1 = tf.make_ndarray(flat_norm1)
                   f123 = open(os.path.join(self._model_dir, 'gradprintsal_' + str(ctr_checkpoint) + '.txt'), 'w')
                   f123.write(flat_norm1)
                   f123.close()
 
                   if ctr_checkpoint == 1:
                       while True:
-                          print('in the very long debug loop....')
-                          time.sleep(200)
+                          logging.info('in the very long debug loop....')
+                          time.sleep(300)
 
               # logging.info('@tyagi abcd wrker norm ' + str(wrkr_norm) + ' zxcv step ' + str(curr_global_step))
               # logging.info('@sahil clipper worker_norm VALUE ' + str(clip_wrkrnorm) + ' using GLOBAL STEP VAL ' + str(curr_global_step))
