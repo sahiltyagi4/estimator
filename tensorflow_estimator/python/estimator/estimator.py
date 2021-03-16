@@ -1606,8 +1606,9 @@ class Estimator(object):
               while True and curr_global_step == 4:
                   recomputed_step = mon_sess.run(tf.train.get_global_step())
 
-                  flat_norm0 = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['abc_flats']))
-                  flat_norm0 = tf.make_ndarray(flat_norm0)
+                  # flat_norm0 = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['abc_flats']))
+                  # flat_norm0 = tf.make_ndarray(flat_norm0)
+                  flat_norm0 = tf.make_ndarray(tf.get_default_graph().get_tensor_by_name(os.environ['abc_flats']))
                   f123 = open(os.path.join(self._model_dir, 'gradprintsal_'+str(ctr_checkpoint)+'.txt'), 'w')
                   f123.write(flat_norm0)
                   f123.close()
@@ -1619,8 +1620,9 @@ class Estimator(object):
                                + str(recomputed_step) + ' and curr_global_step ' + str(curr_global_step))
                   ctr_checkpoint += 1
 
-                  flat_norm1 = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['abc_flats']))
-                  flat_norm1 = tf.make_ndarray(flat_norm1)
+                  # flat_norm1 = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['abc_flats']))
+                  # flat_norm1 = tf.make_ndarray(flat_norm1)
+                  flat_norm1 = tf.make_ndarray(tf.get_default_graph().get_tensor_by_name(os.environ['abc_flats']))
                   f123 = open(os.path.join(self._model_dir, 'gradprintsal_' + str(ctr_checkpoint) + '.txt'), 'w')
                   f123.write(flat_norm1)
                   f123.close()
