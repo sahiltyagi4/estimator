@@ -1582,7 +1582,7 @@ class Estimator(object):
               curr_global_step = mon_sess.run(tf.train.get_global_step())
 
               #CHECK LOCAL COUNTER WORKS RIGHT FIRST!
-              cg_local_ctr = mon_sess.run(tf.get_default_graph().get_tensor_by_name('check_increment_ctr'))
+              cg_local_ctr = mon_sess.run(tf.get_default_graph().get_tensor_by_name('check_increment_ctr:0'))
               logging.info('@tyagi4 local cg call incremented ctr val ' + str(cg_local_ctr))
 
               # another_norm = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['abc_norm']))
