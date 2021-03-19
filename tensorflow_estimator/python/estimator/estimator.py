@@ -1577,6 +1577,7 @@ class Estimator(object):
                                                                   tf.get_default_graph().get_tensor_by_name(os.environ['grad_compute_time']),
                                                                   tf.get_default_graph().get_tensor_by_name(os.environ['tensor_for_global_grad_norm'])])
               final_endtime = time.time()
+              logging.info('@loss val1 ' + str(loss))
 
               # NOTE: the global step above does not increment there as train_op and global_step are executed concurrently
               curr_global_step = mon_sess.run(tf.train.get_global_step())
@@ -1584,6 +1585,8 @@ class Estimator(object):
               #CHECK LOCAL COUNTER WORKS RIGHT FIRST!
               cg_local_ctr = mon_sess.run(tf.get_default_graph().get_tensor_by_name('check_increment_ctr:0'))
               logging.info('@tyagi4 local cg call incremented ctr val ' + str(cg_local_ctr))
+              loss2 = mon_sess.run(estimator_spec.loss)
+              logging.info('@loss val2 ' + str(loss2))
 
               # another_norm = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['abc_norm']))
               logging.info('@sahiltyagi4 another_norm ' + str(another_norm) + ' using a global step dsl of ' + str(curr_global_step))
@@ -1617,6 +1620,8 @@ class Estimator(object):
                   f123.close()
 
                   repeat_grad_norm = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['abc_norm']))
+                  loss3 = mon_sess.run(estimator_spec.loss)
+                  logging.info('@loss in loop... ' + str(loss3))
                   recomputed_step1 = mon_sess.run(tf.train.get_global_step())
                   logging.info('@sahiltyagi4 repeat worker_grad_norm ' + str(repeat_grad_norm) +
                                ' using recomputed_step1 ' + str(recomputed_step1) + ' and recomputed_step '
