@@ -1572,7 +1572,7 @@ class Estimator(object):
               #                                                                options=run_options, run_metadata=run_metadata)
 
               cg_local_ctr1 = mon_sess.run(tf.get_default_graph().get_tensor_by_name('check_increment_ctr:0'))
-              logging.info('@tyagi4 local cg call incremented ctr val1 ' + str(cg_local_ctr1))
+              logging.info('@tyagi4 local cg call incremented ctr valXXX ' + str(cg_local_ctr1))
 
               _, loss, curr_global_step, another_norm, cg_time, agg_norm = mon_sess.run([estimator_spec.train_op, estimator_spec.loss,
                                                                   tf.train.get_global_step(),
