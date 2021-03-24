@@ -1618,8 +1618,8 @@ class Estimator(object):
               logging.info('@tyagi abcd agg norm ' + str(agg_norm) + ' zxcv step ' + str(curr_global_step))
               #logging.info('@123456789 step running again ' + str(mon_sess.run(tf.train.get_global_step())))
 
-              #ctr_checkpoint = 0
-              #while True and curr_global_step == 1:
+              ctr_checkpoint = 0
+              while True and curr_global_step == 1:
                   # recomputed_step = mon_sess.run(tf.train.get_global_step())
                   #
                   # flat_norm0 = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['abc_flats']))
@@ -1643,12 +1643,11 @@ class Estimator(object):
                   # f123.write(str(flat_grads1))
                   # f123.close()
 
-                  #ctr_checkpoint += 1
-
-                  #if ctr_checkpoint == 1:
-                  #    while True:
-                  #        logging.info('in the very long debug loop....')
-                  #        time.sleep(300)
+                  ctr_checkpoint += 1
+                  if ctr_checkpoint == 1:
+                      while True:
+                          logging.info('in the very long debug loop....')
+                          time.sleep(300)
 
               # logging.info('@tyagi abcd wrker norm ' + str(wrkr_norm) + ' zxcv step ' + str(curr_global_step))
               # logging.info('@sahil clipper worker_norm VALUE ' + str(clip_wrkrnorm) + ' using GLOBAL STEP VAL ' + str(curr_global_step))
