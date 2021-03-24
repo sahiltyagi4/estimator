@@ -1571,14 +1571,20 @@ class Estimator(object):
               #                                                                tf.get_default_graph().get_tensor_by_name(os.environ['tensor_for_global_grad_norm'])],
               #                                                                options=run_options, run_metadata=run_metadata)
 
-              cg_local_ctr1 = mon_sess.run(tf.get_default_graph().get_tensor_by_name('check_increment_ctr:0'))
-              logging.info('@tyagi4 local cg call incremented ctr valXXX ' + str(cg_local_ctr1))
+              # cg_local_ctr1 = mon_sess.run(tf.get_default_graph().get_tensor_by_name('check_increment_ctr:0'))
+              # logging.info('@tyagi4 local cg call incremented ctr valXXX ' + str(cg_local_ctr1))
 
-              _, loss, curr_global_step, another_norm, cg_time, agg_norm = mon_sess.run([estimator_spec.train_op, estimator_spec.loss,
-                                                                  tf.train.get_global_step(),
-                                                                  tf.get_default_graph().get_tensor_by_name(os.environ['abc_norm']),
-                                                                  tf.get_default_graph().get_tensor_by_name(os.environ['grad_compute_time']),
-                                                                  tf.get_default_graph().get_tensor_by_name(os.environ['tensor_for_global_grad_norm'])])
+              # _, loss, curr_global_step, another_norm, cg_time, agg_norm = mon_sess.run([estimator_spec.train_op, estimator_spec.loss,
+              #                                                     tf.train.get_global_step(),
+              #                                                     tf.get_default_graph().get_tensor_by_name(os.environ['abc_norm']),
+              #                                                     tf.get_default_graph().get_tensor_by_name(os.environ['grad_compute_time']),
+              #                                                     tf.get_default_graph().get_tensor_by_name(os.environ['tensor_for_global_grad_norm'])])
+
+              _, loss, curr_global_step, cg_time, agg_norm = mon_sess.run([estimator_spec.train_op, estimator_spec.loss,
+                                                                                         tf.train.get_global_step(),
+                                                                                         tf.get_default_graph().get_tensor_by_name(os.environ['grad_compute_time']),
+                                                                                         tf.get_default_graph().get_tensor_by_name(os.environ['tensor_for_global_grad_norm'])])
+              another_norm = 0.0
               final_endtime = time.time()
               logging.info('@loss val1 ' + str(loss))
 
@@ -1613,29 +1619,31 @@ class Estimator(object):
               logging.info('@123456789 step running again ' + str(mon_sess.run(tf.train.get_global_step())))
 
               ctr_checkpoint = 0
-              while True and curr_global_step == 4:
-                  recomputed_step = mon_sess.run(tf.train.get_global_step())
+              while True and curr_global_step == 1:
+                  # recomputed_step = mon_sess.run(tf.train.get_global_step())
+                  #
+                  # flat_norm0 = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['abc_flats']))
+                  # flat_grads = [x1 for x1 in flat_norm0]
+                  # f123 = open(os.path.join(self._model_dir, 'gradprintsal_'+str(ctr_checkpoint)+'.txt'), 'w')
+                  # f123.write(str(flat_grads))
+                  # f123.close()
+                  #
+                  # repeat_grad_norm = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['abc_norm']))
+                  # loss3 = mon_sess.run(estimator_spec.loss)
+                  # logging.info('@loss in loop... ' + str(loss3))
+                  # recomputed_step1 = mon_sess.run(tf.train.get_global_step())
+                  # logging.info('@sahiltyagi4 repeat worker_grad_norm ' + str(repeat_grad_norm) +
+                  #              ' using recomputed_step1 ' + str(recomputed_step1) + ' and recomputed_step '
+                  #              + str(recomputed_step) + ' and curr_global_step ' + str(curr_global_step))
+                  # ctr_checkpoint += 1
+                  #
+                  # flat_norm1 = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['abc_flats']))
+                  # flat_grads1 = [x1 for x1 in flat_norm1]
+                  # f123 = open(os.path.join(self._model_dir, 'gradprintsal_' + str(ctr_checkpoint) + '.txt'), 'w')
+                  # f123.write(str(flat_grads1))
+                  # f123.close()
 
-                  flat_norm0 = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['abc_flats']))
-                  flat_grads = [x1 for x1 in flat_norm0]
-                  f123 = open(os.path.join(self._model_dir, 'gradprintsal_'+str(ctr_checkpoint)+'.txt'), 'w')
-                  f123.write(str(flat_grads))
-                  f123.close()
-
-                  repeat_grad_norm = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['abc_norm']))
-                  loss3 = mon_sess.run(estimator_spec.loss)
-                  logging.info('@loss in loop... ' + str(loss3))
-                  recomputed_step1 = mon_sess.run(tf.train.get_global_step())
-                  logging.info('@sahiltyagi4 repeat worker_grad_norm ' + str(repeat_grad_norm) +
-                               ' using recomputed_step1 ' + str(recomputed_step1) + ' and recomputed_step '
-                               + str(recomputed_step) + ' and curr_global_step ' + str(curr_global_step))
                   ctr_checkpoint += 1
-
-                  flat_norm1 = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['abc_flats']))
-                  flat_grads1 = [x1 for x1 in flat_norm1]
-                  f123 = open(os.path.join(self._model_dir, 'gradprintsal_' + str(ctr_checkpoint) + '.txt'), 'w')
-                  f123.write(str(flat_grads1))
-                  f123.close()
 
                   if ctr_checkpoint == 1:
                       while True:
