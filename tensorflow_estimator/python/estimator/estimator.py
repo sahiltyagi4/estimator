@@ -1586,16 +1586,16 @@ class Estimator(object):
                                                                                          tf.get_default_graph().get_tensor_by_name(os.environ['tensor_for_global_grad_norm'])])
               another_norm = 0.0
               final_endtime = time.time()
-              logging.info('@loss val1 ' + str(loss))
+              #logging.info('@loss val1 ' + str(loss))
 
               # NOTE: the global step above does not increment there as train_op and global_step are executed concurrently
               curr_global_step = mon_sess.run(tf.train.get_global_step())
 
               #CHECK LOCAL COUNTER WORKS RIGHT FIRST!
-              cg_local_ctr = mon_sess.run(tf.get_default_graph().get_tensor_by_name('check_increment_ctr:0'))
-              logging.info('@tyagi4 local cg call incremented ctr val ' + str(cg_local_ctr))
-              loss2 = mon_sess.run(estimator_spec.loss)
-              logging.info('@loss val2 ' + str(loss2))
+              #cg_local_ctr = mon_sess.run(tf.get_default_graph().get_tensor_by_name('check_increment_ctr:0'))
+              #logging.info('@tyagi4 local cg call incremented ctr val ' + str(cg_local_ctr))
+              #loss2 = mon_sess.run(estimator_spec.loss)
+              #logging.info('@loss val2 ' + str(loss2))
 
               # another_norm = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['abc_norm']))
               logging.info('@sahiltyagi4 another_norm ' + str(another_norm) + ' using a global step dsl of ' + str(curr_global_step))
@@ -1616,10 +1616,10 @@ class Estimator(object):
                            + ' and step_start ' + str(step_start) + ' and global step ' + str(curr_global_step))
 
               logging.info('@tyagi abcd agg norm ' + str(agg_norm) + ' zxcv step ' + str(curr_global_step))
-              logging.info('@123456789 step running again ' + str(mon_sess.run(tf.train.get_global_step())))
+              #logging.info('@123456789 step running again ' + str(mon_sess.run(tf.train.get_global_step())))
 
-              ctr_checkpoint = 0
-              while True and curr_global_step == 1:
+              #ctr_checkpoint = 0
+              #while True and curr_global_step == 1:
                   # recomputed_step = mon_sess.run(tf.train.get_global_step())
                   #
                   # flat_norm0 = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['abc_flats']))
@@ -1643,12 +1643,12 @@ class Estimator(object):
                   # f123.write(str(flat_grads1))
                   # f123.close()
 
-                  ctr_checkpoint += 1
+                  #ctr_checkpoint += 1
 
-                  if ctr_checkpoint == 1:
-                      while True:
-                          logging.info('in the very long debug loop....')
-                          time.sleep(300)
+                  #if ctr_checkpoint == 1:
+                  #    while True:
+                  #        logging.info('in the very long debug loop....')
+                  #        time.sleep(300)
 
               # logging.info('@tyagi abcd wrker norm ' + str(wrkr_norm) + ' zxcv step ' + str(curr_global_step))
               # logging.info('@sahil clipper worker_norm VALUE ' + str(clip_wrkrnorm) + ' using GLOBAL STEP VAL ' + str(curr_global_step))
