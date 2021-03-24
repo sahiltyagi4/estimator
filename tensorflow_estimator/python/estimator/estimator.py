@@ -1554,6 +1554,8 @@ class Estimator(object):
           logging.info('@sahiltyagi4 logged global step is ' + str(global_current_step) + ' and logged local step is '
                        + str(local_current_step))
 
+          tf.compat.v1.enable_eager_execution()
+
           staleness = global_current_step - local_current_step
           if True:
           #if (global_current_step - local_current_step) <= int(estimator_spec.staleness):
