@@ -1619,7 +1619,7 @@ class Estimator(object):
               #logging.info('@123456789 step running again ' + str(mon_sess.run(tf.train.get_global_step())))
 
               ctr_checkpoint = 0
-              while True and curr_global_step == 7:
+              while True and curr_global_step == 4:
                   # recomputed_step = mon_sess.run(tf.train.get_global_step())
                   #
                   # flat_norm0 = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['abc_flats']))
