@@ -1580,10 +1580,9 @@ class Estimator(object):
               #                                                     tf.get_default_graph().get_tensor_by_name(os.environ['grad_compute_time']),
               #                                                     tf.get_default_graph().get_tensor_by_name(os.environ['tensor_for_global_grad_norm'])])
 
-              _, loss, curr_global_step, cg_time, agg_norm = mon_sess.run([estimator_spec.train_op, estimator_spec.loss,
+              _, loss, curr_global_step, cg_time = mon_sess.run([estimator_spec.train_op, estimator_spec.loss,
                                                                                          tf.train.get_global_step(),
-                                                                                         tf.get_default_graph().get_tensor_by_name(os.environ['grad_compute_time']),
-                                                                                         tf.get_default_graph().get_tensor_by_name(os.environ['tensor_for_global_grad_norm'])])
+                                                                                         tf.get_default_graph().get_tensor_by_name(os.environ['grad_compute_time'])])
               another_norm = 0.0
               final_endtime = time.time()
               #logging.info('@loss val1 ' + str(loss))
@@ -1615,11 +1614,11 @@ class Estimator(object):
                            + str(final_endtime - step_start) + ' with finaltime ' + str(final_endtime)
                            + ' and step_start ' + str(step_start) + ' and global step ' + str(curr_global_step))
 
-              logging.info('@tyagi abcd agg norm ' + str(agg_norm) + ' zxcv step ' + str(curr_global_step))
+              #logging.info('@tyagi abcd agg norm ' + str(agg_norm) + ' zxcv step ' + str(curr_global_step))
               #logging.info('@123456789 step running again ' + str(mon_sess.run(tf.train.get_global_step())))
 
               ctr_checkpoint = 0
-              while True and curr_global_step == 500:
+              while True and curr_global_step == 300:
                   # recomputed_step = mon_sess.run(tf.train.get_global_step())
                   #
                   # flat_norm0 = mon_sess.run(tf.get_default_graph().get_tensor_by_name(os.environ['abc_flats']))
