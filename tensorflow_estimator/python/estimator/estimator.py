@@ -1580,9 +1580,10 @@ class Estimator(object):
               #                                                     tf.get_default_graph().get_tensor_by_name(os.environ['grad_compute_time']),
               #                                                     tf.get_default_graph().get_tensor_by_name(os.environ['tensor_for_global_grad_norm'])])
 
-              _, loss, curr_global_step = mon_sess.run([estimator_spec.train_op, estimator_spec.loss,
-                                                        tf.train.get_global_step()])
-              cg_time = 0.0
+              _, loss, curr_global_step, cg_time = mon_sess.run([estimator_spec.train_op, estimator_spec.loss,
+                                                        tf.train.get_global_step(),
+                                                        tf.get_default_graph().get_tensor_by_name(os.environ['grad_compute_time'])])
+              #cg_time = 0.0
               another_norm = 0.0
               final_endtime = time.time()
               #logging.info('@loss val1 ' + str(loss))
