@@ -1532,8 +1532,10 @@ class Estimator(object):
       any_step_done = False
       for op in tf.get_default_graph().get_operations():
           logging.info('***************************variables and op names are: ' + str(op.name))
+
       # run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
       # run_metadata = tf.RunMetadata()
+
       switch_input_fn = False
       local_current_step = 0
       step_file = os.path.join(self._model_dir, 'localstep-'+w_type+str(w_index)+'.log')
