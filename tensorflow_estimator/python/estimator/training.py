@@ -847,71 +847,78 @@ class _TrainingExecutor(object):
                    start_delay_secs)
       time.sleep(start_delay_secs)
 
-    workload = config.get_workload
-    gbs_file = open(os.path.join(config.model_dir, 'global_batch_size.conf'), 'r')
-    os.environ['GLOBAL_CLUSTER_BATCH_SIZE'] = gbs_file.readline().strip()
-    gbs_file.close()
+    #workload = config.get_workload
+    #gbs_file = open(os.path.join(config.model_dir, 'global_batch_size.conf'), 'r')
+    #os.environ['GLOBAL_CLUSTER_BATCH_SIZE'] = gbs_file.readline().strip()
+    #gbs_file.close()
     # global_batch_size = int(os.environ.get('GLOBAL_CLUSTER_BATCH_SIZE'))
     # global_batch_size = self.regressed_global_batchsize(config.model_dir, global_batch_size)
     # os.environ['GLOBAL_CLUSTER_BATCH_SIZE'] = str(global_batch_size)
 
-    while True:
-      # @sahiltyagi4: call input fn here instead of the initial input fn defined with Estimator object.
-      start_time = time.time()
-      logging.info('@sahiltyagi4 going to switch the input function with a batch-size!!!!')
-      switched_input_fn = config.get_switched_input_fn
-      new_batch_size = int(os.environ['WORKER_BATCH_SIZE'])
-      logging.info('@sahiltyagi4 workload processed is ' + str(workload))
-      if 'resnet' in workload:
-        logging.info('@sahiltyagi4 going to use workload ' + workload)
-        new_input_fn = functools.partial(switched_input_fn,
-                                         config.get_datadir,
-                                         subset='train',
-                                         num_shards=0,
-                                         batch_size=new_batch_size,
-                                         run_config=config,
-                                         use_distortion_for_training=True)
-        loss, should_switch_input_fn = self._estimator.train(input_fn=new_input_fn,
-                                                             max_steps=self._train_spec.max_steps,
-                                                             hooks=list(self._train_spec.hooks) + list(self._train_hooks),
-                                                             saving_listeners=saving_listeners)
-      elif 'regression' in workload:
-        logging.info('@sahiltyagi4 going to use workload ' + workload)
-        new_input_fn = functools.partial(switched_input_fn, batchsize=new_batch_size)
-        logging.info('@sahiltyagi4 value set for new batch-size on switched input fn is {}'.format(new_batch_size))
-        loss, should_switch_input_fn = self._estimator.train(
-            input_fn=new_input_fn,
-            max_steps=self._train_spec.max_steps,
-            hooks=list(self._train_spec.hooks) + list(self._train_hooks),
-            saving_listeners=saving_listeners)
+    loss = self._estimator.train(input_fn=self._train_spec.input_fn,
+                                 max_steps=self._train_spec.max_steps,
+                                 hooks=list(self._train_spec.hooks) + list(self._train_hooks),
+                                 saving_listeners=saving_listeners)
+    logging.info('Loss for final step: %s.', loss)
 
-      elif 'mnist_cnn' in workload:
-        logging.info('@sahiltyagi4 going to use workload ' + workload)
-        new_input_fn = functools.partial(switched_input_fn)
-        logging.info('@sahiltyagi4 value set for new batch-size on switched input fn is {}'.format(new_batch_size))
-        loss, should_switch_input_fn = self._estimator.train(input_fn=new_input_fn,
-                                                             max_steps=self._train_spec.max_steps,
-                                                             hooks=list(self._train_spec.hooks) + list(self._train_hooks),
-                                                             saving_listeners=saving_listeners)
-      elif 'transformers' in workload:
-        loss, should_switch_input_fn = self._estimator.train(input_fn=self._train_spec.input_fn,
-                                                             max_steps=self._train_spec.max_steps,
-                                                             hooks=list(self._train_spec.hooks) + list(self._train_hooks),
-                                                             saving_listeners=saving_listeners)
-
-      logging.info('@sahiltyagi4 start time on switch input fn ' + str(start_time) + ' and end time on switch input fn ' + str(time.time()))
-
-      # loss = self._estimator.train(input_fn=self._train_spec.input_fn,
-      #                              max_steps=self._train_spec.max_steps,
-      #                              hooks=list(self._train_spec.hooks) + list(self._train_hooks),
-      #                              saving_listeners=saving_listeners)
-      #logging.info('@sahiltyagi4 start time in training.py ' + str(start_time) + ' and end time in training.py ' + str(time.time()))
-
-      if not should_switch_input_fn:
-        logging.info('Loss for final step: %s.', loss)
-        break
-
-    logging.info('@sahiltyagi4 TRAINING TERMINATED FOR GOOD!')
+    # while True:
+    #   # @sahiltyagi4: call input fn here instead of the initial input fn defined with Estimator object.
+    #   start_time = time.time()
+    #   logging.info('@sahiltyagi4 going to switch the input function with a batch-size!!!!')
+    #   #switched_input_fn = config.get_switched_input_fn
+    #   #new_batch_size = int(os.environ['WORKER_BATCH_SIZE'])
+    #   #logging.info('@sahiltyagi4 workload processed is ' + str(workload))
+    #   # if 'resnet' in workload:
+    #   #   logging.info('@sahiltyagi4 going to use workload ' + workload)
+    #   #   new_input_fn = functools.partial(switched_input_fn,
+    #   #                                    config.get_datadir,
+    #   #                                    subset='train',
+    #   #                                    num_shards=0,
+    #   #                                    batch_size=new_batch_size,
+    #   #                                    run_config=config,
+    #   #                                    use_distortion_for_training=True)
+    #   #   loss, should_switch_input_fn = self._estimator.train(input_fn=new_input_fn,
+    #   #                                                        max_steps=self._train_spec.max_steps,
+    #   #                                                        hooks=list(self._train_spec.hooks) + list(self._train_hooks),
+    #   #                                                        saving_listeners=saving_listeners)
+    #   # elif 'regression' in workload:
+    #   #   logging.info('@sahiltyagi4 going to use workload ' + workload)
+    #   #   new_input_fn = functools.partial(switched_input_fn, batchsize=new_batch_size)
+    #   #   logging.info('@sahiltyagi4 value set for new batch-size on switched input fn is {}'.format(new_batch_size))
+    #   #   loss, should_switch_input_fn = self._estimator.train(
+    #   #       input_fn=new_input_fn,
+    #   #       max_steps=self._train_spec.max_steps,
+    #   #       hooks=list(self._train_spec.hooks) + list(self._train_hooks),
+    #   #       saving_listeners=saving_listeners)
+    #   #
+    #   # elif 'mnist_cnn' in workload:
+    #   #   logging.info('@sahiltyagi4 going to use workload ' + workload)
+    #   #   new_input_fn = functools.partial(switched_input_fn)
+    #   #   logging.info('@sahiltyagi4 value set for new batch-size on switched input fn is {}'.format(new_batch_size))
+    #   #   loss, should_switch_input_fn = self._estimator.train(input_fn=new_input_fn,
+    #   #                                                        max_steps=self._train_spec.max_steps,
+    #   #                                                        hooks=list(self._train_spec.hooks) + list(self._train_hooks),
+    #   #                                                        saving_listeners=saving_listeners)
+    #   # elif 'transformers' in workload:
+    #   #   loss, should_switch_input_fn = self._estimator.train(input_fn=self._train_spec.input_fn,
+    #   #                                                        max_steps=self._train_spec.max_steps,
+    #   #                                                        hooks=list(self._train_spec.hooks) + list(self._train_hooks),
+    #   #                                                        saving_listeners=saving_listeners)
+    #
+    #   logging.info('@sahiltyagi4 start time on switch input fn ' + str(start_time) + ' and end time on switch input fn ' + str(time.time()))
+    #
+    #   loss = self._estimator.train(input_fn=self._train_spec.input_fn,
+    #                                max_steps=self._train_spec.max_steps,
+    #                                hooks=list(self._train_spec.hooks) + list(self._train_hooks),
+    #                                saving_listeners=saving_listeners)
+    #   logging.info('@sahiltyagi4 start time in training.py ' + str(start_time) + ' and end time in training.py ' + str(time.time()))
+    #   logging.info('Loss for final step: %s.', loss)
+    #
+    #   # if not should_switch_input_fn:
+    #   #   logging.info('Loss for final step: %s.', loss)
+    #   #   break
+    #
+    # #logging.info('@sahiltyagi4 TRAINING TERMINATED FOR GOOD!')
 
   def regressed_global_batchsize(self, model_dir, global_batch_size_value, workload):
 
