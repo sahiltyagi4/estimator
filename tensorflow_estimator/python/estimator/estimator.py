@@ -1011,17 +1011,22 @@ class Estimator(object):
 
   def _get_iterator_from_input_fn(self, input_fn, mode, distribution=None):
     """Calls `input_fn` and returns an iterator."""
-    if distribution is not None:
-      # pylint: disable=g-long-lambda
-      iterator = distribution.make_input_fn_iterator(
-          lambda input_context: self._call_input_fn(input_fn, mode,
-                                                    input_context))
-      input_hooks = [
-          estimator_util.DistributedIteratorInitializerHook(iterator)]
-    else:
-      result = self._call_input_fn(input_fn, mode)
-      iterator = result.make_initializable_iterator()
-      input_hooks = [estimator_util._DatasetInitializerHook(iterator)]  # pylint: disable=protected-access
+    # if distribution is not None:
+    #   # pylint: disable=g-long-lambda
+    #   iterator = distribution.make_input_fn_iterator(
+    #       lambda input_context: self._call_input_fn(input_fn, mode,
+    #                                                 input_context))
+    #   input_hooks = [
+    #       estimator_util.DistributedIteratorInitializerHook(iterator)]
+    # else:
+    #   result = self._call_input_fn(input_fn, mode)
+    #   iterator = result.make_initializable_iterator()
+    #   input_hooks = [estimator_util._DatasetInitializerHook(iterator)]  # pylint: disable=protected-access
+    # return iterator, input_hooks
+
+    result = self._call_input_fn(input_fn, mode)
+    iterator = result.make_initializable_iterator()
+    input_hooks = [estimator_util._DatasetInitializerHook(iterator)]  # pylint: disable=protected-access
     return iterator, input_hooks
 
   def _get_features_and_labels_from_input_fn(self, input_fn, mode):
