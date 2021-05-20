@@ -372,9 +372,14 @@ class Estimator(object):
       hooks.extend(self._convert_train_steps_to_hooks(steps, max_steps))
 
       saving_listeners = _check_listeners_type(saving_listeners)
-      loss, switch_input_fn = self._train_model(input_fn, hooks, saving_listeners)
-      logging.info('@sahiltyagi4 Loss before batch-size readjustment is made: %s.', loss)
-      return loss, switch_input_fn
+      loss = self._train_model(input_fn, hooks, saving_listeners)
+      logging.info('@sahiltyagi4 Loss is made: %s.', loss)
+      return loss
+
+      # saving_listeners = _check_listeners_type(saving_listeners)
+      # loss, switch_input_fn = self._train_model(input_fn, hooks, saving_listeners)
+      # logging.info('@sahiltyagi4 Loss before batch-size readjustment is made: %s.', loss)
+      # return loss, switch_input_fn
 
   def _convert_train_steps_to_hooks(self, steps, max_steps):
     """Create hooks to run correct number of steps in training.
@@ -1162,11 +1167,11 @@ class Estimator(object):
 
   def _train_model(self, input_fn, hooks, saving_listeners):
     if self._train_distribution:
-      #logging.info('@sahiltyagi in train...using distributed?')
+      logging.info('@sahiltyagi in train...using distributed?')
       return self._train_model_distributed(input_fn, hooks, saving_listeners)
     else:
       #@sahiltyagi4 THIS GETS CALLED..
-      #logging.info('@sahiltyagi in train...using default?')
+      logging.info('@sahiltyagi in train...using default?')
       return self._train_model_default(input_fn, hooks, saving_listeners)
 
   def _train_model_default(self, input_fn, hooks, saving_listeners):
@@ -1536,7 +1541,7 @@ class Estimator(object):
       # run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
       # run_metadata = tf.RunMetadata()
 
-      switch_input_fn = False
+      #switch_input_fn = False
       local_current_step = 0
       step_file = os.path.join(self._model_dir, 'localstep-'+w_type+str(w_index)+'.log')
       self.old_worker_steps = {}
@@ -1745,11 +1750,12 @@ class Estimator(object):
                               self.log_local_step(self._model_dir, curr_global_step, w_type, w_index)
                               if not mon_sess._is_closed():
                                   logging.info('@sahiltyagi4 made monitored session Nonetype')
-                                  switch_input_fn = True
+                                  #switch_input_fn = True
                                   mon_sess = None
                                   # break
                                   logging.info('@sahiltyagi4 going to return synchronous window loss now....')
-                                  return loss, switch_input_fn
+                                  return loss
+                                  #return loss, switch_input_fn
 
               elif estimator_spec.sync_mode == 'ASP':
                   if estimator_spec.window_size is not None:
@@ -1823,11 +1829,12 @@ class Estimator(object):
                                   if not mon_sess._is_closed():
                                       logging.info('@sahiltyagi4 gonna make session Nonetype since adjustment needs '
                                                    'to be made....')
-                                      switch_input_fn = True
+                                      #switch_input_fn = True
                                       mon_sess = None
                                       # break
                                       logging.info('@sahiltyagi4 going to return asynchronous window loss now....')
-                                      return loss, switch_input_fn
+                                      return loss
+                                      #return loss, switch_input_fn
           else:
               logging.info('@sahiltyagi4 ignored update due to staleness bound for local step '
                            + str(local_current_step) + ' and current global step ' + str(global_current_step))
