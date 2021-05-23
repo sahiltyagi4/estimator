@@ -990,3 +990,4 @@ def _get_model_dir(tf_config, model_dir):
     logging.info('Using model_dir in TF_CONFIG: %s', model_dir_in_tf_config)
 
   return model_dir or model_dir_in_tf_config
+
